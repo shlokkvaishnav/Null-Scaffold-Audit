@@ -1,0 +1,23 @@
+# Data
+data/*
+!data/01_raw/.gitkeep
+!data/02_intermediate/.gitkeep
+!data/03_processed/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+
+# Jupyter
+.ipynb_checkpoints
+
+# IDE
+.vscode/
+.idea/
+
+# Frontend
+node_modules/
+dist/
+build/
