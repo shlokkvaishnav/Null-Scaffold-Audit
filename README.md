@@ -1,47 +1,98 @@
 # 🌍 Climate Equation Discovery: AI-Driven Ocean Carbon Laws
 
-> **Goal:** Rediscovering the governing equations of Ocean Carbon Uptake ($pCO_2$) from raw satellite & buoy data using Symbolic Regression (Neuro-Symbolic AI).
+> **Result:** Successfully rediscovered the **Anthropogenic Climate Trend** (~1.89 ppm/year) and **Henry's Law Seasonality** ($R^2 = 0.77$) from raw ocean data using Symbolic Regression.
 
-## 🔬 The Problem
-The relationship between **Sea Surface Temperature (SST)** and **Ocean Acidity ($pCO_2$)** is complex and changing due to anthropogenic climate change. Traditional interactions are modeled using complex thermodynamic simulations (e.g., CMIP6). 
+## 🔬 The Mission
+Climate models (like CMIP6) are computationally expensive. This project investigates whether **Neuro-Symbolic AI (PySR)** can "rediscover" the governing physical equations of the Ocean Carbon Cycle directly from sparse, noisy satellite & buoy data.
 
-This project asks: **Can an AI agent "rediscover" Henry's Law and its biological deviations purely from sparse, noisy observation data?**
+---
 
-## 🧪 Methodology
-We utilize **Symbolic Regression** (via `PySR`) to search the space of mathematical expressions, optimizing for both accuracy (RMSE) and simplicity (Occam's Razor).
+## 🧪 The Experiment Arc (Methodology)
+We benchmarked Symbolic Regression on three different spatial scales to understand its limits.
 
-$$pCO_2 = f(SST, Salinity, Chl_a, t)$$
+### 🔴 Phase 1: The Global Attempt (Failure)
+* **Goal:** Discover a single "Universal Law" for Ocean CO2 ($fCO_2 = f(SST, Salinity, Year)$).
+* **Result:** $R^2 = 0.14$ (Poor).
+* **Why it failed:** The ocean is **physically heterogeneous**.
+    * At the **Equator**, warm water releases CO2 (Outgassing).
+    * At the **Poles**, cold water absorbs CO2 (Sink).
+    * The AI could not reconcile these opposing physical regimes into a single simple equation, essentially guessing the global average.
 
-### The Pipeline
-1.  **Data Ingestion**: Automated retrieval of **SOCAT v2025** (Surface Ocean CO₂ Atlas) Gridded Data.
-2.  **Interpolation**: Recovering missing sensor data using **Gaussian Processes** (Kriging).
-3.  **Discovery**: Running Genetic Algorithms to evolve algebraic equations.
-4.  **Validation**: Testing discovered laws against known thermodynamic constants (Weiss, 1974).
+### 🟡 Phase 2: The Regional Pivot (North Atlantic)
+* **Goal:** Restrict the domain to the **North Atlantic Gyre** (Lat 20N-60N) to isolate a specific thermodynamic regime.
+* **Result:** $R^2 = 0.12$ (Noisy).
+* **Insight:** The AI successfully detected a **Temperature Dependence** ($SST$ term appeared), but the region was still too vast, mixing frozen Nordic waters with tropical currents.
+
+### 🟢 Phase 3: The "Precision Strike" (Bermuda / BATS)
+* **Goal:** Target the **Bermuda Atlantic Time-series Study (BATS)** region (Lat 25N-35N), a textbook location for thermodynamic cycles.
+* **Feature Engineering:** We added **Seasonality** ($\sin(t), \cos(t)$) to help the AI "see" the yearly cycle.
+* **Result:** **$R^2 = 0.77$ (Success).**
+* **Discovery:** The AI autonomously separated the **Long-term Climate Trend** from the **Seasonal Oscillation**.
+
+---
+
+## 🏆 Key Findings
+
+| Experiment | Scope | Result | $R^2$ Score | Interpretation |
+| :--- | :--- | :--- | :--- | :--- |
+| **Global** | World Ocean | **Failed** | `0.14` | AI failed to handle regime shifts (Equator vs. Poles). |
+| **Regional** | North Atlantic | **Partial** | `0.12` | AI detected basic physics but struggled with noise. |
+| **Local** | **Bermuda (BATS)** | **Success** | **`0.77`** | **AI rediscovered the Keeling Curve & Solubility Pump.** |
+
+### The Discovered Equation (Bermuda)
+$$fCO_2 \approx 1.89 \cdot \text{Year} - \text{SST} \cdot (\cos(t) + \sin(t)) - C$$
+
+* **$1.89 \cdot \text{Year}$**: Matches the real-world atmospheric CO2 rise (~2.0 ppm/year).
+* **SST Term**: Captures the thermodynamic driver (warm water releases CO2).
+
+---
 
 ## 🛠️ Tech Stack
-* **Core Science**: `xarray`, `numpy`, `scipy`
+* **Core Science**: `xarray` (NetCDF handling), `numpy`
 * **Discovery Engine**: `PySR` (Symbolic Regression in Julia/Python)
-* **Data Ops**: `DVC` (Data Version Control), `Hydra` (Config Management)
-* **Visualization**: `matplotlib`, `seaborn`
+* **Data Ops**: `DVC` (Data Version Control)
+* **Data Source**: **SOCAT v2025** (Surface Ocean CO₂ Atlas) - *Gridded Monthly*
 
-## 🚀 Quick Start
+## 🚀 Reproduction Steps
+This project is fully reproducible.
+
+### 1. Installation
 ```bash
-# 1. Install Dependencies
+# Clone the repo
+git clone [https://github.com/shlokkvaishnav/climate-equation-discovery.git](https://github.com/shlokkvaishnav/climate-equation-discovery.git)
+cd climate-equation-discovery
+
+# Install dependencies (Python + Julia)
 pip install -r requirements.txt
-
-# 2. Download Data (SOCAT v2025 ~4GB)
-python src/data/downloader.py
-
-# 3. Run the Discovery Experiment
-python src/discovery.py
 ````
 
-## 📚 Data Source
+### 2\. Data Ingestion
 
-  * **SOCAT v2025**: Bakker, D. C. E., et al. (2016). A multi-decade record of high quality fCO2 data in version 3 of the Surface Ocean CO2 Atlas (SOCAT). *Earth System Science Data*.
+Download the official SOCAT v2025 dataset (\~4GB) automatically:
+
+```bash
+python src/data/downloader.py
+```
+
+### 3\. Processing
+
+Clean, filter, and feature-engineer the raw NetCDF into training-ready Parquet files:
+
+```bash
+python src/data/process_data.py
+```
+
+### 4\. Run the Discovery
+
+Reproduce the winning experiment on the Bermuda Time-series (BATS):
+
+```bash
+python src/discovery_bats.py
+```
 
 -----
 
-*Author: Shlok Vaishnav | Status: Research Preview*
+*Author: Shlok Vaishnav | Status: Research Benchmark Complete*
 
-````
+```
+```
