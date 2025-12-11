@@ -37,16 +37,29 @@ We benchmarked Symbolic Regression on its ability to handle **Global Heterogenei
 | **Global Naive** | Standard SR | `0.14` | Failed due to physical contradictions (Equator vs Poles). |
 | **Global Hybrid** | **Clustered SR** | **`0.25`** | **+79% Boost.** Proves that "Spatial Attention" is required for global modeling. |
 
+### 🧮 Discovered Physics by Regime
+The Hybrid Agent discovered that different ocean regions obey different physical laws.
+
+| Regime | Discovered Equation (Simplified) | Physics Interpretation |
+| :--- | :--- | :--- |
+| **0** | $fCO_2 \approx Year + SST \cdot \sin(Salinity) - 1631$ | **Complex Seasonality.** Detected interaction between Salinity and SST. |
+| **2** | $fCO_2 \approx SST + 348$ | **Pure Thermodynamics.** Simple solubility pump (Warmer = More CO2). |
+| **3** | $fCO_2 \approx 2 \cdot SST + \cos(t) \cdot (31 - SST) + Year$ | **Interactive.** Strong interaction where Temperature dampens Seasonality. |
+| **4** | $fCO_2 \approx SST + Year - 1662$ | **Linear Driver.** Region dominated by the long-term anthropogenic trend. |
+| **5** | $fCO_2 \approx SST + 351$ | **Pure Thermodynamics.** Similar to Regime 2 but distinct constant. |
+
+*(Note: Equations are simplified from PySR output for readability. See `src/discovery_global_clustered.py` for full output.)*
+
 ---
 
-## 📊 Model Benchmarking
-We compared our Symbolic Regression model against standard baselines.
+## 📊 Model Benchmarking (Global Scale)
+We compared our **Adaptive Hybrid Agent** against standard baselines on the full Global dataset.
 
 | Model | $R^2$ Score | Interpretability | Insight |
 | :--- | :--- | :--- | :--- |
-| **Random Forest** | `0.92` | 🌑 Black Box | Upper bound on accuracy (captures noise). |
-| **Linear Regression** | `0.83` | 🌗 Gray Box | High score, but assumes variables are independent. |
-| **Hybrid PySR (Ours)** | **`0.25`** | 🌕 **White Box** | **Physics-Aware.** Traded raw accuracy for the ability to discover distinct physical regimes autonomously. |
+| **Linear Regression** | `0.15` | 🌗 Gray Box | **Fails.** Cannot handle global complexity (heterogeneity). |
+| **Hybrid PySR (Ours)** | **`0.25`** | 🌕 **White Box** | **+66% Improvement.** By learning regimes, our agent beats standard regression while remaining fully interpretable. |
+| **Random Forest** | `0.41` | 🌑 Black Box | **The "Upper Bound."** Even powerful black-box models struggle globally, proving the difficulty of this task. |
 
 ---
 
