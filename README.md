@@ -47,6 +47,17 @@ $$fCO_2 \approx 1.89 \cdot \text{Year} - \text{SST} \cdot (\cos(t) + \sin(t)) - 
 
 ---
 
+## 📊 Model Benchmarking
+We compared our Symbolic Regression model against standard baselines to validate the finding.
+
+| Model | $R^2$ Score | Interpretability | Insight |
+| :--- | :--- | :--- | :--- |
+| **Random Forest** | `0.92` | 🌑 Black Box | Upper bound on accuracy (captures noise). |
+| **Linear Regression** | `0.83` | 🌗 Gray Box | High score, but assumes variables are independent. |
+| **PySR (Ours)** | **`0.77`** | 🌕 **White Box** | **Discovered a physical interaction:** $SST \times Season$. Traded ~6% accuracy for a simpler, physically valid equation. |
+
+---
+
 ## 🛠️ Tech Stack
 * **Core Science**: `xarray` (NetCDF handling), `numpy`
 * **Discovery Engine**: `PySR` (Symbolic Regression in Julia/Python)
