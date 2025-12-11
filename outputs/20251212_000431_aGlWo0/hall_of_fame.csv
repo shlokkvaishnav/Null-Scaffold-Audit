@@ -1,0 +1,13 @@
+Complexity,Loss,Equation
+1,3218.5686,"363.52197"
+3,2961.7046,"SST + 348.18533"
+5,2843.9973,"(Year + -1662.3815) + SST"
+7,2838.348,"Season_Cos + ((Year + SST) + -1662.3478)"
+9,2683.328,"(SST * (-158.84537 - (Year * -0.08004995))) + 332.22116"
+11,2672.1782,"((Season_Cos + SST) * (-158.84537 - (Year * -0.08004995))) + 332.22116"
+12,2670.5,"((-158.10835 - (Year * -0.079711914)) * (SST + sin(Salinity))) + 330.97742"
+13,2665.5444,"((-161.46378 - (Year * -0.0814007)) * ((Season_Cos + SST) - Season_Sin)) - -330.43774"
+14,2652.4043,"((SST + sin(Season_Cos + Salinity)) * (-160.6692 - (Year * -0.08100654))) - -330.50076"
+16,2640.3242,"((sin(Salinity + Season_Cos) + (Season_Cos + SST)) * (-159.91039 - (-0.08060679 * Year))) - -331.6682"
+18,2636.946,"((sin(Season_Cos + Salinity) + (Season_Cos + SST)) * (-159.91039 - (Year * -0.08060679))) - (-331.6682 - Season_Cos)"
+20,2634.506,"(((sin(Salinity + Season_Cos) + (Season_Cos + SST)) * (-159.91039 - (-0.08060679 * Year))) - (-331.6682 - Season_Cos)) + Season_Cos"
