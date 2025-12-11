@@ -1,0 +1,29 @@
+binary_operators:
+  - "+"
+  - "*"
+  - "-"
+  - "/"
+
+unary_operators:
+  - "exp"
+  - "log"
+  - "sin"
+  - "cos"
+
+# Evolution Strategy
+n_populations: 20
+population_size: 50
+n_generations: 200
+parsimony: 0.001
+random_state: 42
+
+# Constraints
+maxsize: 25
+model_selection: "best"
+
+complexity_of_operators:
+  "exp": 2
+  "log": 2
+  "sin": 2
+  "cos": 2
+  "/": 2
