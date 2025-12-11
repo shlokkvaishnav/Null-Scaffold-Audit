@@ -1,5 +1,9 @@
 # 🌍 Climate Equation Discovery: AI-Driven Ocean Carbon Laws
 
+![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Status](https://img.shields.io/badge/Status-Research%20Benchmark-orange)
+
 > **Result:** Successfully rediscovered the **Anthropogenic Climate Trend** (~1.89 ppm/year) and **Henry's Law Seasonality** ($R^2 = 0.77$) from raw ocean data using Symbolic Regression.
 
 ## 🔬 The Mission
