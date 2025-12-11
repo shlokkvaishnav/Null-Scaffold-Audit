@@ -42,13 +42,12 @@ The Hybrid Agent discovered that different ocean regions obey different physical
 
 | Regime | Discovered Equation (Simplified) | Physics Interpretation |
 | :--- | :--- | :--- |
-| **0** | $fCO_2 \approx Year + SST \cdot \sin(Salinity) - 1631$ | **Complex Seasonality.** Detected interaction between Salinity and SST. |
+| **0** | $fCO_2 \approx Year + SST \cdot \sin(-0.86 \cdot Salinity) - 1631$ | **Salinity Interaction.** Detected complex interaction between Salinity cycles and SST. |
+| **1** | $fCO_2 \approx SST + 1.76 \cdot (Year + 13.6 \cdot \cos(0.17 \cdot SST)) - 3198$ | **Non-Linear Thermodynamics.** Found a highly non-linear temperature response distinct from other regimes. |
 | **2** | $fCO_2 \approx SST + 348$ | **Pure Thermodynamics.** Simple solubility pump (Warmer = More CO2). |
-| **3** | $fCO_2 \approx 2 \cdot SST + \cos(t) \cdot (31 - SST) + Year$ | **Interactive.** Strong interaction where Temperature dampens Seasonality. |
-| **4** | $fCO_2 \approx SST + Year - 1662$ | **Linear Driver.** Region dominated by the long-term anthropogenic trend. |
-| **5** | $fCO_2 \approx SST + 351$ | **Pure Thermodynamics.** Similar to Regime 2 but distinct constant. |
-
-*(Note: Equations are simplified from PySR output for readability. See `src/discovery_global_clustered.py` for full output.)*
+| **3** | $fCO_2 \approx 2 \cdot SST + \cos(t) \cdot (31.9 - SST) + Year - 1681$ | **Dampened Seasonality.** Strong interaction term where Temperature dampens the Seasonal cycle. |
+| **4** | $fCO_2 \approx SST + Year - 1662$ | **Linear Driver.** Dominated by the long-term anthropogenic trend + Temperature. |
+| **5** | $fCO_2 \approx SST + 352$ | **Pure Thermodynamics.** Identical structure to Regime 2 but with a different solubility constant. |
 
 ---
 
@@ -109,4 +108,6 @@ python src/discovery_global_clustered.py
 
 *Author: Shlok Vaishnav | Status: Research Benchmark Complete*
 
-```
+````
+
+---
