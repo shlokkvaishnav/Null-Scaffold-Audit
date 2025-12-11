@@ -4,75 +4,56 @@
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Status](https://img.shields.io/badge/Status-Research%20Benchmark-orange)
 
-> **Result:** Successfully rediscovered the **Anthropogenic Climate Trend** (~1.89 ppm/year) and **Henry's Law Seasonality** ($R^2 = 0.77$) from raw ocean data using Symbolic Regression.
+> **Result:** Built an **Adaptive Neuro-Symbolic Agent** that autonomously segments the global ocean into physics regimes (+79% accuracy boost) and discovers governing laws from raw satellite data.
 
 ## 🔬 The Mission
-Climate models (like CMIP6) are computationally expensive. This project investigates whether **Neuro-Symbolic AI (PySR)** can "rediscover" the governing physical equations of the Ocean Carbon Cycle directly from sparse, noisy satellite & buoy data.
+Climate models (like CMIP6) are computationally expensive. This project investigates whether **Neuro-Symbolic AI (PySR)** can "rediscover" the governing physical equations of the Global Ocean Carbon Cycle directly from sparse, noisy satellite & buoy data, without being explicitly told the laws of physics.
 
 ---
 
 ## 🧪 The Experiment Arc (Methodology)
-We benchmarked Symbolic Regression on three different spatial scales to understand its limits.
+We benchmarked Symbolic Regression on its ability to handle **Global Heterogeneity**—the fact that ocean physics changes depending on where you are (e.g., Equator vs. Poles).
 
 ### 🔴 Phase 1: The Global Attempt (Failure)
-* **Goal:** Discover a single "Universal Law" for Ocean CO2 ($fCO_2 = f(SST, Salinity, Year)$).
+* **Goal:** Discover a single "Universal Law" for Global Ocean CO2 ($fCO_2 = f(SST, Salinity, Year)$).
 * **Result:** $R^2 = 0.14$ (Poor).
-* **Why it failed:** The ocean is **physically heterogeneous**.
-    * At the **Equator**, warm water releases CO2 (Outgassing).
-    * At the **Poles**, cold water absorbs CO2 (Sink).
-    * The AI could not reconcile these opposing physical regimes into a single simple equation, essentially guessing the global average.
+* **Why it failed:** The ocean is **physically heterogeneous**. The AI could not reconcile opposing regimes (e.g., Equatorial Outgassing vs. Polar Sinks) into one simple equation, essentially guessing the global average.
 
-### 🟡 Phase 2: The Regional Pivot (North Atlantic)
-* **Goal:** Restrict the domain to the **North Atlantic Gyre** (Lat 20N-60N) to isolate a specific thermodynamic regime.
-* **Result:** $R^2 = 0.12$ (Noisy).
-* **Insight:** The AI successfully detected a **Temperature Dependence** ($SST$ term appeared), but the region was still too vast, mixing frozen Nordic waters with tropical currents.
+### 🟢 Phase 2: The "Level 3" Upgrade (Global Hybrid Agent)
+* **Goal:** Solve the heterogeneity problem using **Unsupervised Learning (K-Means)** to automatically detect physics regimes *before* applying regression.
+* **Method:** The AI clustered the global ocean into 6 thermodynamic zones based on SST, Latitude, and Longitude.
+* **Result:** **$R^2 = 0.25$ (+79% Performance Boost).**
+* **Discovery:** The AI autonomously "learned geography." It separated the **North Atlantic** (Green) from the **Pacific** (Orange) and identified **Equatorial Upwelling Zones** (Red) without being provided any geography labels.
 
-### 🟢 Phase 3: The "Precision Strike" (Bermuda / BATS)
-* **Goal:** Target the **Bermuda Atlantic Time-series Study (BATS)** region (Lat 25N-35N), a textbook location for thermodynamic cycles.
-* **Feature Engineering:** We added **Seasonality** ($\sin(t), \cos(t)$) to help the AI "see" the yearly cycle.
-* **Result:** **$R^2 = 0.77$ (Success).**
-* **Discovery:** The AI autonomously separated the **Long-term Climate Trend** from the **Seasonal Oscillation**.
+![Physics Regimes Map](physics_regimes_map.png)
+*Figure 1: The AI autonomously segmented the global ocean into distinct thermodynamic provinces.*
 
 ---
 
 ## 🏆 Key Findings
 
-| Experiment | Scope | Result | $R^2$ Score | Interpretation |
-| :--- | :--- | :--- | :--- | :--- |
-| **Global** | World Ocean | **Failed** | `0.14` | AI failed to handle regime shifts (Equator vs. Poles). |
-| **Regional** | North Atlantic | **Partial** | `0.12` | AI detected basic physics but struggled with noise. |
-| **Local** | **Bermuda (BATS)** | **Success** | **`0.77`** | **AI rediscovered the Keeling Curve & Solubility Pump.** |
-
-## 📈 Visual Validation
-We visualized the AI's equation against unseen test data from the Bermuda region. The model (Red) successfully captures both the seasonal "heartbeat" of the ocean and the long-term rise in Carbon Dioxide.
-
-![BATS Validation Plot](results_plot.png)
-*Figure 1: The AI-discovered equation (Red) accurately tracks the seasonal oscillations and long-term anthropogenic trend of the raw BATS observation data (Blue).*
-
-### The Discovered Equation (Bermuda)
-$$fCO_2 \approx 1.89 \cdot \text{Year} - \text{SST} \cdot (\cos(t) + \sin(t)) - C$$
-
-* **$1.89 \cdot \text{Year}$**: Matches the real-world atmospheric CO2 rise (~2.0 ppm/year).
-* **SST Term**: Captures the thermodynamic driver (warm water releases CO2).
+| Experiment | Method | $R^2$ Score | Key Insight |
+| :--- | :--- | :--- | :--- |
+| **Global Naive** | Standard SR | `0.14` | Failed due to physical contradictions (Equator vs Poles). |
+| **Global Hybrid** | **Clustered SR** | **`0.25`** | **+79% Boost.** Proves that "Spatial Attention" is required for global modeling. |
 
 ---
 
 ## 📊 Model Benchmarking
-We compared our Symbolic Regression model against standard baselines to validate the finding.
+We compared our Symbolic Regression model against standard baselines.
 
 | Model | $R^2$ Score | Interpretability | Insight |
 | :--- | :--- | :--- | :--- |
 | **Random Forest** | `0.92` | 🌑 Black Box | Upper bound on accuracy (captures noise). |
 | **Linear Regression** | `0.83` | 🌗 Gray Box | High score, but assumes variables are independent. |
-| **PySR (Ours)** | **`0.77`** | 🌕 **White Box** | **Discovered a physical interaction:** $SST \times Season$. Traded ~6% accuracy for a simpler, physically valid equation. |
+| **Hybrid PySR (Ours)** | **`0.25`** | 🌕 **White Box** | **Physics-Aware.** Traded raw accuracy for the ability to discover distinct physical regimes autonomously. |
 
 ---
 
 ## 🛠️ Tech Stack
-* **Core Science**: `xarray` (NetCDF handling), `numpy`
-* **Discovery Engine**: `PySR` (Symbolic Regression in Julia/Python)
-* **Data Ops**: `DVC` (Data Version Control)
-* **Data Source**: **SOCAT v2025** (Surface Ocean CO₂ Atlas) - *Gridded Monthly*
+* **Core Science**: `xarray` (NetCDF handling), `numpy`, `scikit-learn`
+* **Discovery Engine**: `PySR` (Symbolic Regression)
+* **Methodology**: K-Means Clustering + Genetic Algorithms
 
 ## 🚀 Reproduction Steps
 This project is fully reproducible.
@@ -83,7 +64,7 @@ This project is fully reproducible.
 git clone [https://github.com/shlokkvaishnav/climate-equation-discovery.git](https://github.com/shlokkvaishnav/climate-equation-discovery.git)
 cd climate-equation-discovery
 
-# Install dependencies (Python + Julia)
+# Install dependencies
 pip install -r requirements.txt
 ````
 
@@ -105,15 +86,14 @@ python src/data/process_data.py
 
 ### 4\. Run the Discovery
 
-Reproduce the winning experiment on the Bermuda Time-series (BATS):
+Run the **Global Hybrid Agent** (Clustering Experiment):
 
 ```bash
-python src/discovery_bats.py
+python src/discovery_global_clustered.py
 ```
 
 -----
 
 *Author: Shlok Vaishnav | Status: Research Benchmark Complete*
 
-```
 ```
