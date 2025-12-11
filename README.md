@@ -39,6 +39,12 @@ We benchmarked Symbolic Regression on three different spatial scales to understa
 | **Regional** | North Atlantic | **Partial** | `0.12` | AI detected basic physics but struggled with noise. |
 | **Local** | **Bermuda (BATS)** | **Success** | **`0.77`** | **AI rediscovered the Keeling Curve & Solubility Pump.** |
 
+## 📈 Visual Validation
+We visualized the AI's equation against unseen test data from the Bermuda region. The model (Red) successfully captures both the seasonal "heartbeat" of the ocean and the long-term rise in Carbon Dioxide.
+
+![BATS Validation Plot](results_plot.png)
+*Figure 1: The AI-discovered equation (Red) accurately tracks the seasonal oscillations and long-term anthropogenic trend of the raw BATS observation data (Blue).*
+
 ### The Discovered Equation (Bermuda)
 $$fCO_2 \approx 1.89 \cdot \text{Year} - \text{SST} \cdot (\cos(t) + \sin(t)) - C$$
 
