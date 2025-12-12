@@ -19,7 +19,7 @@ We benchmarked Symbolic Regression on its ability to handle **Global Heterogenei
 * **Result:** $R^2 = 0.14$ (Poor).
 * **Why it failed:** The ocean is **physically heterogeneous**. A single equation cannot reconcile opposing regimes (e.g., Equatorial Outgassing vs. Polar Sinks), leading the AI to merely guess the global average.
 
-### 🟢 Phase 2: The "Level 3" Upgrade (Global Hybrid Agent)
+### 🟢 Phase 2: The Upgrade (Global Hybrid Agent)
 * **Goal:** Solve the heterogeneity problem using **Unsupervised Learning (K-Means)** to automatically detect physics regimes *before* applying regression.
 * **Method:** The AI clustered the global ocean into 6 thermodynamic zones based on SST, Latitude, and Longitude.
 * **Result:** **$R^2 = 0.25$ (+79% Performance Boost over Naive SR).**
@@ -79,35 +79,32 @@ cd climate-equation-discovery
 
 # Install dependencies
 pip install -r requirements.txt
-````
 
-### 2\. Data Ingestion
+```
 
-Download the official SOCAT v2025 dataset (\~4GB) automatically:
+###2. Data IngestionDownload the official SOCAT v2025 dataset (~4GB) automatically:
 
 ```bash
 python src/data/downloader.py
+
 ```
 
-### 3\. Processing
-
-Clean, filter, and feature-engineer the raw NetCDF into training-ready Parquet files:
+###3. ProcessingClean, filter, and feature-engineer the raw NetCDF into training-ready Parquet files:
 
 ```bash
 python src/data/process_data.py
+
 ```
 
-### 4\. Run the Discovery
-
-Run the **Global Hybrid Agent** (Clustering Experiment):
+###4. Run the DiscoveryRun the **Global Hybrid Agent** (Clustering Experiment):
 
 ```bash
 python src/discovery_global_clustered.py
+
 ```
 
------
+---
 
 *Author: Shlok Vaishnav | Status: Research Benchmark Complete*
 
-```
 ```
