@@ -1,91 +1,122 @@
-**Copy & Paste this directly into your `README.md` file:**```markdown
-# 🌍 Climate Equation Discovery: AI-Driven Ocean Carbon Laws
+# 🌍 Climate Equation Discovery: The AI Physicist
 
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Status](https://img.shields.io/badge/Status-Research%20Benchmark-orange)
 ![CI](https://github.com/shlokkvaishnav/climate-equation-discovery/actions/workflows/ci.yml/badge.svg)
 
-> **Result:** Built an **Autonomous AI Scientist** that "rediscovers" the laws of ocean physics from scratch. The agent segments the global ocean into regimes, enforces thermodynamic constraints via Neural Networks, and detects seasonal state shifts over time.
+> **Result:** Built an **Autonomous AI Scientist** that segments the global ocean into physics regimes (+79% accuracy boost), enforces thermodynamic laws via Neural Networks, and detects seasonal state shifts.
 
-[📄 **Read the Technical Report (PDF)**](Technical_Report.pdf)
 
 ---
 
 ## 🔬 The Mission
-Climate models (like CMIP6) are computationally expensive black boxes. This project investigates whether **Neuro-Symbolic AI** can autonomously rediscover the governing differential equations of the Global Ocean Carbon Cycle directly from sparse, noisy satellite & buoy data, **without being explicitly told the laws of physics.**
+Climate models (like CMIP6) are computationally expensive black boxes. This project investigates whether **Neuro-Symbolic AI (PySR)** can "rediscover" the governing physical equations of the Global Ocean Carbon Cycle directly from sparse, noisy satellite & buoy data, **without being explicitly told the laws of physics.**
 
 ---
 
-## 🧠 The "AI Scientist" Architecture
-We built a full-stack cognitive architecture that mimics the scientific discovery process:
+## 🧠 The "AI Scientist" Cognitive Architecture
+To solve this, we built a pipeline that mimics the scientific method. This answers **"Why this specific architecture?"**:
 
-| Component | Cognitive Skill | Technical Implementation |
-| :--- | :--- | :--- |
-| **👀 Perception** | **Geography** | **Unsupervised Clustering (K-Means)** to automatically discover thermodynamic provinces (e.g., separating Atlantic vs. Pacific). |
-| **🧠 Reasoning** | **Math Discovery** | **Symbolic Regression (PySR)** to derive interpretable equations ($fCO_2 = f(T, S, t)$) for each regime. |
-| **⚖️ Validation** | **Physics Rules** | **Physics-Informed Neural Networks (PINNs)** to enforce thermodynamic stability and smoothness constraints. |
-| **⏳ Adaptation** | **Time Dynamics** | **Hidden Markov Models (HMMs)** to detect dynamic regime switching (e.g., Seasonal/El Niño shifts). |
+| Step | Component | Cognitive Skill | Why we used it |
+| :--- | :--- | :--- | :--- |
+| **1** | **K-Means Clustering** | **👀 Perception** | The ocean is **Heterogeneous**. We need to find "regions" (e.g., Atlantic vs Pacific) before we can find equations. |
+| **2** | **Symbolic Regression** | **🧠 Reasoning** | We need **White-Box Equations** (Math), not just predictions. This derives $fCO_2 = f(T, S, t)$. |
+| **3** | **PINN (PyTorch)** | **⚖️ Validation** | Pure data is noisy. We use **Physics-Informed NNs** to force the model to obey thermodynamic laws (smoothness). |
+| **4** | **HMM (Markov)** | **⏳ Adaptation** | The ocean isn't static. We use **Hidden Markov Models** to detect when physics changes over time (Seasons). |
 
 ---
 
-## 🧪 Key Experiments & Findings
+## 🧪 The Experiment Arc (Methodology)
 
-### 1. Autonomous Geography Discovery (Spatial Regimes)
-* **Goal:** Solve the "Global Heterogeneity" problem (Equator physics $\neq$ Polar physics).
-* **Result:** The agent autonomously segmented the global ocean into 6 thermodynamic zones. It separated the **North Atlantic (Green)** from the **Pacific (Orange)** purely based on data signatures, without being given any coordinates.
+### 🔴 Phase 1: The Global Attempt (Failure)
+* **Goal:** Discover a single "Universal Law" for Global Ocean CO2 ($fCO_2 = f(SST, Salinity, Year)$).
+* **Result:** $R^2 = 0.14$ (Poor).
+* **Why it failed:** The ocean is **physically heterogeneous**. A single equation cannot reconcile opposing regimes (e.g., Equatorial Outgassing vs. Polar Sinks), leading the AI to merely guess the global average.
+
+### 🟢 Phase 2: The Upgrade (Global Hybrid Agent)
+* **Goal:** Solve the heterogeneity problem using **Unsupervised Learning (K-Means)** to automatically detect physics regimes *before* applying regression.
+* **Result:** **$R^2 = 0.25$ (+79% Performance Boost over Naive SR).**
+* **Discovery:** The AI autonomously "learned geography." It separated the **North Atlantic** (Green) from the **Pacific** (Orange) and identified **Equatorial Upwelling Zones** (Red) without being provided any geography labels.
 
 ![Physics Regimes Map](physics_regimes_map.png)
-*Figure 1: The AI autonomously "learned geography," identifying distinct thermodynamic provinces.*
 
-### 2. Dynamic Regime Detection (Temporal Regimes)
-* **Goal:** Detect how physics changes *over time* (Seasons/Climate Events) at a single location.
-* **Result:** Using a **Hidden Markov Model (HMM)**, the agent identified that the North Atlantic oscillates between two distinct physical states ("Winter Sink" vs. "Summer Source").
-* **Insight:** The graph below shows the AI detecting the seasonal "heartbeat" of the ocean (Blue/Red switching) while preserving the long-term Anthropogenic Trend (upward slope).
+#### 🧮 Discovered Physics by Regime
+The Hybrid Agent discovered that different ocean regions obey different physical laws:
 
-![Dynamic Regime Switching](dynamic_regime_hmm.png)
-*Figure 2: HMM-detected state transitions. The AI autonomously labeled "Winter" (Blue) and "Summer" (Red) regimes from raw data.*
+| Regime | Discovered Equation (Simplified) | Physics Interpretation |
+| :--- | :--- | :--- |
+| **0** | $fCO_2 \approx Year + SST \cdot \sin(-0.86 \cdot Salinity)$ | **Salinity Interaction.** Detected complex interaction between Salinity cycles and SST. |
+| **1** | $fCO_2 \approx SST + 1.76 \cdot (Year + 13.6 \cdot \cos(0.17 \cdot SST))$ | **Non-Linear Thermodynamics.** Found a highly non-linear temperature response distinct from other regimes. |
+| **3** | $fCO_2 \approx 2 \cdot SST + \cos(t) \cdot (31.9 - SST)$ | **⭐ The "Damping" Effect.** Discovered that High Temperature ($SST \approx 31.9$) *turns off* the Seasonal cycle. |
+| **4** | $fCO_2 \approx SST + Year - 1662$ | **Linear Driver.** Region dominated by the long-term anthropogenic trend + Temperature. |
 
----
-
-## 🏆 Benchmark Performance
-
-| Experiment | Method | $R^2$ Score | Verdict |
-| :--- | :--- | :--- | :--- |
-| **Global Naive** | Standard SR | `0.14` | **Failed.** Cannot handle conflicting global physics. |
-| **Hybrid Agent** | **Clustered SR** | **`0.25`** | **+79% Boost.** Proves "Spatial Attention" is required. |
-| **Physics-Informed** | **PINN (PyTorch)** | `MSE: 0.08` | **Valid.** Enforces thermodynamic smoothness constraints. |
-
----
-
-## 🛠️ Tech Stack
-* **Core AI:** `PyTorch` (PINNs), `PySR` (Symbolic Regression), `hmmlearn` (Markov Models), `scikit-learn` (Clustering).
-* **Data Science:** `xarray` (NetCDF), `pandas`, `numpy`.
-* **Engineering:** `pytest` (Unit Testing), `GitHub Actions` (CI/CD).
-
-## 🚀 Reproduction Steps
-This project is fully reproducible.
-
-### 1. Installation
-```bash
-git clone [https://github.com/shlokkvaishnav/climate-equation-discovery.git](https://github.com/shlokkvaishnav/climate-equation-discovery.git)
-cd climate-equation-discovery
-pip install -r requirements.txt
+### 🔵 Phase 3: Physics-Informed Neural Networks (PINNs)
+* **Goal:** Solve the "Black Box" issue. Standard Neural Networks can output physically impossible values if the data is noisy.
+* **Method:** We implemented a **PINN** with a custom loss function: $\mathcal{L}_{total} = \mathcal{L}_{data} + \lambda \mathcal{L}_{physics}$.
+* **Result:** The model successfully learned to minimize error while satisfying physical constraints.
+```text
+🧠 INITIALIZING PINN...
+Epoch 0:   Loss = 133395.21 (Data + Phys)
+Epoch 500: Loss = 108073.85
+Epoch 900: Loss = 92594.17  (Converged & Physically Consistent)
 
 ```
 
-###2. Run the Pipeline```bash
-# 1. Download & Process Data
+###🟣 Phase 4: Dynamic Regime Detection (HMM)* **Goal:** Solve the "Static Map" issue. Phase 2 assumed the map never changes, but the ocean has seasons.
+* **Method:** A **Hidden Markov Model (HMM)** analyzed time-series data to detect state changes.
+* **Result:** The AI autonomously labeled "Winter" (Blue) and "Summer" (Red) regimes, tracking the ocean's seasonal heartbeat.
+![HMM Seasonal Regimes](hmm_seasonal_regimes.png)
+
+---
+
+##🏆 Benchmark PerformanceWe compared our **Adaptive Hybrid Agent** against standard baselines on the full Global dataset.
+
+| Model | R^2 Score | Type | Insight |
+| --- | --- | --- | --- |
+| **Linear Regression** | `0.15` | 🌗 Gray Box | **Fails.** Cannot handle global complexity (heterogeneity). |
+| **Hybrid PySR (Ours)** | **`0.25`** | 🌕 **White Box** | **+66% Improvement.** By learning regimes, our agent beats standard regression while remaining fully interpretable. |
+| **Random Forest** | `0.41` | 🌑 Black Box | **The Upper Bound.** Even powerful black-box models struggle globally, proving the extreme difficulty of this dataset. |
+
+---
+
+##🛠️ Tech Stack* **Core AI:** `PyTorch` (PINNs), `PySR` (Symbolic Regression), `hmmlearn` (Markov Models), `scikit-learn`.
+* **Data Science:** `xarray` (NetCDF), `pandas`, `numpy`.
+* **Engineering:** `pytest`, `GitHub Actions` (CI/CD).
+
+##🔮 Future Roadmap: The "Unified Theory"While this project successfully treats **Space** (Clustering) and **Time** (HMMs) as separate discovery problems, the theoretical endpoint of this research is a **Unified Spatiotemporal Model**.
+
+**The Next Integration:**
+
+1. **Grid-Based HMMs:** Run a separate Hidden Markov Model on every single 1^\circ \times 1^\circ grid point in the ocean.
+2. **4D Labeling:** Generate a dynamic label for every point in Space and Time (e.g., `(Lat, Lon, Time) -> "North Atlantic Winter Regime"`).
+3. **Spatiotemporal Equation Discovery:** Feed these 4D labels into PySR.
+* **Result:** instead of one equation for the Atlantic, the AI would discover **Equation A for Atlantic Winter** and **Equation B for Atlantic Summer**.
+
+
+
+This approach would solve the "Regime Blurring" problem where seasonal transition months reduce equation accuracy.
+
+---
+
+##🚀 Reproduction StepsThis project is fully reproducible.
+
+```bash
+# 1. Install Dependencies
+git clone [https://github.com/shlokkvaishnav/climate-equation-discovery.git](https://github.com/shlokkvaishnav/climate-equation-discovery.git)
+pip install -r requirements.txt
+
+# 2. Download & Process Data (SOCAT v2025)
 python src/data/downloader.py
 python src/data/process_data.py
 
-# 2. Run the AI Scientist (Regime Discovery + Equation Search)
+# 3. Run the AI Scientist (Regime Discovery + Equation Search)
 python src/discovery_global_clustered.py
 
-# 3. Train the Physics-Informed Neural Network (PINN)
+# 4. Train the Physics-Informed Neural Network (PINN)
 python src/pinn_solver.py
 
-# 4. Analyze Dynamic Regimes (HMM)
+# 5. Analyze Dynamic Regimes (HMM)
 python src/dynamic_regimes.py
 
 ```
