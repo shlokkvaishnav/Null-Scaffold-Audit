@@ -22,7 +22,7 @@ To solve this, we built a pipeline that mimics the scientific method. This answe
 | Step | Component | Cognitive Skill | Why we used it |
 |:-----|:----------|:----------------|:---------------|
 | **1** | **K-Means Clustering** | **👀 Perception** | The ocean is **Heterogeneous**. We need to find "regions" (e.g., Atlantic vs Pacific) before we can find equations. |
-| **2** | **Symbolic Regression** | **🧠 Reasoning** | We need **White-Box Equations** (Math), not just predictions. This derives $fCO_2 = f(T, S, t)$. |
+| **2** | **Symbolic Regression** | **🧠 Reasoning** | We need **White-Box Equations** (Math), not just predictions. This derives `fCO2 = f(T, S, t)`. |
 | **3** | **PINN (PyTorch)** | **⚖️ Validation** | Pure data is noisy. We use **Physics-Informed NNs** to force the model to obey thermodynamic laws (smoothness). |
 | **4** | **HMM (Markov)** | **⏳ Adaptation** | The ocean isn't static. We use **Hidden Markov Models** to detect when physics changes over time (Seasons). |
 
@@ -32,14 +32,14 @@ To solve this, we built a pipeline that mimics the scientific method. This answe
 
 ### 🔴 Phase 1: The Global Attempt (Failure)
 
-- **Goal:** Discover a single "Universal Law" for Global Ocean CO2 ($fCO_2 = f(SST, Salinity, Year)$).
-- **Result:** $R^2 = 0.14$ (Poor).
+- **Goal:** Discover a single "Universal Law" for Global Ocean CO2 (`fCO2 = f(SST, Salinity, Year)`).
+- **Result:** R² = 0.14 (Poor).
 - **Why it failed:** The ocean is **physically heterogeneous**. A single equation cannot reconcile opposing regimes (e.g., Equatorial Outgassing vs. Polar Sinks), leading the AI to merely guess the global average.
 
 ### 🟢 Phase 2: The Upgrade (Global Hybrid Agent)
 
 - **Goal:** Solve the heterogeneity problem using **Unsupervised Learning (K-Means)** to automatically detect physics regimes *before* applying regression.
-- **Result:** **$R^2 = 0.25$ (+79% Performance Boost over Naive SR).**
+- **Result:** **R² = 0.25 (+79% Performance Boost over Naive SR).**
 - **Discovery:** The AI autonomously "learned geography." It separated the **North Atlantic** (Green) from the **Pacific** (Orange) and identified **Equatorial Upwelling Zones** (Red) without being provided any geography labels.
 
 ![Physics Regimes Map](physics_regimes_map.png)
@@ -50,15 +50,15 @@ The Hybrid Agent discovered that different ocean regions obey different physical
 
 | Regime | Discovered Equation (Simplified) | Physics Interpretation |
 |:-------|:---------------------------------|:-----------------------|
-| **0** | $fCO_2 \approx Year + SST \cdot \sin(-0.86 \cdot Salinity)$ | **Salinity Interaction.** Detected complex interaction between Salinity cycles and SST. |
-| **1** | $fCO_2 \approx SST + 1.76 \cdot (Year + 13.6 \cdot \cos(0.17 \cdot SST))$ | **Non-Linear Thermodynamics.** Found a highly non-linear temperature response distinct from other regimes. |
-| **3** | $fCO_2 \approx 2 \cdot SST + \cos(t) \cdot (31.9 - SST)$ | **⭐ The "Damping" Effect.** Discovered that High Temperature ($SST \approx 31.9$) *turns off* the Seasonal cycle. |
-| **4** | $fCO_2 \approx SST + Year - 1662$ | **Linear Driver.** Region dominated by the long-term anthropogenic trend + Temperature. |
+| **0** | `fCO2 ≈ Year + SST × sin(-0.86 × Salinity)` | **Salinity Interaction.** Detected complex interaction between Salinity cycles and SST. |
+| **1** | `fCO2 ≈ SST + 1.76 × (Year + 13.6 × cos(0.17 × SST))` | **Non-Linear Thermodynamics.** Found a highly non-linear temperature response distinct from other regimes. |
+| **3** | `fCO2 ≈ 2 × SST + cos(t) × (31.9 - SST)` | **⭐ The "Damping" Effect.** Discovered that High Temperature (SST ≈ 31.9) *turns off* the Seasonal cycle. |
+| **4** | `fCO2 ≈ SST + Year - 1662` | **Linear Driver.** Region dominated by the long-term anthropogenic trend + Temperature. |
 
 ### 🔵 Phase 3: Physics-Informed Neural Networks (PINNs)
 
 - **Goal:** Solve the "Black Box" issue. Standard Neural Networks can output physically impossible values if the data is noisy.
-- **Method:** We implemented a **PINN** with a custom loss function: $\mathcal{L}_{total} = \mathcal{L}_{data} + \lambda \mathcal{L}_{physics}$.
+- **Method:** We implemented a **PINN** with a custom loss function: `L_total = L_data + λ × L_physics`.
 - **Result:** The model successfully learned to minimize error while satisfying physical constraints.
 
 ### 🟣 Phase 4: Dynamic Regime Detection (HMM)
