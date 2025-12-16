@@ -55,13 +55,7 @@ The Hybrid Agent discovered that different ocean regions obey different physical
 * **Goal:** Solve the "Black Box" issue. Standard Neural Networks can output physically impossible values if the data is noisy.
 * **Method:** We implemented a **PINN** with a custom loss function: $\mathcal{L}_{total} = \mathcal{L}_{data} + \lambda \mathcal{L}_{physics}$.
 * **Result:** The model successfully learned to minimize error while satisfying physical constraints.
-```text
-🧠 INITIALIZING PINN...
-Epoch 0:   Loss = 133395.21 (Data + Phys)
-Epoch 500: Loss = 108073.85
-Epoch 900: Loss = 92594.17  (Converged & Physically Consistent)
 
-```
 
 ###🟣 Phase 4: Dynamic Regime Detection (HMM)* **Goal:** Solve the "Static Map" issue. Phase 2 assumed the map never changes, but the ocean has seasons.
 * **Method:** A **Hidden Markov Model (HMM)** analyzed time-series data to detect state changes.
