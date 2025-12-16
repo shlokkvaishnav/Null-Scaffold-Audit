@@ -66,7 +66,7 @@ Epoch 900: Loss = 92594.17  (Converged & Physically Consistent)
 ###🟣 Phase 4: Dynamic Regime Detection (HMM)* **Goal:** Solve the "Static Map" issue. Phase 2 assumed the map never changes, but the ocean has seasons.
 * **Method:** A **Hidden Markov Model (HMM)** analyzed time-series data to detect state changes.
 * **Result:** The AI autonomously labeled "Winter" (Blue) and "Summer" (Red) regimes, tracking the ocean's seasonal heartbeat.
-![HMM Seasonal Regimes](hmm_seasonal_regimes.png)
+![HMM Seasonal Regimes](dynamic_regime_hmm.png)
 
 ---
 

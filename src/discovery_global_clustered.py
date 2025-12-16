@@ -7,7 +7,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import r2_score
 from pysr import PySRRegressor
 
-# --- CONFIGURATION ---
+#CONFIGURATION
 DATA_PATH = Path("data/03_processed/training_set.parquet")
 N_CLUSTERS = 6  # INCREASED from 3 to 6 (More distinct physics zones)
 SUB_SAMPLE = 3000 # Slightly more data per cluster
