@@ -48,7 +48,7 @@ def run_global_regime_discovery():
         X = train_df[["SST", "Salinity", "Year", "Season_Sin", "Season_Cos"]]
         y = train_df["fCO2"]
         
-        # PySR (Aggressive search)
+        # PySR
         model = PySRRegressor(
             niterations=40,
             binary_operators=["+", "-", "*"],

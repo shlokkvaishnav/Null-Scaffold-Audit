@@ -44,8 +44,7 @@ def run_dynamic_regime_detection():
     print("📈 Plotting Regime Transitions...")
     plt.figure(figsize=(12, 6))
     
-    # Plot Temperature, colored by the Hidden State
-    # State 0 = Blue, State 1 = Red
+
     colors = ['blue' if s == 0 else 'red' for s in hidden_states]
     
     plt.scatter(local_df['Year'], local_df['fCO2'], c=colors, s=15, alpha=0.7)
@@ -55,7 +54,7 @@ def run_dynamic_regime_detection():
     plt.xlabel("Year")
     plt.ylabel("Ocean fCO2")
     
-    # Create custom legend
+
     from matplotlib.lines import Line2D
     legend_elements = [
         Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', label='Regime A (e.g., Winter/Sink)'),
@@ -66,7 +65,7 @@ def run_dynamic_regime_detection():
     plt.savefig("dynamic_regime_hmm.png")
     print("✅ Analysis Complete. Saved plot to 'dynamic_regime_hmm.png'")
     
-    # 5. Print Transition Matrix (The "Physics" part)
+
     print("\n🔄 Regime Transition Matrix (Probability of switching states):")
     print(model.transmat_.round(3))
     print("\n(Example: Row 0, Col 1 is probability of switching from Regime A -> Regime B)")
