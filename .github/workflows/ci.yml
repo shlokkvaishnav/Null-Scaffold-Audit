@@ -22,12 +22,12 @@ jobs:
         python-version: ${{ matrix.python-version }}
         
     - name: Set up Julia
-      uses: julia-actions/setup-julia@v1
+      uses: julia-actions/setup-julia@v2
       with:
         version: '1.9'
 
     - name: Cache Julia artifacts
-      uses: julia-actions/cache-julia-artifacts@v1
+      uses: julia-actions/cache-julia-artifacts@v2
         
     - name: Install dependencies
       run: |
