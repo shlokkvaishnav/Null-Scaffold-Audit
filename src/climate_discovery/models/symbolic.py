@@ -1,13 +1,20 @@
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
+import yaml
 from pysr import PySRRegressor
 from sklearn.model_selection import train_test_split
-import yaml
+
 
 class SymbolicDiscovery:
     """Wrapper around PySR for climate equation discovery."""
 
-    def __init__(self, config: Dict[str, Any], feature_cols: List[str] = None, target_col: str = "fCO2"):
+    def __init__(
+        self,
+        config: Dict[str, Any],
+        feature_cols: List[str] = None,
+        target_col: str = "fCO2",
+    ):
         """
         Args:
             config: Dictionary containing PySR configuration parameters.
@@ -19,7 +26,9 @@ class SymbolicDiscovery:
         self.target_col = target_col
         self.model = PySRRegressor(**self.config)
 
-    def fit(self, df: pd.DataFrame, test_size: float = 0.2, random_state: int = 42) -> float:
+    def fit(
+        self, df: pd.DataFrame, test_size: float = 0.2, random_state: int = 42
+    ) -> float:
         """
         Fits the symbolic regression model to the data.
 
@@ -39,7 +48,7 @@ class SymbolicDiscovery:
         )
 
         self.model.fit(X_train, y_train)
-        
+
         return self.model.score(X_test, y_test)
 
     def get_best_equation(self) -> str:

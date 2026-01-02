@@ -1,7 +1,9 @@
 from pathlib import Path
 from typing import Union
+
 import pandas as pd
 import xarray as xr
+
 
 class DataLoader:
     """Handles loading of raw NetCDF data and processed Parquet data."""
@@ -13,8 +15,12 @@ class DataLoader:
         """
         self.data_dir = Path(data_dir)
         # Assumes data_dir is the PROJECT ROOT
-        self.raw_path = self.data_dir / "data" / "01_raw" / "SOCATv2025_tracks_gridded_monthly.nc"
-        self.processed_path = self.data_dir / "data" / "03_processed" / "training_set.parquet"
+        self.raw_path = (
+            self.data_dir / "data" / "01_raw" / "SOCATv2025_tracks_gridded_monthly.nc"
+        )
+        self.processed_path = (
+            self.data_dir / "data" / "03_processed" / "training_set.parquet"
+        )
 
     def load_raw_dataset(self, chunks: dict = None) -> xr.Dataset:
         """
@@ -28,10 +34,10 @@ class DataLoader:
         """
         if chunks is None:
             chunks = {"tmnth": 10}
-        
+
         if not self.raw_path.exists():
             raise FileNotFoundError(f"Raw data not found at {self.raw_path}")
-            
+
         return xr.open_dataset(self.raw_path, chunks=chunks)
 
     def load_processed_dataframe(self) -> pd.DataFrame:
@@ -42,6 +48,8 @@ class DataLoader:
             The loaded pandas DataFrame.
         """
         if not self.processed_path.exists():
-            raise FileNotFoundError(f"Processed data not found at {self.processed_path}")
-            
+            raise FileNotFoundError(
+                f"Processed data not found at {self.processed_path}"
+            )
+
         return pd.read_parquet(self.processed_path)

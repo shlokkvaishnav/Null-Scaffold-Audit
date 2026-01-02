@@ -1,9 +1,11 @@
-from hmmlearn import hmm
+from pathlib import Path
+from typing import List, Optional, Tuple
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from typing import Tuple, List, Optional
-import matplotlib.pyplot as plt
-from pathlib import Path
+from hmmlearn import hmm
+
 
 class RegimeHMM:
     """Wrapper for Hidden Markov Model to detect ocean physics regimes."""
@@ -19,7 +21,7 @@ class RegimeHMM:
             n_components=n_states,
             covariance_type="full",
             n_iter=100,
-            random_state=random_state
+            random_state=random_state,
         )
 
     def fit_predict(self, X: np.ndarray) -> np.ndarray:
@@ -37,12 +39,12 @@ class RegimeHMM:
 
     @staticmethod
     def plot_regimes(
-            df: pd.DataFrame, 
-            states: np.ndarray, 
-            x_col: str, 
-            y_col: str, 
-            save_path: Optional[str] = None
-        ):
+        df: pd.DataFrame,
+        states: np.ndarray,
+        x_col: str,
+        y_col: str,
+        save_path: Optional[str] = None,
+    ):
         """
         Plots the time series colored by regime.
 
@@ -54,18 +56,18 @@ class RegimeHMM:
             save_path: If provided, saves the plot to this path.
         """
         plt.figure(figsize=(12, 6))
-        
+
         # Determine colors based on number of states
-        cmap = plt.get_cmap('Set1', np.max(states) + 1)
-        
+        cmap = plt.get_cmap("Set1", np.max(states) + 1)
+
         plt.scatter(df[x_col], df[y_col], c=states, cmap=cmap, s=15, alpha=0.7)
-        plt.plot(df[x_col], df[y_col], c='gray', alpha=0.3, linewidth=1)
-        
+        plt.plot(df[x_col], df[y_col], c="gray", alpha=0.3, linewidth=1)
+
         plt.title(f"Dynamic Regime Switching")
         plt.xlabel(x_col)
         plt.ylabel(y_col)
-        plt.colorbar(ticks=range(np.max(states) + 1), label='Regime')
-        
+        plt.colorbar(ticks=range(np.max(states) + 1), label="Regime")
+
         if save_path:
             plt.savefig(save_path)
             print(f"✅ Plot saved to {save_path}")

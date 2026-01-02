@@ -1,7 +1,9 @@
+from typing import Dict, List
+
 import numpy as np
 import pandas as pd
 import xarray as xr
-from typing import Dict, List
+
 
 class DataPreprocessor:
     """Handles preprocessing and feature engineering for climate data."""
@@ -9,11 +11,13 @@ class DataPreprocessor:
     DEFAULT_VARS = {
         "fco2_ave_unwtd": "fCO2",
         "sst_ave_unwtd": "SST",
-        "salinity_ave_unwtd": "Salinity"
+        "salinity_ave_unwtd": "Salinity",
     }
 
     @staticmethod
-    def flatten_dataset(ds: xr.Dataset, vars_map: Dict[str, str] = None) -> pd.DataFrame:
+    def flatten_dataset(
+        ds: xr.Dataset, vars_map: Dict[str, str] = None
+    ) -> pd.DataFrame:
         """
         Renames variables and flattens an xarray Dataset to a pandas DataFrame.
 
@@ -26,14 +30,14 @@ class DataPreprocessor:
         """
         if vars_map is None:
             vars_map = DataPreprocessor.DEFAULT_VARS
-            
+
         # Rename dims
         ds = ds.rename({"tmnth": "time", "ylat": "lat", "xlon": "lon"})
-        
+
         # Select and rename variables
         subset = ds[list(vars_map.keys())]
         subset = subset.rename(vars_map)
-        
+
         return subset.to_dataframe().reset_index()
 
     @staticmethod
@@ -48,17 +52,19 @@ class DataPreprocessor:
             DataFrame with added features.
         """
         df = df.copy()
-        
+
         # Time: Decimal Year
-        df['Year'] = df['time'].dt.year + df['time'].dt.dayofyear / 365.25
-        
+        df["Year"] = df["time"].dt.year + df["time"].dt.dayofyear / 365.25
+
         # Space: Absolute Latitude
-        df['AbsLat'] = np.abs(df['lat'])
-        
+        df["AbsLat"] = np.abs(df["lat"])
+
         return df
 
     @staticmethod
-    def clean_and_validate(df: pd.DataFrame, required_cols: List[str] = None) -> pd.DataFrame:
+    def clean_and_validate(
+        df: pd.DataFrame, required_cols: List[str] = None
+    ) -> pd.DataFrame:
         """
         Removes missing values and enforces physical constraints.
 
@@ -71,13 +77,15 @@ class DataPreprocessor:
         """
         if required_cols is None:
             required_cols = ["fCO2", "SST", "Salinity", "Year", "AbsLat"]
-            
+
         clean_df = df.dropna(subset=required_cols)
-        
+
         # Physics Guardrails
         clean_df = clean_df[
-            (clean_df["SST"] > -2) & (clean_df["SST"] < 35) &
-            (clean_df["Salinity"] > 20) & (clean_df["Salinity"] < 40)
+            (clean_df["SST"] > -2)
+            & (clean_df["SST"] < 35)
+            & (clean_df["Salinity"] > 20)
+            & (clean_df["Salinity"] < 40)
         ]
-        
+
         return clean_df
