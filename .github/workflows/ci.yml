@@ -27,7 +27,7 @@ jobs:
         version: '1.9'
 
     - name: Cache Julia artifacts
-      uses: julia-actions/cache-julia-artifacts@v2
+      uses: julia-actions/cache@v2
         
     - name: Install dependencies
       run: |
