@@ -42,7 +42,7 @@ To solve this, we built a pipeline that mimics the scientific method. This answe
 - **Result:** **R² = 0.25 (+79% Performance Boost over Naive SR).**
 - **Discovery:** The AI autonomously "learned geography." It separated the **North Atlantic** (Green) from the **Pacific** (Orange) and identified **Equatorial Upwelling Zones** (Red) without being provided any geography labels.
 
-![Physics Regimes Map](physics_regimes_map.png)
+![Physics Regimes Map](figures/physics_regimes_map.png)
 
 #### 🧮 Discovered Physics by Regime
 
@@ -67,7 +67,7 @@ The Hybrid Agent discovered that different ocean regions obey different physical
 - **Method:** A **Hidden Markov Model (HMM)** analyzed time-series data to detect state changes.
 - **Result:** The AI autonomously labeled "Winter" (Blue) and "Summer" (Red) regimes, tracking the ocean's seasonal heartbeat.
 
-![HMM Seasonal Regimes](dynamic_regime_hmm.png)
+![HMM Seasonal Regimes](figures/dynamic_regime_hmm.png)
 
 ---
 
@@ -191,17 +191,17 @@ cd climate-equation-discovery
 pip install -r requirements.txt
 
 # 2. Download & Process Data (SOCAT v2025)
-python src/data/downloader.py
-python src/data/process_data.py
+python scripts/download.py
+python scripts/preprocess.py
 
 # 3. Run the AI Scientist (Regime Discovery + Equation Search)
-python src/discovery_global_clustered.py
+python scripts/discover.py
 
-# 4. Train the Physics-Informed Neural Network (PINN)
-python src/pinn_solver.py
+# 4. (Optional) Train the Physics-Informed Neural Network (PINN)
+# See notebooks/ for PINN training examples
 
-# 5. Analyze Dynamic Regimes (HMM)
-python src/dynamic_regimes.py
+# 5. (Optional) Analyze Dynamic Regimes (HMM)
+# See notebooks/ for HMM analysis examples
 ```
 
 ---
