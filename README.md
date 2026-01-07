@@ -26,10 +26,12 @@ By learning a **Soft Gating Network** that weights these regimes Spatiotemporall
 The model consists of two coupled components:
 
 *   **Gating Network ($\mathcal{G}$)**: A Neural Network (MLP) that maps spatiotemporal coordinates ($Lat, Lon, Time, SST$) to a probability distribution over $K$ regimes.
-    $$ P(regime|x) = \text{Softmax}(\mathcal{G}(Lat, Lon, Time, ...)) $$
+    
+    > **$P(regime|x) = \text{Softmax}(\mathcal{G}(Lat, Lon, Time, ...))$**
 
 *   **Symbolic Experts ($\mathcal{E}_k$)**: $K$ distinct equations discovered via Genetic Programming (PySR). Each expert learns a local physical law $f_k(SST, SSS, Chl)$ optimized for its specific regime.
-    $$ \hat{y} = \sum_{k=1}^{K} P(k|x) \cdot \mathcal{E}_k(x_{phys}) $$
+    
+    > **$\hat{y} = \sum_{k=1}^{K} P(k|x) \cdot \mathcal{E}_k(x_{phys})$**
 
 ### 2. Implementation Pipeline
 The project is structured as a progressive discovery pipeline:
