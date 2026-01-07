@@ -2,6 +2,6 @@
 
 __version__ = "0.1.0"
 
-from . import data, models, physics
+from . import data, models
 
-__all__ = ["data", "models", "physics"]
+__all__ = ["data", "models"]
