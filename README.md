@@ -53,15 +53,18 @@ The project is structured as a progressive discovery pipeline:
 ### Discovered Equations
 
 *   **Regime 0 (Biological Province)**:
-    $$ fCO_2 \approx \frac{C}{\log(Chlorophyll)} $$
+    > **$fCO_2 \approx \frac{C}{\log(Chlorophyll)}$**
+    
     *Interpretation*: Strong biological drawdown. High biological activity reduces partial pressure of $CO_2$.
 
 *   **Regime 1 (Tropical Province)**:
-    $$ fCO_2 \approx 19.3 \cdot SST + 375 $$
+    > **$fCO_2 \approx 19.3 \cdot SST + 375$**
+    
     *Interpretation*: Thermodynamics dominate. Strong positive correlation with Sea Surface Temperature (Henry's Law).
 
 *   **Regime 2 (Temperate Province)**:
-    $$ fCO_2 \approx 16.7 \cdot SST + 365 $$
+    > **$fCO_2 \approx 16.7 \cdot SST + 365$**
+    
     *Interpretation*: Moderate thermodynamic control, transitional zone.
 
 ---
