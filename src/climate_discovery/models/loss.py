@@ -22,6 +22,21 @@ class RegimeConsistencyLoss(nn.Module):
 
         return self.weight * loss
 
+class TemporalConsistencyLoss(nn.Module):
+    def __init__(self, weight=0.1):
+        super().__init__()
+        self.weight = weight
+
+    def forward(self, probs_sequence):
+        """
+        Calculates Total Variation over Time.
+        Args:
+            probs_sequence: (Batch, Time, N_Regimes) or (Batch, Time, Lat, Lon, N_Regimes)
+        """
+        # We assume dimension 1 is Time
+        diff_t = torch.abs(probs_sequence[:, 1:] - probs_sequence[:, :-1])
+        return self.weight * diff_t.mean()
+
 class L1SparseLoss(nn.Module):
     def __init__(self, weight=0.01):
         super().__init__()
@@ -36,15 +51,9 @@ class L1SparseLoss(nn.Module):
         
         # We assume the first layer is the one connected to inputs
         # For GatingNetwork, it is model.net[0] (Linear)
-        # We iterate to find the first Linear layer just to be safe/generic
         for name, param in model.named_parameters():
             if 'weight' in name:
                 l1_reg = l1_reg + torch.norm(param, 1)
-                # We only want the FIRST layer for feature selection sparsity
-                # But typically L1 on all layers is fine for general sparsity.
-                # For specific "Variable Selection", we care most about the input weights.
-                # Let's target the input layer specifically if possible, but general L1 is okay too.
-                # To be precise for "Variable Discovery", we should punish the Input->Hidden weights strongly.
                 break # ONLY punish the first layer found!
         
         return self.weight * l1_reg
