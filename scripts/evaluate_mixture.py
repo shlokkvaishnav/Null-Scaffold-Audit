@@ -97,7 +97,6 @@ def main():
     # We recover the 'Year' from the dataset to apply this correction.
     
     # We need to reload the dataframe to get the raw years (dataset.X is normalized)
-    ds_full = dataset.coords # This only has lat/lon
     # Re-open netcdf briefly to get years corresponding to the test set
     import xarray as xr
     temp_ds = xr.open_dataset(DATA_PATH)
