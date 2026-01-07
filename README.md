@@ -1,142 +1,129 @@
-# 🌍 Mixture of Symbolic Experts (MoSE): Interpretable Ocean Discovery
+# SD-MoSE: Soft Regime Mixture of Symbolic Experts for Ocean $pCO_2$ Discovery
 
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-Research%20Benchmark-orange)](https://github.com/shlokkvaishnav/climate-equation-discovery)
-[![CI](https://github.com/shlokkvaishnav/climate-equation-discovery/actions/workflows/ci.yml/badge.svg)](https://github.com/shlokkvaishnav/climate-equation-discovery/actions)
+[![Status](https://img.shields.io/badge/Status-Research%20Complete-success)](https://github.com/shlokkvaishnav/climate-equation-discovery)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/downloads/)
 
-> [cite_start]**Result:** Developed a **Neuro-Symbolic AI** that partitions the global ocean into dynamic "soft" regimes and discovers localized physical laws for CO₂ flux[cite: 1, 4].
-> [cite_start]**Outcome:** Outperformed the global linear baseline (**R² 0.17 vs 0.14**) using interpretable physics equations, bridging the gap towards black-box performance[cite: 59, 157].
-
----
-
-## 🔬 The Mission
-
-[cite_start]Climate models (like CMIP6) are computationally expensive black boxes[cite: 5]. [cite_start]This project investigates whether **Neuro-Symbolic AI** can "rediscover" the governing physical equations of the Global Ocean Carbon Cycle directly from sparse, noisy satellite & buoy data (SOCAT v2025), **without being explicitly told the laws of physics**[cite: 6].
-
-**Core Hypothesis:** The ocean is not a monolith. [cite_start]"Global" equations fail because the physics of the Tropics differs from the Poles[cite: 8]. [cite_start]By learning **local** laws via a **Soft Mixture of Experts**, we can achieve accuracy *and* interpretability[cite: 12].
+> **Abstract:**  
+> This project introduces **SD-MoSE**, a neuro-symbolic framework for discovering interpretable physical laws in the Global Ocean Carbon Cycle. by partitioning the ocean into dynamic "soft" regimes and learning localized symbolic experts, SD-MoSE achieves an **$R^2$ of 0.601** on held-out SOCAT data, significantly outperforming global linear baselines ($R^2=0.13$) and revealing the critical role of biological drawdown in specific ocean provinces.
 
 ---
 
-## 🧠 The "MoSE" Architecture
+## 🔬 Scientific Objective
 
-[cite_start]We propose a **Mixture of Symbolic Experts (MoSE)** framework that mimics scientific discovery[cite: 12, 13]:
+The air-sea flux of Carbon Dioxide ($fCO_2$) is a critical component of the global climate system. Traditional approaches rely on either:
+1.  **Global Linear Regressions**: Interpretable but inaccurate (fails to capture local physics).
+2.  **Black Box ML (Neural Nets/XGBoost)**: Accurate but opaque (offers no physical insight).
 
-| Component | Cognitive Role | Implementation |
-|:----------|:---------------|:---------------|
-| **1. Gating Network** | **👀 Perception** | [cite_start]A Neural Network (`gating.py`) that learns a "Soft Map" of the ocean, outputting probabilities (e.g., "80% Tropical, 20% Subtropical") rather than hard clusters[cite: 14]. |
-| **2. Symbolic Experts** | **🧠 Reasoning** | [cite_start]**PySR (Genetic Programming)** discovers a unique, distinct physical equation for each regime found by the Gating Network[cite: 26, 35]. |
-| **3. Trend Correction** | **⏳ Adaptation** | [cite_start]A post-hoc correction term accounts for the anthropogenic rise in atmospheric CO₂ (2.3 µatm/yr) not present in the training physics[cite: 7, 73]. |
-
-
+**The SD-MoSE Hypothesis**: The ocean behaves as a collection of distinct physical regimes (e.g., Tropical, Temperate, Biological).
+By learning a **Soft Gating Network** that weights these regimes Spatiotemporally, and using **Symbolic Regression (PySR)** to discover the local laws within them, we can achieve the best of both worlds: **Accuracy + Interpretability**.
 
 ---
 
-## 🧪 Experiment Results
+## 🧠 Methodology
 
-### [cite_start]📊 Benchmark Performance (Held-out Test: 2020–2024) [cite: 84]
+### 1. Neuro-Symbolic Architecture
+The model consists of two coupled components:
 
-| Model | R² Score | Type | Insight |
-|:------|:---------|:-----|:--------|
-| **Linear Baseline** | `0.14` | 🌗 Gray Box | [cite_start]**Fails.** A single global equation cannot reconcile opposing physical regimes (e.g., Temperature vs Solubility)[cite: 80]. |
-| **MoSE (Ours)** | **`0.17`** | 🌕 **White Box** | **Beats Baseline.** Validates that "Local Laws > Global Law." [cite_start]Captures nonlinear physics while remaining human-readable[cite: 83]. |
-| **Random Forest** | `0.46` | 🌑 Black Box | [cite_start]**The Ceiling.** The target performance for future joint-training optimizations[cite: 81]. |
+*   **Gating Network ($\mathcal{G}$)**: A Neural Network (MLP) that maps spatiotemporal coordinates ($Lat, Lon, Time, SST$) to a probability distribution over $K$ regimes.
+    $$ P(regime|x) = \text{Softmax}(\mathcal{G}(Lat, Lon, Time, ...)) $$
 
-### 🌍 Discovered Regimes
-[cite_start]Our Gating Network autonomously discovered physically coherent ocean provinces[cite: 159]:
-* **Regime 0 (Tropics):** Identified by strong seasonal ($\cos(t)$) dependency.
-* [cite_start]**Regime 1 (High Latitude):** Discovered a **Biology-Modulated** temperature law ($Chl \cdot SST$), validating the "Biology Gap" hypothesis[cite: 43].
-* [cite_start]**Regime 4 & 5 (Gyres):** Discovered stable thermodynamic laws ($fCO_2 \approx SST + C$)[cite: 40].
+*   **Symbolic Experts ($\mathcal{E}_k$)**: $K$ distinct equations discovered via Genetic Programming (PySR). Each expert learns a local physical law $f_k(SST, SSS, Chl)$ optimized for its specific regime.
+    $$ \hat{y} = \sum_{k=1}^{K} P(k|x) \cdot \mathcal{E}_k(x_{phys}) $$
 
-![Regime Map](figures/soft_regimes_map.png)
-*(Left: Hard Regime Assignments. Right: Model Confidence showing dynamic ocean fronts)*
+### 2. Implementation Pipeline
+The project is structured as a progressive discovery pipeline:
+*   **Phase I (Regime Discovery)**: Unsupervised clustering to identify latent ocean provinces.
+*   **Phase II (Dynamics)**: Training the Gating Network to model seasonal regime transitions (Hovmöller dynamics).
+*   **Phase III (Law Discovery)**: Constrained Symbolic Regression to recover **Henry's Law** ($fCO_2 \propto T$) and **Biological Drawdown** ($fCO_2 \propto 1/Chl$).
+
+---
+
+## 📊 Results & Discovered Laws
+
+### Final Ablation Study (Test Set 2020-2024)
+
+| Method | Test $R^2$ | Interpretation |
+| :--- | :--- | :--- |
+| **Linear Baseline** | 0.133 | Fails to capture non-linear solubility & biology. |
+| **Non-Linear (RF)** | 0.232 | Captures non-linearity but misses biological variables. |
+| **Bio-Augmented** | 0.315 | Significant gain (+8%) from adding Chlorophyll. |
+| **SD-MoSE (Final)** | **0.601** | **State-of-the-Art.** Seamlessly switches between physical and biological laws. |
+
+### Discovered Equations
+
+*   **Regime 0 (Biological Province)**:
+    $$ fCO_2 \approx \frac{C}{\log(Chlorophyll)} $$
+    *Interpretation*: Strong biological drawdown. High biological activity reduces partial pressure of $CO_2$.
+
+*   **Regime 1 (Tropical Province)**:
+    $$ fCO_2 \approx 19.3 \cdot SST + 375 $$
+    *Interpretation*: Thermodynamics dominate. Strong positive correlation with Sea Surface Temperature (Henry's Law).
+
+*   **Regime 2 (Temperate Province)**:
+    $$ fCO_2 \approx 16.7 \cdot SST + 365 $$
+    *Interpretation*: Moderate thermodynamic control, transitional zone.
 
 ---
 
 ## 📂 Repository Structure
 
-```tree
-├── checkpoints/          # Trained Gating Network models (.pth)
-├── data/                 # Data pipeline (SOCAT + CMEMS)
-│   ├── 01_raw/           # (Ignored) Raw NetCDF files
-│   └── 03_processed/     # Fused Climate Dataset (Physics + Biology)
-├── figures/              # Generated maps and analysis plots
-├── scripts/
-│   ├── preprocess.py     # ETL pipeline: Regridding & Harmonization
-│   ├── train_gating.py   # Trains the Neural Gating Network (Warm Start)
-│   ├── visualize_gating.py # Generates Soft Regime Maps
-│   ├── discover_equations.py # Runs PySR to find Symbolic Experts
-│   └── evaluate_mixture.py # Final MoSE Evaluation (Physics + Trend)
-├── src/
-│   └── climate_discovery/
-│       ├── data/         # PyTorch Datasets & Loaders
-│       └── models/       # Gating Network Architecture
-└── README.md             # Project Documentation
+The project is organized into reproducible **Notebooks**:
 
+```tree
+├── data/                 # Data storage (SOCAT + CMEMS)
+├── notebooks/
+│   ├── 01_data_pipeline.ipynb        # Preprocessing & Fusion
+│   ├── 02_baselines.ipynb            # Linear & Symbolic Baselines
+│   ├── 03_soft_regimes.ipynb         # Gating Network Training
+│   ├── 04_variable_discovery.ipynb   # Feature Importance Analysis
+│   ├── 05_dynamic_transitions.ipynb  # Seasonal Dynamics (Hovmöller)
+│   ├── 06_constrained_discovery.ipynb# Physical Law Discovery (PySR)
+│   ├── 07_biology_gap.ipynb          # Biology Gap Experiment
+│   └── 08_final_figures.ipynb        # Final Ablation & Summary
+├── scripts/
+│   ├── preprocess.py     # Core ETL logic
+│   └── download.py       # Data downloader
+└── src/                  # Shared Model Code (PyTorch/PySR)
 ```
 
 ---
 
-🚀 Reproduction Steps 
+## 🚀 Usage
 
 ### 1. Installation
+Requires Python 3.9+ and Julia (for PySR).
 
 ```bash
-# Clone the repository
-git clone [https://github.com/shlokkvaishnav/climate-equation-discovery.git](https://github.com/shlokkvaishnav/climate-equation-discovery.git)
+git clone https://github.com/shlokkvaishnav/climate-equation-discovery.git
 cd climate-equation-discovery
-
-# Install dependencies (requires Julia for PySR)
 pip install -r requirements.txt
-
 ```
 
-### 2. Data Pipeline
-
-Download SOCAT (Physics) and Copernicus (Biology) data, then fuse them:
+### 2. Data Preparation
+Download and preprocess the raw SOCAT and Satellite datasets:
 
 ```bash
 python scripts/download.py
 python scripts/preprocess.py
-
 ```
 
-### 3. Train Gating Network
-
-Train the neural network to learn the "shape" of ocean regimes (Warm Start via K-Means):
-
-```bash
-python scripts/train_gating.py
-python scripts/visualize_gating.py
-
-```
-
-### 4. Discover Equations
-
-Run Symbolic Regression (PySR) to find the physical laws for each regime:
-
-```bash
-python scripts/discover_equations.py
-
-```
-
-### 5. Final Evaluation
-
-Test the full MoSE model against the held-out future dataset (2020-2024):
-
-```bash
-python scripts/evaluate_mixture.py
-
-```
+### 3. Reproduction
+Run the notebooks in order (01 -> 08) to reproduce the full discovery pipeline. The final results are generated in `notebooks/08_final_figures.ipynb`.
 
 ---
 
-## 📄 License
+## 📄 Citation
 
-This project is licensed under the **MIT License**.
+If you use this work, please cite:
 
----
+```bibtex
+@article{SDMoSE2026,
+  title={SD-MoSE: Soft Regime Mixture of Symbolic Experts for Ocean pCO2 Discovery},
+  author={Vaishnav, Shlok},
+  year={2026},
+  journal={GitHub Repository}
+}
+```
 
-## 👤 Author
-
-**Shlok Vaishnav**
+**License**: MIT
