@@ -26,6 +26,8 @@ dependencies = [
     "pyyaml",
     "netCDF4",
     "dask",
+    "matplotlib",
+    "tqdm",
 ]
 
 [project.optional-dependencies]
