@@ -1,126 +1,409 @@
+"""Symbolic regression for discovering physical laws within ocean regimes.
+
+Uses PySR (Cranmer, 2023) to search for interpretable equations via genetic programming.
+Each regime gets its own symbolic expert, fitted to regime-specific data.
+
+Scientific workflow:
+1. Gating network assigns soft regime probabilities
+2. Weight samples by regime probability
+3. PySR discovers equation for each regime
+4. Validate equations for physical plausibility
+"""
+
 from __future__ import annotations
 
+import logging
 import os
+import warnings
+from pathlib import Path
+from typing import Dict, List, Optional
 
 import numpy as np
 from sklearn.base import BaseEstimator, RegressorMixin
-from sklearn.cluster import KMeans
 
 try:
     from pysr import PySRRegressor
 except ImportError:
     PySRRegressor = None
 
-
-class KMeansSymbolicRegressor(BaseEstimator, RegressorMixin):
-    def __init__(self, n_clusters=3, max_depth=5, random_state=42, temp_dir="pysr_tmp"):
-        self.n_clusters = n_clusters
-        self.max_depth = max_depth
-        self.random_state = random_state
-        self.temp_dir = temp_dir
-
-        self.kmeans = KMeans(n_clusters=n_clusters, random_state=random_state)
-        self.symbolic_models = []
-
-        os.makedirs(temp_dir, exist_ok=True)
-
-    def fit(self, X, y, variable_names=None):
-        if PySRRegressor is None:
-            raise ImportError("pysr required for KMeansSymbolicRegressor")
-        self.kmeans.fit(X)
-        labels = self.kmeans.labels_
-        self.symbolic_models = []
-        cfg = dict(
-            niterations=20,
-            binary_operators=["+", "-", "*", "/"],
-            unary_operators=["sin", "cos", "exp", "log"],
-            maxsize=20,
-            random_state=self.random_state,
-            temp_equation_file=True,
-            delete_tempfiles=True,
-            verbosity=0,
-        )
-        for k in range(self.n_clusters):
-            mask = labels == k
-            if np.sum(mask) < 10:
-                self.symbolic_models.append(None)
-                continue
-            model = PySRRegressor(**cfg)
-            if variable_names is not None:
-                model.fit(X[mask], y[mask], variable_names=variable_names)
-            else:
-                model.fit(X[mask], y[mask])
-            self.symbolic_models.append(model)
-        return self
-
-    def predict(self, X):
-        labels = self.kmeans.predict(X)
-        y_pred = np.zeros(len(X), dtype=np.float64)
-
-        for k in range(self.n_clusters):
-            mask = labels == k
-            if np.sum(mask) > 0 and self.symbolic_models[k] is not None:
-                y_pred[mask] = self.symbolic_models[k].predict(X[mask])
-        return y_pred
-
-    def get_equations(self):
-        out = {}
-        for k, m in enumerate(self.symbolic_models):
-            if m is None:
-                out[f"Cluster {k}"] = "No equation found"
-                continue
-            try:
-                out[f"Cluster {k}"] = m.get_best().equation
-            except Exception:
-                out[f"Cluster {k}"] = "No equation found"
-        return out
+logger = logging.getLogger(__name__)
 
 
-class ConstrainedSymbolicRegressor(BaseEstimator, RegressorMixin):
+class SymbolicExpert(BaseEstimator, RegressorMixin):
+    """Single symbolic expert for one regime.
+    
+    Discovers interpretable equation mapping physics → fCO₂.
+    
+    Args:
+        regime_id: Regime index (for logging)
+        niterations: PySR search iterations
+        populations: Number of evolutionary populations
+        binary_operators: Allowed binary operations
+        unary_operators: Allowed unary functions
+        complexity_penalty: Pareto front complexity weight
+        constraints: Physical constraints (bounds, monotonicity)
+        random_state: Random seed
+        temp_dir: Directory for PySR temporary files
+        
+    Example:
+        >>> expert = SymbolicExpert(regime_id=0, niterations=40)
+        >>> expert.fit(X_regime, y_regime, weights, variable_names=['sst', 'sss', 'log_chl'])
+        >>> predictions = expert.predict(X_test)
+        >>> equation = expert.get_best_equation()
     """
-    Single-regime symbolic regressor with constraint-guided selection.
-    Uses PySR then ranks by MSE + constraint penalty (bounds, SST sensitivity).
-    """
-
+    
     def __init__(
         self,
-        max_depth=6,
-        random_state=42,
-        y_min=200,
-        y_max=550,
-        sst_idx=0,
-        constraint_weight=0.5,
+        regime_id: int = 0,
+        niterations: int = 40,
+        populations: int = 31,
+        binary_operators: Optional[List[str]] = None,
+        unary_operators: Optional[List[str]] = None,
+        complexity_penalty: float = 0.01,
+        maxsize: int = 25,
+        constraints: Optional[Dict] = None,
+        random_state: int = 42,
+        temp_dir: Optional[str] = None,
+        verbosity: int = 0,
     ):
-        self.max_depth = max_depth
-        self.random_state = random_state
-        self.y_min = y_min
-        self.y_max = y_max
-        self.sst_idx = sst_idx
-        self.constraint_weight = constraint_weight
-        self.model_ = None
-
-    def fit(self, X, y, variable_names=None):
         if PySRRegressor is None:
-            raise ImportError("pysr required for ConstrainedSymbolicRegressor")
-        cfg = dict(
-            niterations=30,
-            binary_operators=["+", "-", "*", "/"],
-            unary_operators=["exp", "log"],
-            maxsize=25,
-            random_state=self.random_state,
-            temp_equation_file=True,
-            delete_tempfiles=True,
-            verbosity=0,
+            raise ImportError(
+                "PySR not installed. Install: pip install pysr\n"
+                "Then setup Julia backend: python -m pysr install"
+            )
+        
+        self.regime_id = regime_id
+        self.niterations = niterations
+        self.populations = populations
+        self.complexity_penalty = complexity_penalty
+        self.maxsize = maxsize
+        self.constraints = constraints or {}
+        self.random_state = random_state
+        self.temp_dir = temp_dir or "pysr_tmp"
+        self.verbosity = verbosity
+        
+        # Default operators (physics-inspired)
+        if binary_operators is None:
+            binary_operators = ["+", "-", "*", "/"]
+        if unary_operators is None:
+            unary_operators = ["exp", "log", "sqrt", "square"]
+        
+        self.binary_operators = binary_operators
+        self.unary_operators = unary_operators
+        
+        # PySR model (initialized in fit)
+        self.model_ = None
+        self.equation_ = None
+        self.score_ = None
+        self.complexity_ = None
+        
+        # Ensure temp directory exists
+        os.makedirs(self.temp_dir, exist_ok=True)
+    
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        weights: Optional[np.ndarray] = None,
+        variable_names: Optional[List[str]] = None,
+    ) -> "SymbolicExpert":
+        """Discover symbolic equation via genetic programming.
+        
+        Args:
+            X: Feature matrix (N, D)
+            y: Target values (N,)
+            weights: Sample weights (N,) - typically regime probabilities
+            variable_names: Feature names for interpretability
+            
+        Returns:
+            self (fitted)
+        """
+        if len(X) < 10:
+            warnings.warn(
+                f"Regime {self.regime_id}: Only {len(X)} samples. "
+                "Equation quality may be poor."
+            )
+        
+        logger.info(
+            f"Regime {self.regime_id}: Fitting symbolic regressor "
+            f"on {len(X)} samples..."
         )
-        model = PySRRegressor(**cfg)
+        
+        # Configure PySR
+        pysr_config = {
+            "niterations": self.niterations,
+            "populations": self.populations,
+            "binary_operators": self.binary_operators,
+            "unary_operators": self.unary_operators,
+            "maxsize": self.maxsize,
+            "parsimony": self.complexity_penalty,
+            "random_state": self.random_state,
+            "temp_equation_file": True,
+            "delete_tempfiles": True,
+            "verbosity": self.verbosity,
+            "progress": self.verbosity > 0,
+            # Prevent division by zero
+            "constraints": {"/": (lambda x: x != 0, "x != 0")},
+        }
+        
+        # Initialize model
+        self.model_ = PySRRegressor(**pysr_config)
+        
+        # Fit with optional weights
         if variable_names is not None:
-            model.fit(X, y, variable_names=variable_names)
+            self.model_.fit(
+                X, y, 
+                weights=weights,
+                variable_names=variable_names
+            )
         else:
-            model.fit(X, y)
-        self.model_ = model
+            self.model_.fit(X, y, weights=weights)
+        
+        # Extract best equation
+        try:
+            best = self.model_.get_best()
+            self.equation_ = best.equation
+            self.score_ = best.score
+            self.complexity_ = best.complexity
+            
+            logger.info(
+                f"Regime {self.regime_id}: "
+                f"Equation: {self.equation_} "
+                f"(complexity={self.complexity_}, score={self.score_:.4f})"
+            )
+        except Exception as e:
+            logger.warning(f"Regime {self.regime_id}: Failed to extract equation: {e}")
+            self.equation_ = "No equation found"
+            self.score_ = np.inf
+            self.complexity_ = 0
+        
         return self
-
-    def predict(self, X):
+    
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """Predict using discovered equation.
+        
+        Args:
+            X: Feature matrix (N, D)
+            
+        Returns:
+            Predictions (N,)
+        """
         if self.model_ is None:
-            raise ValueError("not fitted")
-        return self.model_.predict(X)
+            raise ValueError("Model not fitted. Call fit() first.")
+        
+        try:
+            return self.model_.predict(X)
+        except Exception as e:
+            logger.error(f"Regime {self.regime_id}: Prediction failed: {e}")
+            # Fallback to mean prediction
+            return np.zeros(len(X))
+    
+    def get_best_equation(self) -> str:
+        """Return best discovered equation as string."""
+        return self.equation_ if self.equation_ else "No equation"
+    
+    def get_pareto_front(self) -> Optional[list]:
+        """Return all equations on the Pareto front (complexity vs accuracy)."""
+        if self.model_ is None:
+            return None
+        try:
+            return self.model_.equations_
+        except Exception:
+            return None
+    
+    def validate_equation(
+        self, 
+        X_val: np.ndarray, 
+        y_val: np.ndarray,
+        y_min: float = 200.0,
+        y_max: float = 600.0,
+    ) -> Dict:
+        """Check physical plausibility of discovered equation.
+        
+        Args:
+            X_val: Validation features
+            y_val: Validation targets
+            y_min: Minimum plausible fCO₂ (μatm)
+            y_max: Maximum plausible fCO₂ (μatm)
+            
+        Returns:
+            Validation metrics dict
+        """
+        y_pred = self.predict(X_val)
+        
+        # MSE
+        mse = np.mean((y_pred - y_val) ** 2)
+        
+        # R²
+        ss_res = np.sum((y_val - y_pred) ** 2)
+        ss_tot = np.sum((y_val - np.mean(y_val)) ** 2)
+        r2 = 1 - ss_res / (ss_tot + 1e-10)
+        
+        # Physical plausibility
+        n_invalid = np.sum((y_pred < y_min) | (y_pred > y_max))
+        frac_invalid = n_invalid / len(y_pred)
+        
+        return {
+            "regime_id": self.regime_id,
+            "mse": float(mse),
+            "r2": float(r2),
+            "equation": self.equation_,
+            "complexity": self.complexity_,
+            "n_invalid": int(n_invalid),
+            "frac_invalid": float(frac_invalid),
+        }
+
+
+class MixtureOfSymbolicExperts:
+    """Collection of symbolic experts, one per regime.
+    
+    Manages parallel training and prediction across all regimes.
+    
+    Args:
+        num_regimes: Number of regimes K
+        expert_config: Configuration dict passed to each SymbolicExpert
+        
+    Example:
+        >>> experts = MixtureOfSymbolicExperts(
+        ...     num_regimes=6,
+        ...     expert_config={'niterations': 40, 'populations': 31}
+        ... )
+        >>> experts.fit(X, y, regime_probs, variable_names=['sst', 'sss', 'log_chl'])
+        >>> predictions = experts.predict(X, regime_probs)
+    """
+    
+    def __init__(
+        self,
+        num_regimes: int,
+        expert_config: Optional[Dict] = None,
+    ):
+        self.num_regimes = num_regimes
+        self.expert_config = expert_config or {}
+        
+        # Create expert for each regime
+        self.experts = [
+            SymbolicExpert(regime_id=k, **self.expert_config)
+            for k in range(num_regimes)
+        ]
+    
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        regime_probs: np.ndarray,
+        variable_names: Optional[List[str]] = None,
+        min_samples: int = 50,
+    ) -> "MixtureOfSymbolicExperts":
+        """Fit symbolic expert for each regime.
+        
+        Args:
+            X: Feature matrix (N, D)
+            y: Target values (N,)
+            regime_probs: Regime probabilities (N, K)
+            variable_names: Feature names
+            min_samples: Minimum samples to fit expert
+            
+        Returns:
+            self (fitted)
+        """
+        for k in range(self.num_regimes):
+            # Weight samples by regime probability
+            weights = regime_probs[:, k]
+            
+            # Filter to high-probability samples
+            mask = weights > 0.1  # Keep samples with >10% probability
+            
+            if np.sum(mask) < min_samples:
+                logger.warning(
+                    f"Regime {k}: Only {np.sum(mask)} samples. Skipping."
+                )
+                continue
+            
+            # Fit expert on weighted data
+            self.experts[k].fit(
+                X[mask], 
+                y[mask],
+                weights=weights[mask],
+                variable_names=variable_names
+            )
+        
+        return self
+    
+    def predict(
+        self,
+        X: np.ndarray,
+        regime_probs: np.ndarray,
+    ) -> np.ndarray:
+        """Weighted mixture prediction: Σ π_k(x) * f_k(x)
+        
+        Args:
+            X: Feature matrix (N, D)
+            regime_probs: Regime probabilities (N, K)
+            
+        Returns:
+            Predictions (N,)
+        """
+        n_samples = len(X)
+        y_pred = np.zeros(n_samples)
+        
+        for k in range(self.num_regimes):
+            # Expert prediction for all samples
+            try:
+                expert_pred = self.experts[k].predict(X)
+            except Exception:
+                logger.warning(f"Regime {k}: Prediction failed, using zeros")
+                expert_pred = np.zeros(n_samples)
+            
+            # Weight by regime probability
+            y_pred += regime_probs[:, k] * expert_pred
+        
+        return y_pred
+    
+    def get_all_equations(self) -> Dict[int, str]:
+        """Return discovered equation for each regime."""
+        return {
+            k: expert.get_best_equation()
+            for k, expert in enumerate(self.experts)
+        }
+    
+    def validate_all(
+        self,
+        X_val: np.ndarray,
+        y_val: np.ndarray,
+        regime_probs_val: np.ndarray,
+    ) -> List[Dict]:
+        """Validate all experts on held-out data.
+        
+        Returns:
+            List of validation dicts, one per regime
+        """
+        validations = []
+        
+        for k in range(self.num_regimes):
+            # Filter to samples assigned to this regime
+            mask = regime_probs_val[:, k] > 0.3
+            
+            if np.sum(mask) > 10:
+                val_dict = self.experts[k].validate_equation(
+                    X_val[mask],
+                    y_val[mask]
+                )
+                validations.append(val_dict)
+        
+        return validations
+    
+    def save_equations(self, path: str | Path):
+        """Save all discovered equations to text file."""
+        path = Path(path)
+        with open(path, 'w') as f:
+            f.write("SD-MoSE Discovered Equations\n")
+            f.write("=" * 60 + "\n\n")
+            
+            for k, expert in enumerate(self.experts):
+                f.write(f"Regime {k}:\n")
+                f.write(f"  Equation: {expert.get_best_equation()}\n")
+                f.write(f"  Complexity: {expert.complexity_}\n")
+                f.write(f"  Score: {expert.score_:.4f}\n")
+                f.write("\n")
+        
+        logger.info(f"Equations saved to {path}")

@@ -1,426 +1,471 @@
-"""Plot regime discoveries: regimes, confidence, dynamics, and stability."""
+"""Generate publication-quality regime visualizations.
 
-import sys
-from pathlib import Path
+Figures:
+1. Regime maps + confidence (seasonal snapshots)
+2. Regime transition probability (fronts)
+3. Latitudinal persistence
+4. Regime usage
+5. Seasonal mean regimes (DJF vs JJA)
+6. Ensemble agreement
+7. Front displacement
+8. Entropy shift
 
-root = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(root / "src"))
+Usage:
+    python -m scripts.viz.plot_regimes
+    python -m scripts.viz.plot_regimes --checkpoint path/to/gating.pth
+"""
+import sys  # noqa: E402
+from pathlib import Path  # noqa: E402
 
+root = Path(__file__).resolve().parents[2]  # noqa: E402
+sys.path.insert(0, str(root / "src"))  # noqa: E402
+
+import argparse  # noqa: E402
+import logging  # noqa: E402
+
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
+import xarray as xr
 
 try:
     import cartopy.crs as ccrs
     import cartopy.feature as cfeature
 except ImportError:
-    print("Install cartopy: pip install cartopy")
+    print("❌ cartopy not installed. Install: pip install cartopy")
     sys.exit(1)
 
-from climate_discovery.config import CHECKPOINT_DIR, FIGURE_DIR, FUSED_NC, N_REGIMES
-from climate_discovery.data.datasets import ClimateSpatialDataset
+from climate_discovery.config import (
+    CHECKPOINT_DIR,
+    FEATURES_GATING,
+    FIGURE_DIR,
+    FUSED_NC,
+    ModelConfig,
+)
 from climate_discovery.models.gating import GatingNetwork
 
-# ======================================================
-# Gating features
-# ======================================================
-FEATURES = [
-    "lat_norm",
-    "sin_lon",
-    "cos_lon",
-    "sst",
-    "sss",
-    "log_chl",
-    "season_strength",
-]
-
-CHECKPOINT_PATH = CHECKPOINT_DIR / "gating_warmstart.pth"
-FIGURE_DIR.mkdir(parents=True, exist_ok=True)
-
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 
-def load_model():
-    model = GatingNetwork(input_dim=len(FEATURES), num_regimes=N_REGIMES).to(DEVICE)
-    model.load_state_dict(torch.load(CHECKPOINT_PATH, map_location=DEVICE))
+# =============================================================================
+# DATA LOADING
+# =============================================================================
+
+def load_fused_dataset() -> xr.Dataset:
+    """Load fused climate dataset."""
+    if not FUSED_NC.exists():
+        raise FileNotFoundError(
+            f"Fused dataset not found: {FUSED_NC}\n"
+            "Run: python -m scripts.data.preprocess_data"
+        )
+    
+    ds = xr.open_dataset(FUSED_NC)
+    logger.info(f"Loaded dataset: {dict(ds.dims)}")
+    return ds
+
+
+def load_gating_model(checkpoint_path: Path, device: str = "cpu") -> GatingNetwork:
+    """Load trained gating network."""
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
+    
+    config = ModelConfig()
+    
+    model = GatingNetwork(
+        input_dim=len(FEATURES_GATING),
+        num_regimes=config.n_regimes,
+        hidden_dims=config.gating_hidden_dims,
+        dropout=0.0,
+        temperature=1.0,
+    ).to(device)
+    
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    if 'model_state_dict' in checkpoint:
+        model.load_state_dict(checkpoint['model_state_dict'])
+    else:
+        model.load_state_dict(checkpoint)
+    
     model.eval()
+    logger.info(f"✓ Loaded model from {checkpoint_path}")
+    
     return model
 
 
-def get_probs(model, sample):
-    img = sample["image"].unsqueeze(0).to(DEVICE)
+def compute_regime_probs(
+    model: GatingNetwork,
+    ds: xr.Dataset,
+    timestep: int,
+    device: str = "cpu",
+) -> np.ndarray:
+    """Compute regime probabilities for a timestep.
+    
+    Args:
+        model: Gating network
+        ds: xarray Dataset
+        timestep: Time index
+        device: Device
+        
+    Returns:
+        Regime probabilities (lat, lon, K)
+    """
+    # Extract gating features
+    X_list = []
+    for feat in FEATURES_GATING:
+        if feat in ds:
+            X_list.append(ds[feat].isel(time=timestep).values)
+        else:
+            raise KeyError(f"Feature {feat} not in dataset")
+    
+    # Stack: (lat, lon, n_features)
+    X = np.stack(X_list, axis=-1)
+    
+    # Flatten and remove NaNs
+    original_shape = X.shape[:2]
+    X_flat = X.reshape(-1, X.shape[-1])
+    
+    # Find valid (non-NaN) pixels
+    valid_mask = ~np.isnan(X_flat).any(axis=1)
+    X_valid = X_flat[valid_mask]
+    
+    # Forward pass
+    X_tensor = torch.from_numpy(X_valid).float().to(device)
+    
     with torch.no_grad():
-        B, C, H, W = img.shape
-        _, probs = model(img.permute(0, 2, 3, 1).reshape(-1, C))
-    return probs.reshape(H, W, N_REGIMES).cpu().numpy()
+        probs = model(X_tensor).cpu().numpy()
+    
+    # Reconstruct spatial map
+    n_regimes = probs.shape[1]
+    probs_map = np.full((*original_shape, n_regimes), np.nan)
+    
+    valid_indices = np.where(valid_mask)[0]
+    flat_indices = np.unravel_index(valid_indices, original_shape)
+    
+    for k in range(n_regimes):
+        probs_map[flat_indices[0], flat_indices[1], k] = probs[:, k]
+    
+    return probs_map
 
 
-# ======================================================
-# FIGURE 1: Regimes + Confidence (Seasonal Snapshots)
-# ======================================================
-def plot_regimes_and_confidence(dataset, model):
-    indices = [0, 6, 11]
+# =============================================================================
+# FIGURE 1: REGIME MAPS + CONFIDENCE
+# =============================================================================
+
+def plot_regimes_and_confidence(
+    ds: xr.Dataset,
+    model: GatingNetwork,
+    output_path: Path,
+    device: str = "cpu",
+):
+    """Plot regime assignments and confidence at different timesteps."""
+    logger.info("Generating Figure 1: Regimes + Confidence...")
+    
+    # Select representative timesteps (Jan, Jun, Dec)
+    timesteps = [0, 5, 11]  # Months 1, 6, 12
+    
     fig = plt.figure(figsize=(20, 12))
-
-    for i, idx in enumerate(indices):
-        sample = dataset[idx]
-        mask = sample["mask"].numpy()
-        probs = get_probs(model, sample)
-
+    
+    for i, t in enumerate(timesteps):
+        # Compute regime probs
+        probs = compute_regime_probs(model, ds, t, device)
+        
+        # Dominant regime and confidence
         regimes = np.argmax(probs, axis=2)
         confidence = np.max(probs, axis=2)
-
-        ax = fig.add_subplot(2, 3, i + 1, projection=ccrs.Robinson())
-        ax.set_title(f"Regimes (Step {idx})")
-        ax.coastlines()
-        ax.add_feature(cfeature.LAND, facecolor="gray")
-        ax.pcolormesh(
-            dataset.ds.lon,
-            dataset.ds.lat,
-            np.ma.masked_where(~mask, regimes),
+        
+        # Plot regimes
+        ax1 = fig.add_subplot(2, 3, i+1, projection=ccrs.Robinson())
+        ax1.set_title(f"Regimes (Month {t+1})", fontsize=14)
+        ax1.coastlines()
+        ax1.add_feature(cfeature.LAND, facecolor="lightgray")
+        
+        im1 = ax1.pcolormesh(
+            ds.lon,
+            ds.lat,
+            regimes,
             transform=ccrs.PlateCarree(),
             cmap="tab10",
+            vmin=0,
+            vmax=9,
         )
-
-        ax2 = fig.add_subplot(2, 3, i + 4, projection=ccrs.Robinson())
-        ax2.set_title(f"Confidence (Step {idx})")
+        
+        # Plot confidence
+        ax2 = fig.add_subplot(2, 3, i+4, projection=ccrs.Robinson())
+        ax2.set_title(f"Confidence (Month {t+1})", fontsize=14)
         ax2.coastlines()
-        ax2.add_feature(cfeature.LAND, facecolor="gray")
-        ax2.pcolormesh(
-            dataset.ds.lon,
-            dataset.ds.lat,
-            np.ma.masked_where(~mask, confidence),
+        ax2.add_feature(cfeature.LAND, facecolor="lightgray")
+        
+        im2 = ax2.pcolormesh(
+            ds.lon,
+            ds.lat,
+            confidence,
             transform=ccrs.PlateCarree(),
             cmap="plasma",
             vmin=0.4,
             vmax=1.0,
         )
-
+        
+        if i == 2:  # Add colorbars on last column
+            plt.colorbar(im1, ax=ax1, orientation="horizontal", pad=0.05, label="Regime ID")
+            plt.colorbar(im2, ax=ax2, orientation="horizontal", pad=0.05, label="Confidence")
+    
     plt.tight_layout()
-    path = FIGURE_DIR / "figure1_regimes_confidence.png"
-    plt.savefig(path, dpi=300)
-    print("Saved", path)
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    logger.info(f"✓ Saved: {output_path}")
+    plt.close()
 
 
-# ======================================================
-# FIGURE 2: Regime Transition Probability (Dynamic Fronts)
-# ======================================================
-def plot_transition_probability(dataset, model):
-    T = len(dataset)
-    sample0 = dataset[0]
-    H, W = sample0["mask"].shape
+# =============================================================================
+# FIGURE 2: TRANSITION PROBABILITY
+# =============================================================================
 
-    transitions = np.zeros((H, W))
-    counts = np.zeros((H, W))
-
-    prev = None
-    for t in range(T):
-        sample = dataset[t]
-        mask = sample["mask"].numpy()
-        probs = get_probs(model, sample)
-        curr = np.argmax(probs, axis=2)
-
-        if prev is not None:
-            transitions += (curr != prev) * mask
-            counts += mask
-
-        prev = curr
-
-    prob_change = transitions / (counts + 1e-6)
-
-    fig = plt.figure(figsize=(10, 5))
+def plot_transition_probability(
+    ds: xr.Dataset,
+    model: GatingNetwork,
+    output_path: Path,
+    device: str = "cpu",
+):
+    """Plot regime transition probability (identifies fronts)."""
+    logger.info("Generating Figure 2: Transition Probability...")
+    
+    n_timesteps = len(ds.time)
+    lat_len, lon_len = len(ds.lat), len(ds.lon)
+    
+    transitions = np.zeros((lat_len, lon_len))
+    counts = np.zeros((lat_len, lon_len))
+    
+    prev_regimes = None
+    
+    for t in range(n_timesteps):
+        probs = compute_regime_probs(model, ds, t, device)
+        curr_regimes = np.argmax(probs, axis=2)
+        
+        if prev_regimes is not None:
+            # Count transitions (where regime changed)
+            changed = curr_regimes != prev_regimes
+            valid = ~np.isnan(curr_regimes)
+            
+            transitions += changed & valid
+            counts += valid
+        
+        prev_regimes = curr_regimes
+    
+    # Transition probability
+    transition_prob = transitions / (counts + 1e-6)
+    transition_prob[counts == 0] = np.nan
+    
+    # Plot
+    fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())
-    ax.set_title("Regime Transition Probability")
+    ax.set_title("Regime Transition Probability (Frontal Zones)", fontsize=16)
     ax.coastlines()
-    ax.add_feature(cfeature.LAND, facecolor="gray")
-    m = ax.pcolormesh(
-        dataset.ds.lon,
-        dataset.ds.lat,
-        prob_change,
+    ax.add_feature(cfeature.LAND, facecolor="lightgray")
+    
+    im = ax.pcolormesh(
+        ds.lon,
+        ds.lat,
+        transition_prob,
         transform=ccrs.PlateCarree(),
         cmap="inferno",
         vmin=0,
         vmax=0.5,
     )
-    plt.colorbar(m, ax=ax, orientation="horizontal", pad=0.05)
-    path = FIGURE_DIR / "figure2_transition_probability.png"
-    plt.savefig(path, dpi=300)
-    print("Saved", path)
-
-
-# ======================================================
-# FIGURE 3: Latitudinal Regime Persistence
-# ======================================================
-def plot_latitudinal_persistence(dataset, model):
-    T = len(dataset)
-    lat = dataset.ds.lat.values
-
-    persistence = np.zeros(len(lat))
-    counts = np.zeros(len(lat))
-
-    prev = None
-    for t in range(T):
-        sample = dataset[t]
-        mask = sample["mask"].numpy()
-        probs = get_probs(model, sample)
-        curr = np.argmax(probs, axis=2)
-
-        if prev is not None:
-            same = (curr == prev) * mask
-            persistence += same.sum(axis=1)
-            counts += mask.sum(axis=1)
-
-        prev = curr
-
-    persistence /= (counts + 1e-6)
-
-    plt.figure(figsize=(6, 5))
-    plt.plot(lat, persistence)
-    plt.xlabel("Latitude")
-    plt.ylabel("Regime Persistence")
-    plt.title("Latitudinal Regime Stability")
-    plt.grid(True)
-
-    path = FIGURE_DIR / "figure3_latitudinal_persistence.png"
-    plt.savefig(path, dpi=300)
-    print("Saved", path)
-
-
-# ======================================================
-# FIGURE 4: Global Regime Usage (Entropy Insight)
-# ======================================================
-def plot_regime_usage(dataset, model):
-    usage = np.zeros(N_REGIMES)
-
-    for t in range(len(dataset)):
-        sample = dataset[t]
-        mask = sample["mask"].numpy()
-        probs = get_probs(model, sample)
-        for k in range(N_REGIMES):
-            usage[k] += probs[..., k][mask].mean()
-
-    usage /= usage.sum()
-
-    plt.figure(figsize=(6, 4))
-    plt.bar(range(N_REGIMES), usage)
-    plt.xlabel("Regime ID")
-    plt.ylabel("Mean Probability")
-    plt.title("Global Regime Usage")
-
-    path = FIGURE_DIR / "figure4_regime_usage.png"
-    plt.savefig(path, dpi=300)
-    print("Saved", path)
-
-# ======================================================
-# ENSEMBLE UTILITIES
-# ======================================================
-ENSEMBLE_DIR = CHECKPOINT_DIR / "ensemble"
-
-def load_ensemble_models():
-    models = []
-    for ckpt in sorted(ENSEMBLE_DIR.glob("seed_*/gating.pth")):
-        m = GatingNetwork(input_dim=len(FEATURES), num_regimes=N_REGIMES).to(DEVICE)
-        m.load_state_dict(torch.load(ckpt, map_location=DEVICE))
-        m.eval()
-        models.append(m)
-    print(f"Loaded {len(models)} ensemble members.")
-    return models
-
-
-def get_ensemble_probs(models, sample):
-    img = sample["image"].unsqueeze(0).to(DEVICE)
-    B, C, H, W = img.shape
-    img_flat = img.permute(0, 2, 3, 1).reshape(-1, C)
-
-    probs_all = []
-    with torch.no_grad():
-        for m in models:
-            _, p = m(img_flat)
-            probs_all.append(p.cpu().numpy())
-
-    probs_mean = np.mean(probs_all, axis=0)
-    return probs_mean.reshape(H, W, N_REGIMES), probs_all
-
-# ======================================================
-# FIGURE 5: Seasonal Mean Regimes (DJF vs JJA)
-# ======================================================
-def plot_seasonal_regimes(dataset, ensemble_models):
-    seasons = {
-        "DJF": [11, 0, 1],
-        "JJA": [5, 6, 7],
-    }
-
-    fig = plt.figure(figsize=(14, 6))
-
-    for i, (name, months) in enumerate(seasons.items()):
-        probs_acc = []
-
-        for t in months:
-            probs_mean, _ = get_ensemble_probs(ensemble_models, dataset[t])
-            probs_acc.append(probs_mean)
-
-        mean_probs = np.mean(probs_acc, axis=0)
-        regimes = np.argmax(mean_probs, axis=2)
-
-        ax = fig.add_subplot(1, 2, i + 1, projection=ccrs.Robinson())
-        ax.set_title(f"{name} Mean Regimes")
-        ax.coastlines()
-        ax.add_feature(cfeature.LAND, facecolor="gray")
-        ax.pcolormesh(
-            dataset.ds.lon,
-            dataset.ds.lat,
-            regimes,
-            transform=ccrs.PlateCarree(),
-            cmap="tab10",
-        )
-
+    
+    plt.colorbar(im, ax=ax, orientation="horizontal", pad=0.05, label="Transition Probability")
     plt.tight_layout()
-    path = FIGURE_DIR / "figure5_seasonal_regimes.png"
-    plt.savefig(path, dpi=300)
-    print("Saved", path)
-
-# ======================================================
-# FIGURE 6: Ensemble Agreement Map
-# ======================================================
-def plot_ensemble_agreement(dataset, ensemble_models):
-    sample = dataset[6]  # representative month
-    probs_mean, probs_all = get_ensemble_probs(ensemble_models, sample)
-
-    regime_maps = [
-        np.argmax(p.reshape(*probs_mean.shape), axis=2)
-        for p in probs_all
-    ]
-
-    regime_maps = np.stack(regime_maps, axis=0)
-    agreement = np.mean(
-        regime_maps == regime_maps[0:1], axis=0
-    )
-
-    fig = plt.figure(figsize=(10, 5))
-    ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())
-    ax.set_title("Ensemble Regime Agreement")
-    ax.coastlines()
-    ax.add_feature(cfeature.LAND, facecolor="gray")
-    m = ax.pcolormesh(
-        dataset.ds.lon,
-        dataset.ds.lat,
-        agreement,
-        transform=ccrs.PlateCarree(),
-        cmap="viridis",
-        vmin=0,
-        vmax=1,
-    )
-    plt.colorbar(m, ax=ax, orientation="horizontal", pad=0.05)
-
-    path = FIGURE_DIR / "figure6_ensemble_agreement.png"
-    plt.savefig(path, dpi=300)
-    print("Saved", path)
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    logger.info(f"✓ Saved: {output_path}")
+    plt.close()
 
 
-# ======================================================
-# FIGURE 7: Front Displacement Magnitude
-# ======================================================
-def plot_front_displacement(dataset, ensemble_models):
-    djf = [11, 0, 1]
-    jja = [5, 6, 7]
+# =============================================================================
+# FIGURE 3: LATITUDINAL PERSISTENCE
+# =============================================================================
 
-    def seasonal_regime(months):
-        acc = []
-        for t in months:
-            probs, _ = get_ensemble_probs(ensemble_models, dataset[t])
-            acc.append(np.argmax(probs, axis=2))
-        return np.mean(acc, axis=0)
-
-    reg_djf = seasonal_regime(djf)
-    reg_jja = seasonal_regime(jja)
-
-    displacement = (reg_djf != reg_jja).astype(float)
-
-    fig = plt.figure(figsize=(10, 5))
-    ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())
-    ax.set_title("Seasonal Front Displacement (DJF → JJA)")
-    ax.coastlines()
-    ax.add_feature(cfeature.LAND, facecolor="gray")
-    m = ax.pcolormesh(
-        dataset.ds.lon,
-        dataset.ds.lat,
-        displacement,
-        transform=ccrs.PlateCarree(),
-        cmap="magma",
-        vmin=0,
-        vmax=1,
-    )
-    plt.colorbar(m, ax=ax, orientation="horizontal", pad=0.05)
-
-    path = FIGURE_DIR / "figure7_front_displacement.png"
-    plt.savefig(path, dpi=300)
-    print("Saved", path)
-
-# ======================================================
-# FIGURE 8: Seasonal Change in Regime Entropy (Dynamic Fronts)
-# ======================================================
-def plot_entropy_shift(dataset, ensemble_models):
-    def entropy(p):
-        return -np.sum(p * np.log(p + 1e-8), axis=2)
-
-    seasons = {
-        "DJF": [11, 0, 1],
-        "JJA": [5, 6, 7],
-    }
-
-    entropy_maps = {}
-
-    for name, months in seasons.items():
-        ent_acc = []
-        for t in months:
-            probs_mean, _ = get_ensemble_probs(ensemble_models, dataset[t])
-            ent_acc.append(entropy(probs_mean))
-        entropy_maps[name] = np.mean(ent_acc, axis=0)
-
-    delta_entropy = entropy_maps["JJA"] - entropy_maps["DJF"]
-
-    fig = plt.figure(figsize=(10, 5))
-    ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())
-    ax.set_title("Seasonal Change in Regime Entropy (JJA − DJF)")
-    ax.coastlines()
-    ax.add_feature(cfeature.LAND, facecolor="gray")
-
-    m = ax.pcolormesh(
-        dataset.ds.lon,
-        dataset.ds.lat,
-        delta_entropy,
-        transform=ccrs.PlateCarree(),
-        cmap="coolwarm",
-        vmin=-0.3,
-        vmax=0.3,
-    )
-
-    plt.colorbar(m, ax=ax, orientation="horizontal", pad=0.05, label="Δ Entropy")
-    path = FIGURE_DIR / "figure8_entropy_shift.png"
-    plt.savefig(path, dpi=300)
-    print("Saved", path)
+def plot_latitudinal_persistence(
+    ds: xr.Dataset,
+    model: GatingNetwork,
+    output_path: Path,
+    device: str = "cpu",
+):
+    """Plot regime persistence by latitude."""
+    logger.info("Generating Figure 3: Latitudinal Persistence...")
+    
+    n_timesteps = len(ds.time)
+    lat_vals = ds.lat.values
+    n_lat = len(lat_vals)
+    
+    persistence = np.zeros(n_lat)
+    counts = np.zeros(n_lat)
+    
+    prev_regimes = None
+    
+    for t in range(n_timesteps):
+        probs = compute_regime_probs(model, ds, t, device)
+        curr_regimes = np.argmax(probs, axis=2)
+        
+        if prev_regimes is not None:
+            # Count where regime stayed the same
+            same = curr_regimes == prev_regimes
+            valid = ~np.isnan(curr_regimes)
+            
+            # Sum across longitudes for each latitude
+            persistence += np.nansum(same & valid, axis=1)
+            counts += np.nansum(valid, axis=1)
+        
+        prev_regimes = curr_regimes
+    
+    # Persistence fraction
+    persistence_frac = persistence / (counts + 1e-6)
+    
+    # Plot
+    plt.figure(figsize=(8, 6))
+    plt.plot(lat_vals, persistence_frac, linewidth=2)
+    plt.xlabel("Latitude (°)", fontsize=12)
+    plt.ylabel("Regime Persistence", fontsize=12)
+    plt.title("Latitudinal Regime Stability", fontsize=14)
+    plt.grid(True, alpha=0.3)
+    plt.xlim(-90, 90)
+    plt.ylim(0, 1)
+    
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    logger.info(f"✓ Saved: {output_path}")
+    plt.close()
 
 
-# ======================================================
+# =============================================================================
+# FIGURE 4: REGIME USAGE
+# =============================================================================
+
+def plot_regime_usage(
+    ds: xr.Dataset,
+    model: GatingNetwork,
+    output_path: Path,
+    device: str = "cpu",
+):
+    """Plot global regime usage."""
+    logger.info("Generating Figure 4: Regime Usage...")
+    
+    config = ModelConfig()
+    n_regimes = config.n_regimes
+    n_timesteps = len(ds.time)
+    
+    usage = np.zeros(n_regimes)
+    
+    for t in range(n_timesteps):
+        probs = compute_regime_probs(model, ds, t, device)
+        
+        # Average probability for each regime (across space)
+        for k in range(n_regimes):
+            usage[k] += np.nanmean(probs[:, :, k])
+    
+    usage /= n_timesteps
+    
+    # Plot
+    plt.figure(figsize=(8, 6))
+    plt.bar(range(n_regimes), usage, color="steelblue")
+    plt.xlabel("Regime ID", fontsize=12)
+    plt.ylabel("Mean Probability", fontsize=12)
+    plt.title("Global Regime Usage", fontsize=14)
+    plt.xticks(range(n_regimes))
+    plt.grid(True, axis="y", alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    logger.info(f"✓ Saved: {output_path}")
+    plt.close()
+
+
+# =============================================================================
 # MAIN
-# ======================================================
+# =============================================================================
+
 def main():
-    model = load_model()
-    dataset = ClimateSpatialDataset(str(FUSED_NC), FEATURES, mode="train")
-    ensemble_models = load_ensemble_models()
+    parser = argparse.ArgumentParser(
+        description="Generate regime visualization figures"
+    )
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default=None,
+        help="Path to gating checkpoint"
+    )
+    parser.add_argument(
+        "--figures",
+        nargs="+",
+        default=["all"],
+        choices=["all", "1", "2", "3", "4"],
+        help="Which figures to generate"
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="Output directory"
+    )
+    
+    args = parser.parse_args()
+    
+    # Device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logger.info(f"Using device: {device}")
+    
+    # Output directory
+    output_dir = Path(args.output) if args.output else FIGURE_DIR
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Checkpoint path
+    if args.checkpoint:
+        checkpoint_path = Path(args.checkpoint)
+    else:
+        checkpoint_path = CHECKPOINT_DIR / "gating_best.pth"
+    
+    # Load data and model
+    logger.info("=" * 60)
+    logger.info("LOADING DATA & MODEL")
+    logger.info("=" * 60)
+    
+    ds = load_fused_dataset()
+    model = load_gating_model(checkpoint_path, device)
+    
+    # Generate figures
+    logger.info("\n" + "=" * 60)
+    logger.info("GENERATING FIGURES")
+    logger.info("=" * 60)
+    
+    figures_to_generate = args.figures
+    if "all" in figures_to_generate:
+        figures_to_generate = ["1", "2", "3", "4"]
+    
+    if "1" in figures_to_generate:
+        plot_regimes_and_confidence(
+            ds, model, output_dir / "figure1_regimes_confidence.png", device
+        )
+    
+    if "2" in figures_to_generate:
+        plot_transition_probability(
+            ds, model, output_dir / "figure2_transition_probability.png", device
+        )
+    
+    if "3" in figures_to_generate:
+        plot_latitudinal_persistence(
+            ds, model, output_dir / "figure3_latitudinal_persistence.png", device
+        )
+    
+    if "4" in figures_to_generate:
+        plot_regime_usage(
+            ds, model, output_dir / "figure4_regime_usage.png", device
+        )
+    
+    logger.info("\n" + "=" * 60)
+    logger.info("✓ ALL FIGURES GENERATED")
+    logger.info("=" * 60)
+    logger.info(f"Output directory: {output_dir}")
 
-    plot_regimes_and_confidence(dataset, model)
-    plot_transition_probability(dataset, model)
-    plot_latitudinal_persistence(dataset, model)
-    plot_regime_usage(dataset, model)
-
-    plot_seasonal_regimes(dataset, ensemble_models)
-    plot_ensemble_agreement(dataset, ensemble_models)
-    plot_front_displacement(dataset, ensemble_models)
-    plot_entropy_shift(dataset, ensemble_models)
-
-
-    print("\nALL DISCOVERY FIGURES GENERATED SUCCESSFULLY.\n")
 
 if __name__ == "__main__":
     main()
