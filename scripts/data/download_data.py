@@ -1,13 +1,16 @@
 """Download SOCAT (physics) and Copernicus chlorophyll (biology) data."""
+
 import argparse
 import logging
 from pathlib import Path
 
-import requests
 import copernicusmarine
+import requests
 from tqdm import tqdm
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # NCEI OCADS 0304549. Try v2025; v2024 often 404.
@@ -42,9 +45,16 @@ def download_socat(output_dir: Path) -> bool:
             r = requests.get(url, stream=True, timeout=120)
             r.raise_for_status()
             total = int(r.headers.get("content-length", 0))
-            with open(file_path, "wb") as f, tqdm(
-                desc="SOCAT", total=total, unit="iB", unit_scale=True, unit_divisor=1024
-            ) as bar:
+            with (
+                open(file_path, "wb") as f,
+                tqdm(
+                    desc="SOCAT",
+                    total=total,
+                    unit="iB",
+                    unit_scale=True,
+                    unit_divisor=1024,
+                ) as bar,
+            ):
                 for chunk in r.iter_content(chunk_size=8192):
                     if chunk:
                         bar.update(len(chunk))
@@ -64,7 +74,9 @@ def download_chlorophyll(output_dir: Path) -> bool:
     if file_path.exists():
         logger.info("Chlorophyll already exists: %s", file_path)
         return True
-    logger.info("Downloading Copernicus chlorophyll (%s to %s)...", START_DATE, END_DATE)
+    logger.info(
+        "Downloading Copernicus chlorophyll (%s to %s)...", START_DATE, END_DATE
+    )
     try:
         copernicusmarine.subset(
             dataset_id=CMEMS_DATASET_ID,
@@ -97,7 +109,12 @@ def main():
     from climate_discovery.config import RAW_DIR
 
     ap = argparse.ArgumentParser(description="Download climate data.")
-    ap.add_argument("--data_dir", type=str, default=None, help="Raw data dir (default: config RAW_DIR)")
+    ap.add_argument(
+        "--data_dir",
+        type=str,
+        default=None,
+        help="Raw data dir (default: config RAW_DIR)",
+    )
     args = ap.parse_args()
     out = Path(args.data_dir) if args.data_dir else RAW_DIR
     out.mkdir(parents=True, exist_ok=True)
@@ -105,7 +122,9 @@ def main():
     ok_socat = download_socat(out)
     ok_chl = download_chlorophyll(out)
     if not ok_socat:
-        logger.error("SOCAT required. Fix URLs or download manually to %s", out / SOCAT_FILENAME)
+        logger.error(
+            "SOCAT required. Fix URLs or download manually to %s", out / SOCAT_FILENAME
+        )
         sys.exit(1)
     if not ok_chl:
         logger.error("Chlorophyll required. Run: copernicusmarine login")

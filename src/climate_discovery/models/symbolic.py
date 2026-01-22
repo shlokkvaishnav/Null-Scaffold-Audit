@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import os
+
 import numpy as np
-from sklearn.cluster import KMeans
 from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.cluster import KMeans
 
 try:
     from pysr import PySRRegressor
 except ImportError:
     PySRRegressor = None
+
 
 class KMeansSymbolicRegressor(BaseEstimator, RegressorMixin):
     def __init__(self, n_clusters=3, max_depth=5, random_state=42, temp_dir="pysr_tmp"):
@@ -16,10 +18,10 @@ class KMeansSymbolicRegressor(BaseEstimator, RegressorMixin):
         self.max_depth = max_depth
         self.random_state = random_state
         self.temp_dir = temp_dir
-        
+
         self.kmeans = KMeans(n_clusters=n_clusters, random_state=random_state)
         self.symbolic_models = []
-        
+
         os.makedirs(temp_dir, exist_ok=True)
 
     def fit(self, X, y, variable_names=None):
@@ -54,7 +56,7 @@ class KMeansSymbolicRegressor(BaseEstimator, RegressorMixin):
     def predict(self, X):
         labels = self.kmeans.predict(X)
         y_pred = np.zeros(len(X), dtype=np.float64)
-        
+
         for k in range(self.n_clusters):
             mask = labels == k
             if np.sum(mask) > 0 and self.symbolic_models[k] is not None:
@@ -80,7 +82,15 @@ class ConstrainedSymbolicRegressor(BaseEstimator, RegressorMixin):
     Uses PySR then ranks by MSE + constraint penalty (bounds, SST sensitivity).
     """
 
-    def __init__(self, max_depth=6, random_state=42, y_min=200, y_max=550, sst_idx=0, constraint_weight=0.5):
+    def __init__(
+        self,
+        max_depth=6,
+        random_state=42,
+        y_min=200,
+        y_max=550,
+        sst_idx=0,
+        constraint_weight=0.5,
+    ):
         self.max_depth = max_depth
         self.random_state = random_state
         self.y_min = y_min

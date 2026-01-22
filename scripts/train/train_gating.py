@@ -1,4 +1,5 @@
 """Train soft gating network (K-means teacher + spatial smoothness)."""
+
 import sys
 from pathlib import Path
 
@@ -6,6 +7,7 @@ root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(root / "src"))
 
 import logging
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,7 +16,7 @@ from sklearn.cluster import KMeans
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from climate_discovery.config import FUSED_NC, CHECKPOINT_DIR, N_REGIMES
+from climate_discovery.config import CHECKPOINT_DIR, FUSED_NC, N_REGIMES
 from climate_discovery.data.datasets import ClimateSpatialDataset
 from climate_discovery.models.gating import GatingNetwork
 from climate_discovery.models.losses import RegimeConsistencyLoss
@@ -52,7 +54,11 @@ def main():
         labels_flat.append(kmeans.predict(X_all[i : i + chunk_size]))
     labels_flat = np.concatenate(labels_flat)
 
-    teacher_targets = torch.full((full_data.shape[0], full_data.shape[1], full_data.shape[2]), -1, dtype=torch.long)
+    teacher_targets = torch.full(
+        (full_data.shape[0], full_data.shape[1], full_data.shape[2]),
+        -1,
+        dtype=torch.long,
+    )
     teacher_targets[mask_expanded] = torch.from_numpy(labels_flat).long()
     dataset.set_teacher_targets(teacher_targets)
     logger.info("Teacher targets ready.")

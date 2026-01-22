@@ -1,25 +1,27 @@
 """Preprocess raw data: align, merge, split train/test, normalize. Writes to data/processed/."""
+
 import sys
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(root / "src"))
 
-import numpy as np
-import xarray as xr
 import logging
 
+import numpy as np
+import xarray as xr
+
 from climate_discovery.config import (
-    SOCAT_PATH,
     CHL_PATH,
-    PROCESSED_DIR,
-    TRAIN_NC,
-    TEST_NC,
-    FUSED_NC,
-    SCALERS_NC,
-    START_YEAR,
-    SPLIT_YEAR,
     END_YEAR,
+    FUSED_NC,
+    PROCESSED_DIR,
+    SCALERS_NC,
+    SOCAT_PATH,
+    SPLIT_YEAR,
+    START_YEAR,
+    TEST_NC,
+    TRAIN_NC,
 )
 
 TRAIN_OUTPUT_PATH = TRAIN_NC
@@ -48,26 +50,46 @@ def preprocess():
         logger.error("File not found: %s", e)
         sys.exit(1)
 
-    var_map = {"fco2_ave_unwtd": "fco2", "sst_ave_unwtd": "sst", "salinity_ave_unwtd": "sss"}
+    var_map = {
+        "fco2_ave_unwtd": "fco2",
+        "sst_ave_unwtd": "sst",
+        "salinity_ave_unwtd": "sss",
+    }
     dim_map = {"tmnth": "time", "ylat": "lat", "xlon": "lon"}
-    rename_all = {k: v for k, v in {**var_map, **dim_map}.items() if k in ds_socat.dims or k in ds_socat}
+    rename_all = {
+        k: v
+        for k, v in {**var_map, **dim_map}.items()
+        if k in ds_socat.dims or k in ds_socat
+    }
     ds_socat = ds_socat.rename(rename_all)[["fco2", "sst", "sss"]]
 
-    ds_chl = ds_chl.rename({k: v for k, v in {"latitude": "lat", "longitude": "lon"}.items() if k in ds_chl.dims})
+    ds_chl = ds_chl.rename(
+        {
+            k: v
+            for k, v in {"latitude": "lat", "longitude": "lon"}.items()
+            if k in ds_chl.dims
+        }
+    )
     if "depth" in ds_chl.dims:
         ds_chl = ds_chl.isel(depth=0)
 
     lon_name = "lon" if "lon" in ds_socat.coords else "xlon"
     lon = ds_socat.coords[lon_name]
     if float(lon.max()) > 180:
-        ds_socat = ds_socat.assign_coords(**{lon_name: (lon + 180) % 360 - 180}).sortby(lon_name)
+        ds_socat = ds_socat.assign_coords(**{lon_name: (lon + 180) % 360 - 180}).sortby(
+            lon_name
+        )
 
     tdim = "time" if "time" in ds_socat.dims else "tmnth"
     start_time, end_time = f"{START_YEAR}-01-01", f"{END_YEAR}-12-31"
     ds_socat = ds_socat.sel({tdim: slice(start_time, end_time)})
     ds_chl = ds_chl.sel(time=slice(start_time, end_time))
 
-    chl_var = "chl" if "chl" in ds_chl else [v for v in ds_chl.data_vars if "chl" in v.lower()][0]
+    chl_var = (
+        "chl"
+        if "chl" in ds_chl
+        else [v for v in ds_chl.data_vars if "chl" in v.lower()][0]
+    )
     chl = np.log10(ds_chl[chl_var].interp_like(ds_socat, method="linear") + 1e-6)
     chl.name = "log_chl"
     ds_merged = xr.merge([ds_socat, chl])
@@ -75,7 +97,9 @@ def preprocess():
 
     ds_train = ds_merged.sel({tdim: slice(None, f"{SPLIT_YEAR - 1}-12-31")})
     ds_test = ds_merged.sel({tdim: slice(f"{SPLIT_YEAR}-01-01", None)})
-    logger.info("Train steps: %d | Test steps: %d", len(ds_train[tdim]), len(ds_test[tdim]))
+    logger.info(
+        "Train steps: %d | Test steps: %d", len(ds_train[tdim]), len(ds_test[tdim])
+    )
 
     scalers = xr.Dataset()
     for var in ["sst", "sss", "log_chl"]:
@@ -95,7 +119,13 @@ def preprocess():
     ds_fused = xr.concat([ds_train, ds_test], dim=tdim).sortby(tdim)
     ds_fused.to_netcdf(FUSED_NC, encoding={v: comp for v in ds_fused.data_vars})
 
-    logger.info("Saved: %s, %s, %s, %s", TRAIN_OUTPUT_PATH, TEST_OUTPUT_PATH, FUSED_NC, SCALER_OUTPUT_PATH)
+    logger.info(
+        "Saved: %s, %s, %s, %s",
+        TRAIN_OUTPUT_PATH,
+        TEST_OUTPUT_PATH,
+        FUSED_NC,
+        SCALER_OUTPUT_PATH,
+    )
 
 
 if __name__ == "__main__":

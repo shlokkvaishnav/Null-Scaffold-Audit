@@ -1,10 +1,12 @@
 """
 Evaluation metrics for SD-MoSE: R², RMSE, OOD slices, physical plausibility.
 """
+
 from __future__ import annotations
 
-import numpy as np
 from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 
 try:
     from sklearn.metrics import mean_squared_error, r2_score
@@ -34,9 +36,16 @@ def ood_slices(
     if bands is None:
         try:
             from .config import LAT_BANDS
+
             bands = LAT_BANDS
         except Exception:
-            bands = {"tropics": (-20, 20), "mid_lat_n": (20, 50), "mid_lat_s": (-50, -20), "high_lat_n": (50, 90), "high_lat_s": (-90, -50)}
+            bands = {
+                "tropics": (-20, 20),
+                "mid_lat_n": (20, 50),
+                "mid_lat_s": (-50, -20),
+                "high_lat_n": (50, 90),
+                "high_lat_s": (-90, -50),
+            }
     out = {}
     for name, (lo, hi) in bands.items():
         m = (lat >= lo) & (lat < hi)

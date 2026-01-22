@@ -1,4 +1,5 @@
 """Evaluate SD-MoSE mixture (gating + experts) on held-out test data."""
+
 import sys
 from pathlib import Path
 
@@ -6,19 +7,20 @@ root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(root / "src"))
 
 import logging
+
 import numpy as np
 import torch
 from sklearn.metrics import mean_squared_error, r2_score
 
 from climate_discovery.config import (
-    TRAIN_NC,
-    TEST_NC,
-    SCALERS_NC,
     CHECKPOINT_DIR,
     FEATURES_EXPERT,
     FEATURES_TIME,
-    TARGET,
     N_REGIMES,
+    SCALERS_NC,
+    TARGET,
+    TEST_NC,
+    TRAIN_NC,
 )
 from climate_discovery.data import load_table_data
 from climate_discovery.models.gating import GatingNetwork
@@ -31,16 +33,31 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 
-def _expert_0(x): return x[:, 0] + 13.3323 * x[:, 3] + 336.091
-def _expert_1(x): return (10.7304 + 8.3717 * x[:, 4]) * (x[:, 0] - 19.8059) + 355.177
+def _expert_0(x):
+    return x[:, 0] + 13.3323 * x[:, 3] + 336.091
+
+
+def _expert_1(x):
+    return (10.7304 + 8.3717 * x[:, 4]) * (x[:, 0] - 19.8059) + 355.177
+
+
 def _expert_2(x):
     t = np.clip(x[:, 0], -10, 50)
     return -x[:, 0] + 341.181 + 27.672 / np.exp(1.879 / (np.exp(t) + 1e-6))
+
+
 def _expert_3(x):
     inner = np.clip(x[:, 3] * x[:, 0] * 0.1055, -2, 2)
     return x[:, 3] * (np.exp(np.exp(inner)) + 138.02) + 359.22
-def _expert_4(x): return x[:, 0] + 346.311
-def _expert_5(x): return x[:, 0] + 353.371
+
+
+def _expert_4(x):
+    return x[:, 0] + 346.311
+
+
+def _expert_5(x):
+    return x[:, 0] + 353.371
+
 
 EXPERTS = [_expert_0, _expert_1, _expert_2, _expert_3, _expert_4, _expert_5]
 
@@ -96,7 +113,9 @@ def main():
 
     logger.info("MoSE (physics only):  R² = %.4f", r2_score(y_te, y_moe_raw))
     logger.info("MoSE (+ trend adj):   R² = %.4f", r2_score(y_te, y_moe))
-    logger.info("RMSE:                 %.4f µatm", np.sqrt(mean_squared_error(y_te, y_moe)))
+    logger.info(
+        "RMSE:                 %.4f µatm", np.sqrt(mean_squared_error(y_te, y_moe))
+    )
 
 
 if __name__ == "__main__":

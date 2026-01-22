@@ -1,4 +1,5 @@
 """Run baseline models: Linear, Lat-band, RF, XGBoost, K-means+Symbolic."""
+
 import sys
 from pathlib import Path
 
@@ -6,14 +7,19 @@ root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(root / "src"))
 
 import logging
+
 import numpy as np
 
-from climate_discovery.config import TRAIN_NC, TEST_NC, FEATURES_ALL, TARGET, LAT_BANDS
+from climate_discovery.config import FEATURES_ALL, LAT_BANDS, TARGET, TEST_NC, TRAIN_NC
 from climate_discovery.data import load_table_data
-from climate_discovery.evaluation import compute_r2_rmse, ood_slices, plausibility_metrics
+from climate_discovery.evaluation import (
+    compute_r2_rmse,
+    ood_slices,
+    plausibility_metrics,
+)
 from climate_discovery.models.baselines import (
-    LinearBaseline,
     LatitudeBandLinearRegression,
+    LinearBaseline,
     RFBaseline,
     XGBBaseline,
 )

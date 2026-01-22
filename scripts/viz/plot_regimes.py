@@ -1,13 +1,14 @@
 """Plot regime maps and confidence (requires cartopy)."""
+
 import sys
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(root / "src"))
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 
 try:
     import cartopy.crs as ccrs
@@ -16,7 +17,7 @@ except ImportError:
     print("Install cartopy: pip install cartopy")
     sys.exit(1)
 
-from climate_discovery.config import FUSED_NC, CHECKPOINT_DIR, FIGURE_DIR, N_REGIMES
+from climate_discovery.config import CHECKPOINT_DIR, FIGURE_DIR, FUSED_NC, N_REGIMES
 from climate_discovery.data.datasets import ClimateSpatialDataset
 from climate_discovery.models.gating import GatingNetwork
 
@@ -30,7 +31,9 @@ def main():
     try:
         model.load_state_dict(torch.load(CHECKPOINT_PATH, map_location="cpu"))
     except Exception:
-        model.load_state_dict(torch.load(CHECKPOINT_PATH, map_location="cpu"), strict=False)
+        model.load_state_dict(
+            torch.load(CHECKPOINT_PATH, map_location="cpu"), strict=False
+        )
     model.eval()
 
     dataset = ClimateSpatialDataset(str(FUSED_NC), FEATURES, mode="train")
@@ -55,7 +58,13 @@ def main():
         ax.coastlines()
         ax.add_feature(cfeature.LAND, facecolor="gray")
         plot_data = np.ma.masked_where(~mask, regimes)
-        mesh = ax.pcolormesh(dataset.ds.lon, dataset.ds.lat, plot_data, transform=ccrs.PlateCarree(), cmap="tab10")
+        mesh = ax.pcolormesh(
+            dataset.ds.lon,
+            dataset.ds.lat,
+            plot_data,
+            transform=ccrs.PlateCarree(),
+            cmap="tab10",
+        )
         plt.colorbar(mesh, ax=ax, orientation="horizontal", pad=0.05, label="Regime ID")
 
         ax2 = fig.add_subplot(2, 3, i + 4, projection=ccrs.Robinson())
@@ -63,8 +72,18 @@ def main():
         ax2.coastlines()
         ax2.add_feature(cfeature.LAND, facecolor="gray")
         conf_data = np.ma.masked_where(~mask, confidence)
-        mesh2 = ax2.pcolormesh(dataset.ds.lon, dataset.ds.lat, conf_data, transform=ccrs.PlateCarree(), cmap="plasma", vmin=0.4, vmax=1.0)
-        plt.colorbar(mesh2, ax=ax2, orientation="horizontal", pad=0.05, label="Probability")
+        mesh2 = ax2.pcolormesh(
+            dataset.ds.lon,
+            dataset.ds.lat,
+            conf_data,
+            transform=ccrs.PlateCarree(),
+            cmap="plasma",
+            vmin=0.4,
+            vmax=1.0,
+        )
+        plt.colorbar(
+            mesh2, ax=ax2, orientation="horizontal", pad=0.05, label="Probability"
+        )
 
     plt.tight_layout()
     path = FIGURE_DIR / "regime_evolution.png"

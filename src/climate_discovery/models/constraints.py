@@ -4,10 +4,12 @@ Physics constraints for constraint-guided symbolic discovery.
 - Output bounds: plausible fCO2 range
 - Monotonicity in SST for key regimes
 """
+
 from __future__ import annotations
 
-import numpy as np
 from typing import Callable, Optional, Tuple
+
+import numpy as np
 
 
 def check_temperature_sensitivity(
@@ -44,7 +46,7 @@ def check_output_bounds(
     n = np.sum(valid)
     if n == 0:
         return 1.0
-    out = np.sum((y_pred < y_min) | (y_pred > y_max)) 
+    out = np.sum((y_pred < y_min) | (y_pred > y_max))
     return float(out) / n
 
 
@@ -55,7 +57,9 @@ def check_monotonicity_sst(
     eps: float = 1e-4,
 ) -> float:
     """Fraction of samples where d(y)/d(SST) < 0 (violation if we expect monotonic increase)."""
-    return check_temperature_sensitivity(X, predict_fn, sst_idx, eps, expect_positive=True)
+    return check_temperature_sensitivity(
+        X, predict_fn, sst_idx, eps, expect_positive=True
+    )
 
 
 def constraint_score(
@@ -75,6 +79,8 @@ def constraint_score(
     bounds_viol = check_output_bounds(y_pred, y_min, y_max)
     sst_viol = 0.0
     if predict_fn is not None:
-        sst_viol = check_temperature_sensitivity(X, predict_fn, sst_idx, expect_positive=True)
+        sst_viol = check_temperature_sensitivity(
+            X, predict_fn, sst_idx, expect_positive=True
+        )
     score = w_bounds * bounds_viol + w_sst * sst_viol
     return float(score), {"bounds_viol": bounds_viol, "sst_viol": sst_viol}

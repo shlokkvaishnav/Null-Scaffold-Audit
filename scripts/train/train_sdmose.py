@@ -1,4 +1,5 @@
 """SD-MoSE training loop: soft gating + symbolic experts, iterate 3–5x."""
+
 import sys
 from pathlib import Path
 
@@ -6,11 +7,20 @@ root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(root / "src"))
 
 import logging
+
 import numpy as np
 import torch
 import torch.optim as optim
 
-from climate_discovery.config import TRAIN_NC, TEST_NC, CHECKPOINT_DIR, FEATURES_ALL, TARGET, N_REGIMES, SDMOSE_ITERATIONS
+from climate_discovery.config import (
+    CHECKPOINT_DIR,
+    FEATURES_ALL,
+    N_REGIMES,
+    SDMOSE_ITERATIONS,
+    TARGET,
+    TEST_NC,
+    TRAIN_NC,
+)
 from climate_discovery.data import load_table_data
 from climate_discovery.evaluation import compute_r2_rmse
 from climate_discovery.models.gating import GatingNetwork
@@ -31,7 +41,9 @@ def main():
         logger.error("Run preprocess first.")
         return
 
-    X_tr, y_tr, _, _, X_te, y_te, _, _ = load_table_data(str(TRAIN_NC), str(TEST_NC), FEATURES_ALL, TARGET)
+    X_tr, y_tr, _, _, X_te, y_te, _, _ = load_table_data(
+        str(TRAIN_NC), str(TEST_NC), FEATURES_ALL, TARGET
+    )
     n = min(N_SAMPLES, len(y_tr))
     rng = np.random.default_rng(42)
     idx = rng.choice(len(y_tr), n, replace=False)
@@ -69,10 +81,20 @@ def main():
             if np.sum(mask) < 20:
                 continue
             if km_sr.symbolic_models[k] is not None:
-                km_sr.symbolic_models[k].fit(X_tr[mask], y_tr[mask], variable_names=FEATURES_ALL)
+                km_sr.symbolic_models[k].fit(
+                    X_tr[mask], y_tr[mask], variable_names=FEATURES_ALL
+                )
             else:
                 from pysr import PySRRegressor
-                m = PySRRegressor(niterations=15, binary_operators=["+", "-", "*"], unary_operators=[], maxsize=12, random_state=42, verbosity=0)
+
+                m = PySRRegressor(
+                    niterations=15,
+                    binary_operators=["+", "-", "*"],
+                    unary_operators=[],
+                    maxsize=12,
+                    random_state=42,
+                    verbosity=0,
+                )
                 m.fit(X_tr[mask], y_tr[mask], variable_names=FEATURES_ALL)
                 km_sr.symbolic_models[k] = m
 
@@ -100,10 +122,16 @@ def main():
         gate.eval()
         with torch.no_grad():
             _, pi_te = gate(torch.from_numpy(X_te.astype(np.float32)).to(DEVICE))
-        e_te = np.column_stack([
-            km_sr.symbolic_models[k].predict(X_te) if km_sr.symbolic_models[k] is not None else np.full(len(X_te), np.nanmean(y_tr))
-            for k in range(N_REGIMES)
-        ])
+        e_te = np.column_stack(
+            [
+                (
+                    km_sr.symbolic_models[k].predict(X_te)
+                    if km_sr.symbolic_models[k] is not None
+                    else np.full(len(X_te), np.nanmean(y_tr))
+                )
+                for k in range(N_REGIMES)
+            ]
+        )
         y_mix = (pi_te.cpu().numpy() * e_te).sum(axis=1)
         r2, rmse = compute_r2_rmse(y_te, y_mix)
         logger.info("   Test R² = %.4f  RMSE = %.4f", r2, rmse)

@@ -1,4 +1,5 @@
 """Discover symbolic laws per regime via PySR (after gating is trained)."""
+
 import sys
 from pathlib import Path
 
@@ -6,11 +7,12 @@ root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(root / "src"))
 
 import logging
+
 import numpy as np
 import torch
 from pysr import PySRRegressor
 
-from climate_discovery.config import FUSED_NC, CHECKPOINT_DIR, TARGET, N_REGIMES
+from climate_discovery.config import CHECKPOINT_DIR, FUSED_NC, N_REGIMES, TARGET
 from climate_discovery.data.datasets import ClimateSpatialDataset
 from climate_discovery.models.gating import GatingNetwork
 
@@ -42,7 +44,12 @@ def get_regime_data(dataset, model, device="cpu"):
         img_gating = img_all[:n_feats]
         img_target = img_all[n_feats]
         with torch.no_grad():
-            flat = img_gating.unsqueeze(0).to(device).permute(0, 2, 3, 1).reshape(-1, n_feats)
+            flat = (
+                img_gating.unsqueeze(0)
+                .to(device)
+                .permute(0, 2, 3, 1)
+                .reshape(-1, n_feats)
+            )
             _, probs = model(flat)
             regimes = probs.argmax(dim=1).cpu().numpy()
         mask_flat = mask.flatten()
@@ -58,7 +65,8 @@ def get_regime_data(dataset, model, device="cpu"):
                 buckets[r]["y"].append(target_flat[valid][r_idx])
     return {
         r: {"X": np.vstack(buckets[r]["X"]), "y": np.concatenate(buckets[r]["y"])}
-        for r in range(N_REGIMES) if buckets[r]["X"]
+        for r in range(N_REGIMES)
+        if buckets[r]["X"]
     }
 
 
@@ -67,7 +75,9 @@ def main():
     try:
         model.load_state_dict(torch.load(CHECKPOINT_PATH, map_location="cpu"))
     except Exception:
-        model.load_state_dict(torch.load(CHECKPOINT_PATH, map_location="cpu"), strict=False)
+        model.load_state_dict(
+            torch.load(CHECKPOINT_PATH, map_location="cpu"), strict=False
+        )
 
     load_features = GATING_FEATURES + [TARGET]
     dataset = ClimateSpatialDataset(str(DATA_PATH), load_features, mode="train")

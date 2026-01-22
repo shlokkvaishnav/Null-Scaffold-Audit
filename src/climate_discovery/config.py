@@ -1,6 +1,7 @@
 """Central configuration for SD-MoSE pipeline.
 Paper: Soft Regime Mixture of Symbolic Experts for Discovering Interpretable Air-Sea CO₂ Laws.
 """
+
 from pathlib import Path
 
 # --- Paths ---
@@ -24,7 +25,7 @@ SCALERS_NC = PROCESSED_DIR / "scalers.nc"
 # --- Time split (generalization: train years 1–7, test 8–10) ---
 START_YEAR = 2015
 END_YEAR = 2024
-SPLIT_YEAR = 2022   # Train: 2015..2021, Test: 2022..2024
+SPLIT_YEAR = 2022  # Train: 2015..2021, Test: 2022..2024
 TRAIN_END = f"{SPLIT_YEAR - 1}-12-31"
 TEST_START = f"{SPLIT_YEAR}-01-01"
 
@@ -40,7 +41,7 @@ TARGET = "fco2"
 
 # --- Model ---
 N_REGIMES = 6
-SDMOSE_ITERATIONS = 5   # Training loop: gating <-> experts refit
+SDMOSE_ITERATIONS = 5  # Training loop: gating <-> experts refit
 
 # --- OOD latitude bands (for evaluation) ---
 LAT_BANDS = {

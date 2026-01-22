@@ -2,12 +2,14 @@
 HMM-style transition model for dynamic regime persistence.
 Pr(z_t | z_{t-1}) = A[z_{t-1}, z_t]. Used to regularize gating over time.
 """
+
 from __future__ import annotations
+
+from typing import Optional
 
 import numpy as np
 import torch
 import torch.nn as nn
-from typing import Optional
 
 try:
     from hmmlearn import hmm

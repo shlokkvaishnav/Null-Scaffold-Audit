@@ -1,13 +1,15 @@
 """Spatial and table datasets, plus load_table_data helper."""
-import torch
-from torch.utils.data import Dataset
-import xarray as xr
-import numpy as np
+
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+import numpy as np
+import torch
+import xarray as xr
+from torch.utils.data import Dataset
+
 try:
-    from climate_discovery.config import TRAIN_END, TEST_START
+    from climate_discovery.config import TEST_START, TRAIN_END
 except Exception:
     TRAIN_END = "2019-12-31"
     TEST_START = "2020-01-01"
@@ -66,7 +68,11 @@ class ClimateSpatialDataset(Dataset):
         self.teacher_targets = None
 
     def set_teacher_targets(self, targets):
-        assert targets.shape == (self.data.shape[0], self.data.shape[2], self.data.shape[3])
+        assert targets.shape == (
+            self.data.shape[0],
+            self.data.shape[2],
+            self.data.shape[3],
+        )
         self.teacher_targets = targets
 
     def __len__(self):
@@ -85,7 +91,9 @@ def load_table_data(
     feature_cols: List[str],
     target_col: str = "fco2",
     dropna: bool = True,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[
+    np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
+]:
     """
     Load train/test NetCDF, flatten to (N, F). Returns X_tr, y_tr, lat_tr, year_tr, X_te, y_te, lat_te, year_te.
     """
@@ -110,7 +118,11 @@ def load_table_data(
         X = df[cols].values.astype(np.float32)
         y = df[target_col].values.astype(np.float32)
         lat = df["lat"].values
-        year = df["time"].dt.year.values if "time" in df.columns else np.full(len(df), np.nan)
+        year = (
+            df["time"].dt.year.values
+            if "time" in df.columns
+            else np.full(len(df), np.nan)
+        )
         return X, y, lat, year
 
     a = _to_table(train_nc)
@@ -131,7 +143,10 @@ class ClimateTableDataset:
         test_nc: Optional[str] = None,
     ):
         import xarray as xr
-        path = Path(train_nc or nc_path) if mode == "train" else Path(test_nc or nc_path)
+
+        path = (
+            Path(train_nc or nc_path) if mode == "train" else Path(test_nc or nc_path)
+        )
         ds = xr.open_dataset(path)
         df = ds.to_dataframe().reset_index()
         if "lat_norm" not in df.columns and "lat" in df.columns:

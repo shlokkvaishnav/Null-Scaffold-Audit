@@ -1,4 +1,5 @@
 """Spatial smoothness, temporal consistency, and L1 sparsity losses."""
+
 import torch
 import torch.nn as nn
 

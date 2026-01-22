@@ -1,4 +1,5 @@
 """Run all SD-MoSE scripts sequentially in the correct order."""
+
 import subprocess
 import sys
 from pathlib import Path
@@ -27,7 +28,7 @@ if __name__ == "__main__":
     for category, script in scripts:
         # Construct module path: scripts.data.download_data
         module_name = f"scripts.{category}.{script}"
-        
+
         print(f"\n{'='*60}")
         print(f"Running module: {module_name}")
         print("=" * 60)
@@ -42,7 +43,7 @@ if __name__ == "__main__":
             print(f"\n❌ Failed: {module_name} (exit code {result.returncode})")
             print("Stopping pipeline.")
             sys.exit(result.returncode)
-        
+
         print(f"✅ Completed: {module_name}")
 
     print("\n" + "=" * 60)
