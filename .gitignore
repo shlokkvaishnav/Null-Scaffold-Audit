@@ -1,10 +1,18 @@
 # Data (exclude large files, keep structure)
-data/01_raw/*.nc
-data/02_intermediate/*
-data/03_processed/*
-!data/01_raw/.gitkeep
-!data/02_intermediate/.gitkeep
-!data/03_processed/.gitkeep
+data/raw/**/*.nc
+data/raw/**/*.netcdf
+data/raw/**/*.h5
+data/raw/**/*.hdf5
+data/processed/**/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Checkpoints and model files
+checkpoints/
+*.pt
+*.pth
+*.pkl
+*.pickle
 
 # Python
 __pycache__/
