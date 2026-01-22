@@ -21,11 +21,11 @@ from climate_discovery.data.datasets import ClimateSpatialDataset
 from climate_discovery.models.gating import GatingNetwork
 from climate_discovery.models.losses import RegimeConsistencyLoss
 
-FEATURES = ["sst", "sss", "sin_month", "cos_month", "log_chl"]
+FEATURES = ["sst", "sss", "log_chl"]
+SPATIAL_WEIGHT = 1.0
 BATCH_SIZE = 64
 EPOCHS = 5
 LR = 1e-3
-SPATIAL_WEIGHT = 0.01
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")

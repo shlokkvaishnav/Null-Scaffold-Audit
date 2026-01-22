@@ -21,7 +21,7 @@ from climate_discovery.config import CHECKPOINT_DIR, FIGURE_DIR, FUSED_NC, N_REG
 from climate_discovery.data.datasets import ClimateSpatialDataset
 from climate_discovery.models.gating import GatingNetwork
 
-FEATURES = ["sst", "sss", "sin_month", "cos_month", "log_chl"]
+FEATURES = ["sst", "sss", "log_chl"]
 CHECKPOINT_PATH = CHECKPOINT_DIR / "gating_warmstart.pth"
 FIGURE_DIR.mkdir(parents=True, exist_ok=True)
 
