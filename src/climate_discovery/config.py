@@ -33,7 +33,7 @@ TEST_START = f"{SPLIT_YEAR}-01-01"
 FEATURES_PHYS = ["sst", "sss"]
 FEATURES_BIO = ["log_chl"]
 FEATURES_TIME = ["sin_month", "cos_month", "year_feature"]
-FEATURES_GATING = ["lat_norm", "lon_norm", "sin_month", "cos_month", "year_feature"]
+FEATURES_GATING = ["lat_norm", "lon_norm", "sst", "sss", "log_chl"]
 FEATURES_EXPERT = ["sst", "sss", "log_chl"]
 FEATURES_ALL = FEATURES_EXPERT + FEATURES_TIME  # order for flat X
 

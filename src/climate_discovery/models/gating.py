@@ -9,7 +9,7 @@ class GatingNetwork(nn.Module):
     Output: Soft probability distribution pi_k over K regimes.
     """
 
-    def __init__(self, input_dim, num_regimes, hidden_dim=128):
+    def __init__(self, input_dim, num_regimes, hidden_dim=64):
         super().__init__()
 
         self.net = nn.Sequential(
@@ -26,5 +26,5 @@ class GatingNetwork(nn.Module):
 
     def forward(self, x):
         logits = self.net(x)
-        # Returns (LogProbs, Probs)
+        logits = logits / 2.0
         return F.log_softmax(logits, dim=1), F.softmax(logits, dim=1)

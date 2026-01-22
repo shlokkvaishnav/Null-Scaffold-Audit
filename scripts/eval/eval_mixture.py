@@ -24,8 +24,16 @@ from climate_discovery.data import load_table_data
 from climate_discovery.models.gating import GatingNetwork
 from climate_discovery.utils import load_scalers
 
-# --- FIX: Must match train_gating.py exactly (3 features) ---
-GATING_FEATURES = ["sst", "sss", "log_chl"]
+# --- FIX: Must match train_gating.py exactly ---
+GATING_FEATURES = [
+    "lat_norm",
+    "sin_lon",
+    "cos_lon",
+    "sst",
+    "sss",
+    "log_chl",
+    "season_strength",
+]
 
 MODEL_PATH = CHECKPOINT_DIR / "gating_warmstart.pth"
 
