@@ -7,7 +7,7 @@ name = "climate_discovery"
 version = "0.1.0"
 description = "A research package for discovering climate equations using neuro-symbolic AI."
 authors = [
-  { name = "Shlok Vaishnav", email = "your.email@example.com" },
+  { name = "Shlok Vaishnav", email = "shlok9640@gmail.com" },
 ]
 classifiers = [
     "Programming Language :: Python :: 3",

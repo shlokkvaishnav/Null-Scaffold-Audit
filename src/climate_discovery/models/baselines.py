@@ -101,3 +101,83 @@ class LatitudeBandLinearRegression(BaseEstimator, RegressorMixin):
                 if np.sum(mask) > 0:
                     y_pred[mask] = self.models[name].predict(X[mask])
         return y_pred
+
+
+class KMeansSymbolicRegressor(BaseEstimator, RegressorMixin):
+    """
+    Combined K-means clustering + Symbolic Regression (PySR) within each cluster.
+    """
+    
+    def __init__(self, n_clusters=3, max_depth=5, random_state=42, **pysr_kwargs):
+        self.n_clusters = n_clusters
+        self.max_depth = max_depth
+        self.random_state = random_state
+        self.pysr_kwargs = pysr_kwargs
+        
+        self.kmeans = None
+        self.models = {}
+        self.equations = {}
+
+    def fit(self, X, y, variable_names=None):
+        from sklearn.cluster import KMeans
+        from pysr import PySRRegressor
+        
+        # 1. Cluster the data
+        self.kmeans = KMeans(
+            n_clusters=self.n_clusters, 
+            random_state=self.random_state
+        )
+        labels = self.kmeans.fit_predict(X)
+        
+        # 2. Fit symbolic regressor for each cluster
+        for k in range(self.n_clusters):
+            mask = labels == k
+            if np.sum(mask) < 10:
+                continue
+                
+            print(f"Fitting PySR for cluster {k} ({np.sum(mask)} samples)...")
+            
+            model = PySRRegressor(
+                niterations=20,  # fast setting for baseline
+                binary_operators=["+", "-", "*", "/"],
+                unary_operators=["sin", "cos", "exp", "log"],
+                maxsize=self.max_depth * 3,
+                maxdepth=self.max_depth,
+                model_selection="best",
+                temp_equation_file=True,
+                delete_tempfiles=True,
+                verbosity=0,
+                **self.pysr_kwargs
+            )
+            
+            model.fit(X[mask], y[mask], variable_names=variable_names)
+            self.models[k] = model
+            
+            # Store best equation
+            try:
+                self.equations[k] = model.sympy()
+            except:
+                self.equations[k] = "Error retrieving equation"
+                
+        return self
+
+    def predict(self, X):
+        labels = self.kmeans.predict(X)
+        y_pred = np.zeros(len(X))
+        
+        for k in range(self.n_clusters):
+            mask = labels == k
+            if k in self.models:
+                # PySR predict returns shape (N, 1) or (N,)
+                pred = self.models[k].predict(X[mask])
+                if pred.ndim > 1:
+                    pred = pred.flatten()
+                y_pred[mask] = pred
+            else:
+                # Fallback if cluster empty/failed
+                y_pred[mask] = np.mean(y_pred[y_pred != 0]) 
+        
+        return y_pred
+
+    def get_equations(self):
+        return self.equations

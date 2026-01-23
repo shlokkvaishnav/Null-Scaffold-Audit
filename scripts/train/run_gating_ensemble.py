@@ -180,10 +180,10 @@ def analyze_ensemble_agreement(
             input_dim=len(FEATURES_GATING),
             num_regimes=config.n_regimes,
             hidden_dims=config.gating_hidden_dims,
-            dropout=0.0,
+            dropout=config.gating_dropout,
         )
         
-        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
         if 'model_state_dict' in checkpoint:
             model.load_state_dict(checkpoint['model_state_dict'])
         else:

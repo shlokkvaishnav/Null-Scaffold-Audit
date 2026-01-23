@@ -70,12 +70,12 @@ def load_trained_gating(
         input_dim=input_dim,
         num_regimes=num_regimes,
         hidden_dims=config.gating_hidden_dims,
-        dropout=0.0,  # No dropout for inference
+        dropout=config.gating_dropout,
         temperature=1.0,
     ).to(device)
     
     # Load weights
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     
     # Handle different checkpoint formats
     if 'model_state_dict' in checkpoint:

@@ -121,7 +121,7 @@ def validate_netcdf(path: Path) -> bool:
     # Try opening with xarray
     try:
         import xarray as xr
-        with xr.open_dataset(path) as ds:
+        with xr.open_dataset(path, engine="netcdf4") as ds:
             # Check has variables
             if len(ds.data_vars) == 0:
                 logger.warning(f"No data variables in {path}")

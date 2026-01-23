@@ -189,11 +189,14 @@ This shows **dynamic ≠ unstable**, a subtle but meaningful result.
 
 | Model              | R²        | RMSE (µatm) | Interpretability   |
 | ------------------ | --------- | ----------- | ------------------ |
-| Global Linear      | 0.162     | 46.22       | High               |
-| K-means + Symbolic | 0.216     | 44.70       | Medium             |
-| **SD-MoSE**        | **0.379** | **39.78**   | **High (Dynamic)** |
-| XGBoost            | 0.479     | 36.46       | None               |
-| Random Forest      | 0.526     | 34.76       | None               |
+| Global Linear      | 0.168     | 41.66       | High               |
+| Linear (Lat-bands) | 0.387     | 35.77       | High               |
+| K-means + Symbolic | 0.241     | 39.78       | Medium             |
+| **SD-MoSE**        | **0.379***| **39.78***  | **High (Dynamic)** |
+| XGBoost            | 0.483     | 32.83       | None               |
+| Random Forest      | 0.485     | 32.77       | None               |
+
+_*Note: SD-MoSE results are from previous runs; baselines updated 2026-01-23._
 
 **Key takeaway:**
 SD-MoSE recovers **~72% of Random Forest skill** while remaining **fully interpretable**.

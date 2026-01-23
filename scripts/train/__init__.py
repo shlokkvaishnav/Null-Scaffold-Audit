@@ -1,1 +1,3 @@
-"""Training scripts: gating, SD-MoSE loop, symbolic discovery."""
+"""Training scripts."""
+
+# Don't import anything here - let scripts be run independently

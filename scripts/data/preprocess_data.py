@@ -170,14 +170,12 @@ def harmonize_socat(ds: xr.Dataset) -> xr.Dataset:
     SOCAT uses inconsistent naming across versions.
     Standardize to: fco2, sst, sss
     """
-    # Variable name mapping
-    var_map = {
-        "fco2_ave_unwtd": "fco2",
-        "fco2_ave_weighted": "fco2",
-        "sst_ave_unwtd": "sst",
-        "sst_ave_weighted": "sst",
-        "salinity_ave_unwtd": "sss",
-        "salinity_ave_weighted": "sss",
+    
+    # Target variables and their possible sources (in order of preference)
+    target_vars = {
+        "fco2": ["fco2_ave_weighted", "fco2_ave_unwtd"],
+        "sst": ["sst_ave_weighted", "sst_ave_unwtd"],
+        "sss": ["salinity_ave_weighted", "salinity_ave_unwtd"],
     }
     
     # Dimension name mapping
@@ -187,11 +185,22 @@ def harmonize_socat(ds: xr.Dataset) -> xr.Dataset:
         "xlon": "lon",
     }
     
-    # Build rename dict for existing vars/dims
     rename_dict = {}
-    for old, new in {**var_map, **dim_map}.items():
-        if old in ds.dims or old in ds.data_vars or old in ds.coords:
+    
+    # map dimensions
+    for old, new in dim_map.items():
+        if old in ds.dims or old in ds.coords:
             rename_dict[old] = new
+
+    # map data variables
+    for target, sources in target_vars.items():
+        if target in ds.data_vars:
+            continue # already exists
+            
+        for source in sources:
+            if source in ds.data_vars:
+                rename_dict[source] = target
+                break # Found best match, stop looking for this target
     
     ds = ds.rename(rename_dict)
     
@@ -327,7 +336,7 @@ def preprocess(
     
     # Load datasets
     try:
-        ds_socat = xr.open_dataset(socat_path, decode_times=True)
+        ds_socat = xr.open_dataset(socat_path, decode_times=True, engine="netcdf4")
         logger.info(f"✓ Loaded SOCAT: {socat_path}")
     except FileNotFoundError:
         logger.error(f"❌ SOCAT file not found: {socat_path}")
@@ -335,7 +344,7 @@ def preprocess(
         sys.exit(1)
     
     try:
-        ds_chl = xr.open_dataset(chl_path, decode_times=True)
+        ds_chl = xr.open_dataset(chl_path, decode_times=True, engine="netcdf4")
         logger.info(f"✓ Loaded Chlorophyll: {chl_path}")
     except FileNotFoundError:
         logger.error(f"❌ Chlorophyll file not found: {chl_path}")

@@ -192,7 +192,7 @@ class SDMoSE(nn.Module):
     def load(self, path: str | Path):
         """Load gating network weights."""
         path = Path(path)
-        checkpoint = torch.load(path, map_location=self.device)
+        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
         
         self.gating_network.load_state_dict(checkpoint['gating_state_dict'])
         self.num_regimes = checkpoint['num_regimes']

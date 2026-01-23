@@ -2,6 +2,8 @@ LICENSE
 README.md
 pyproject.toml
 src/climate_discovery/__init__.py
+src/climate_discovery/config.py
+src/climate_discovery/evaluation.py
 src/climate_discovery/utils.py
 src/climate_discovery.egg-info/PKG-INFO
 src/climate_discovery.egg-info/SOURCES.txt
@@ -9,12 +11,12 @@ src/climate_discovery.egg-info/dependency_links.txt
 src/climate_discovery.egg-info/requires.txt
 src/climate_discovery.egg-info/top_level.txt
 src/climate_discovery/data/__init__.py
-src/climate_discovery/data/dataset.py
+src/climate_discovery/data/datasets.py
 src/climate_discovery/models/__init__.py
 src/climate_discovery/models/baselines.py
+src/climate_discovery/models/constraints.py
 src/climate_discovery/models/gating.py
-src/climate_discovery/models/loss.py
+src/climate_discovery/models/hmm.py
+src/climate_discovery/models/losses.py
 src/climate_discovery/models/mixture.py
 src/climate_discovery/models/symbolic.py
-tests/test_clustering.py
-tests/test_data.py

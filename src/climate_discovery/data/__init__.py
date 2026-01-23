@@ -1,3 +1,7 @@
-from .datasets import ClimateSpatialDataset, ClimateTableDataset, load_table_data
+"""Data loading and processing utilities."""
 
-__all__ = ["ClimateSpatialDataset", "ClimateTableDataset", "load_table_data"]
+# Import main dataset class
+try:
+    from .datasets import ClimateDataset, create_dataloaders
+except ImportError:
+    pass

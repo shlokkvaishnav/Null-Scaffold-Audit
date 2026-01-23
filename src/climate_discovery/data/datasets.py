@@ -56,7 +56,7 @@ class ClimateDataset(Dataset):
         self.drop_nan = drop_nan
         
         # Load dataset
-        self.ds = xr.open_dataset(self.netcdf_path)
+        self.ds = xr.open_dataset(self.netcdf_path, engine="netcdf4")
         
         # Flatten spatial dimensions
         self._prepare_flat_data()

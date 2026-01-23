@@ -306,7 +306,7 @@ def main():
     
     # Load initial checkpoint if provided
     if args.init_checkpoint:
-        checkpoint = torch.load(args.init_checkpoint, map_location=device)
+        checkpoint = torch.load(args.init_checkpoint, map_location=device, weights_only=False)
         if 'model_state_dict' in checkpoint:
             gating.load_state_dict(checkpoint['model_state_dict'])
         else:

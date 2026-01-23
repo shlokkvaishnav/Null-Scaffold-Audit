@@ -77,7 +77,7 @@ def load_sdmose_model(
         input_dim=len(FEATURES_GATING),
         num_regimes=config.n_regimes,
         hidden_dims=config.gating_hidden_dims,
-        dropout=0.0,  # No dropout for inference
+        dropout=config.gating_dropout,  # Match training config
         temperature=1.0,
     ).to(device)
     

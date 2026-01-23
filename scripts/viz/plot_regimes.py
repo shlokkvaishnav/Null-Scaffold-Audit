@@ -63,7 +63,7 @@ def load_fused_dataset() -> xr.Dataset:
             "Run: python -m scripts.data.preprocess_data"
         )
     
-    ds = xr.open_dataset(FUSED_NC)
+    ds = xr.open_dataset(FUSED_NC, engine="netcdf4")
     logger.info(f"Loaded dataset: {dict(ds.dims)}")
     return ds
 
@@ -79,11 +79,11 @@ def load_gating_model(checkpoint_path: Path, device: str = "cpu") -> GatingNetwo
         input_dim=len(FEATURES_GATING),
         num_regimes=config.n_regimes,
         hidden_dims=config.gating_hidden_dims,
-        dropout=0.0,
+        dropout=config.gating_dropout,
         temperature=1.0,
     ).to(device)
     
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     if 'model_state_dict' in checkpoint:
         model.load_state_dict(checkpoint['model_state_dict'])
     else:

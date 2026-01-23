@@ -57,17 +57,17 @@ PIPELINE = [
         "skippable": False,
     },
     {
-        "category": "eval",
-        "script": "eval_mixture",
-        "description": "Evaluate SD-MoSE mixture",
-        "time_estimate": "5 min",
-        "skippable": True,
-    },
-    {
         "category": "train",
         "script": "train_sdmose",
         "description": "Full SD-MoSE alternating optimization",
         "time_estimate": "4 hours",
+        "skippable": True,
+    },
+    {
+        "category": "eval",
+        "script": "eval_mixture",
+        "description": "Evaluate SD-MoSE mixture",
+        "time_estimate": "5 min",
         "skippable": True,
     },
     {

@@ -1,1 +1,3 @@
-"""SD-MoSE scripts: data, train, eval, viz."""
+"""SD-MoSE scripts package."""
+
+__version__ = "0.1.0"

@@ -47,7 +47,7 @@ def load_scalers(path: Union[str, Path]) -> Dict[str, float]:
     if not path.exists():
         raise FileNotFoundError(f"Scalers file not found: {path}")
     
-    ds = xr.open_dataset(path)
+    ds = xr.open_dataset(path, engine="netcdf4")
     out = {}
     
     for var in ds.data_vars:
@@ -544,4 +544,4 @@ def load_regime_assignments(path: Union[str, Path]) -> xr.Dataset:
     """Load saved regime assignments."""
     if xr is None:
         raise ImportError("xarray required")
-    return xr.open_dataset(path)
+    return xr.open_dataset(path, engine="netcdf4")
