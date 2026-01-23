@@ -11,7 +11,7 @@
 
 ## 1. Problem Formulation
 
-Let $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^N$ be a dataset of spatiotemporal observations, where $y \in \mathbb{R}$ represents the partial pressure of $CO_2$ ($pCO_2$) and $\mathbf{x} \in \mathbb{R}^d$ represents physical and biological drivers (e.g., SST, SSS, Chl-a).
+Let $D = \{ (\mathbf{x}_i, y_i) \}_{i=1}^N$ be a dataset of spatiotemporal observations, where $y \in \mathbb{R}$ represents the partial pressure of $CO_2$ ($pCO_2$) and $\mathbf{x} \in \mathbb{R}^d$ represents physical and biological drivers (e.g., SST, SSS, Chl-a).
 
 We model the target variable $y$ as a mixture of $K$ distinct physical mechanisms ("regimes"), where the contribution of each mechanism varies dynamically based on the state $\mathbf{x}$.
 
