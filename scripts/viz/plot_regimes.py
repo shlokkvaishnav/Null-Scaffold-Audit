@@ -112,13 +112,37 @@ def compute_regime_probs(
     Returns:
         Regime probabilities (lat, lon, K)
     """
-    # Extract gating features
+    # Extract gating features with proper 2D alignment
     X_list = []
+    ref_shape = None
+    
     for feat in FEATURES_GATING:
-        if feat in ds:
-            X_list.append(ds[feat].isel(time=timestep).values)
+        if feat not in ds:
+            logger.warning(f"Feature {feat} not in dataset, skipping")
+            continue
+            
+        data = ds[feat].isel(time=timestep).values
+        
+        # Skip if not 2D (spatial coordinates only)
+        if data.ndim != 2:
+            logger.debug(f"Feature {feat} is {data.ndim}D, expected 2D, skipping")
+            continue
+        
+        # Use first 2D feature as reference
+        if ref_shape is None:
+            ref_shape = data.shape
+            X_list.append(data)
         else:
-            raise KeyError(f"Feature {feat} not in dataset")
+            # Ensure shape matches reference
+            if data.shape == ref_shape:
+                X_list.append(data)
+            else:
+                logger.warning(
+                    f"Feature {feat} shape {data.shape} doesn't match reference {ref_shape}, skipping"
+                )
+    
+    if len(X_list) < 2:
+        raise ValueError(f"Need at least 2 valid 2D gating features, got {len(X_list)}")
     
     # Stack: (lat, lon, n_features)
     X = np.stack(X_list, axis=-1)
