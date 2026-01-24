@@ -401,9 +401,11 @@ class MixtureOfSymbolicExperts:
             
             for k, expert in enumerate(self.experts):
                 f.write(f"Regime {k}:\n")
+                score_val = expert.score_ if expert.score_ is not None else 0.0
+                comp_val = expert.complexity_ if expert.complexity_ is not None else 0
                 f.write(f"  Equation: {expert.get_best_equation()}\n")
-                f.write(f"  Complexity: {expert.complexity_}\n")
-                f.write(f"  Score: {expert.score_:.4f}\n")
+                f.write(f"  Complexity: {comp_val}\n")
+                f.write(f"  Score: {score_val:.4f}\n")
                 f.write("\n")
         
         logger.info(f"Equations saved to {path}")

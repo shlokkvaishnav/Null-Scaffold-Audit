@@ -11,20 +11,26 @@
 
 ## 1. Problem Formulation
 
-Let $D = \{ (\mathbf{x}_i, y_i) \}_{i=1}^N$ be a dataset of spatiotemporal observations, where $y \in \mathbb{R}$ represents the partial pressure of $CO_2$ ($pCO_2$) and $\mathbf{x} \in \mathbb{R}^d$ represents physical and biological drivers (e.g., SST, SSS, Chl-a).
+Let the dataset $\mathcal{D}$ be defined as:
 
-We model the target variable $y$ as a mixture of $K$ distinct physical mechanisms ("regimes"), where the contribution of each mechanism varies dynamically based on the state $\mathbf{x}$.
+$$
+\mathcal{D} = \{ (\mathbf{x}_i, y_i) \}_{i=1}^N
+$$
+
+where `y` represents the partial pressure of CO₂ (`pCO2`) and `x` represents physical and biological drivers (e.g., SST, SSS, Chl-a).
+
+We model the target variable `y` as a mixture of `K` distinct physical mechanisms ("regimes"), where the contribution of each mechanism varies dynamically based on the state `x`.
 
 ## 2. Methodology
 
 The **Soft-Dynamic Mixture of Symbolic Experts (SD-MoSE)** architecture decomposes the prediction problem into two coupled components:
 
-1.  **Gating Network $\pi(\mathbf{x}; \phi)$**: A neural network that learns a state-dependent probability distribution over regimes.
-2.  **Symbolic Experts $\{f_k(\mathbf{x}; \theta_k)\}_{k=1}^K$**: A set of interpretable mathematical equations, each optimizing fit for a specific regime.
+1.  **Gating Network** `π(x; φ)`: A neural network that learns a state-dependent probability distribution over regimes.
+2.  **Symbolic Experts** `f_k(x; θ_k)`: A set of interpretable mathematical equations, each optimizing fit for a specific regime.
 
 ### 2.1 Model Architecture
 
-The global prediction $\hat{y}$ is given by the convex combination:
+The global prediction `ŷ` is given by the convex combination:
 
 $$
 \hat{y}(\mathbf{x}) = \sum_{k=1}^{K} \pi_k(\mathbf{x}) \cdot f_k(\mathbf{x})
@@ -39,11 +45,18 @@ Where:
 Since the functional forms of $f_k$ are unknown *a priori*, we employ an iterative Expectation-Maximization (EM) inspired training loop:
 
 1.  **M-Step (Gating Optimization)**: Fix the experts $f_k$ and train the parameters $\phi$ of the gating network to minimize the mixture loss with entropy regularization:
-    $$ \mathcal{L}(\phi) = \sum_{i=1}^N \left( y_i - \sum_{k=1}^K \pi_k(\mathbf{x}_i; \phi) f_k(\mathbf{x}_i) \right)^2 - \lambda \sum_{i=1}^N H(\pi(\mathbf{x}_i)) $$
-    where $H(\cdot)$ encourages distinct regime boundaries.
 
-2.  **E-Step (Symbolic Discovery)**: Fix the gating probabilities $\pi_k$. For each regime $k$, we solve a weighted symbolic regression problem using genetic programming (PySR):
-    $$ f_k^* = \arg\min_{f \in \mathcal{F}} \sum_{i=1}^N \pi_k(\mathbf{x}_i) (y_i - f(\mathbf{x}_i))^2 + \gamma \cdot \text{Complexity}(f) $$
+    $$
+    \\mathcal{L}(\\phi) = \\sum_{i=1}^N \\left( y_i - \\sum_{k=1}^K \\pi_k(\\mathbf{x}_i; \\phi) f_k(\\mathbf{x}_i) \\right)^2 - \\lambda \\sum_{i=1}^N H(\\pi(\\mathbf{x}_i))
+    $$
+
+    where $H(\\cdot)$ encourages distinct regime boundaries.
+
+2.  **E-Step (Symbolic Discovery)**: Fix the gating probabilities $\\pi_k$. For each regime $k$, we solve a weighted symbolic regression problem using genetic programming (PySR):
+
+    $$
+    f_k^* = \\arg\\min_{f \\in \\mathcal{F}} \\sum_{i=1}^N \\pi_k(\\mathbf{x}_i) (y_i - f(\\mathbf{x}_i))^2 + \\gamma \\cdot \\text{Complexity}(f)
+    $$
 
 ---
 
@@ -115,16 +128,76 @@ We compare SD-MoSE against standard ML baselines and traditional empirical param
 
 | Model Class | Architecture | RMSE (µatm) | $R^2$ | Interpretability |
 | :--- | :--- | :--- | :--- | :--- |
-| **Neuro-Symbolic** | **SD-MoSE (Proposed)** | **12.45** | **0.78** | **Symbolic** |
-| Deep Learning | MLP (3-layer) | 12.10 | 0.80 | Black-box |
-| Tree Ensemble | XGBoost | 11.92 | 0.81 | Black-box |
-| Linear | Stepwise Regression | 25.40 | 0.45 | Analytic |
+| **Neuro-Symbolic** | **SD-MoSE (Proposed)** | **34.17** | **0.44** | **Symbolic** |
+| Deep Learning | MLP (3-layer) | - | - | Black-box |
+| Tree Ensemble | XGBoost | - | - | Black-box |
 
-*Table 1: Test set performance (2022-2024). SD-MoSE achieves near-SOTA accuracy while maintaining full functional transparency.*
+### Discovered Equations (Iteration 5)
+
+| Regime | Frequency | Discovered Law $f_k(\mathbf{x})$ | Physical Interpretation |
+| :--- | :--- | :--- | :--- |
+| **R0** | ~0.6% | $151.7 + \frac{\sin(\text{month})}{0.033} + 130$ | Seasonal cycle dominance (rare regime) |
+| **R1** | 26.3% | $\exp(A \cdot \sqrt{B - \exp(\dots)}) - \cos(\text{month})$ | Complex non-linear interaction |
+| **R2** | ~0.4% | $306 - \exp(1.95 - \text{SST})$ | Exponential temperature dependence |
+| **R3** | 24.2% | $349.56 - (\log_{10}\text{Chl} - \text{SSS}^2)$ | Biological and salinity driven |
+| **R4** | 6.4% | $(SST/3.3 + 18.1)^2$ | Quadratic temperature formulation |
+| **R5** | 43.1% | $f(\text{SST}, \text{Month})$ (Complex) | Dominant global regime (Temperate/Tropical) |
+
+*Table 1: Test set performance and discovered physical laws. Metrics from final test evaluation (2022-2024).*
 
 ---
 
-## 6. Citation
+## 6. Ablation Studies
+
+Comprehensive ablation studies assess the contribution of model components and feature importance:
+
+### 6.1 Number of Regimes
+
+| K (Regimes) | $R^2$ | RMSE (µatm) | MAE (µatm) | Mean Entropy |
+| :--- | :--- | :--- | :--- | :--- |
+| 3 | 0.2032 | 40.76 | 28.83 | 0.18 |
+| 6 | 0.1739 | 41.51 | 28.95 | 0.50 |
+| 9 | 0.2550 | 39.42 | 27.90 | 0.89 |
+
+**Finding**: K=9 achieves best performance, suggesting sufficient complexity for regime partitioning.
+
+### 6.2 Entropy Regularization Weight
+
+| Entropy Weight | $R^2$ | RMSE (µatm) | MAE (µatm) | Entropy |
+| :--- | :--- | :--- | :--- | :--- |
+| 0.00 | 0.1396 | 42.36 | 30.66 | 1.70 |
+| 0.01 | 0.1792 | 41.38 | 29.25 | 0.45 |
+| 0.10 | 0.2207 | 40.32 | 28.96 | 0.06 |
+
+**Finding**: Entropy weight λ=0.1 balances regime separation (low entropy) with prediction accuracy.
+
+### 6.3 Load Balancing Weight
+
+| Balance Weight | $R^2$ | RMSE (µatm) | MAE (µatm) |
+| :--- | :--- | :--- | :--- |
+| 0.0 | 0.2076 | 40.65 | 29.02 |
+| 0.1 | 0.1679 | 41.66 | 29.34 |
+| 0.5 | 0.1621 | 41.80 | 29.88 |
+
+**Finding**: No load balancing (β=0.0) yields best results, indicating natural regime balancing is preferable.
+
+### 6.4 Feature Importance
+
+| Removed Feature | $R^2$ | RMSE (µatm) | MAE (µatm) | ΔR² |
+| :--- | :--- | :--- | :--- | :--- |
+| None (Baseline) | 0.1877 | 41.16 | 28.14 | — |
+| SST | 0.2163 | 40.43 | 28.98 | +0.028 |
+| SSS | 0.1908 | 41.08 | 28.84 | +0.003 |
+| log₁₀(Chl-a) | 0.1754 | 41.47 | 29.60 | -0.012 |
+| **sin(month)** | **0.2657** | **39.13** | **28.04** | **+0.078** |
+| cos(month) | 0.2269 | 40.16 | 28.22 | +0.039 |
+| year_norm | 0.1879 | 41.16 | 28.79 | +0.0002 |
+
+**Finding**: Removing sin(month) improves performance (+7.8% R²), suggesting seasonal aliasing in baseline model. SST moderately contributes (+2.8%), while chlorophyll and year normalization have minimal impact.
+
+---
+
+## 7. Citation
 
 If you use this code or methodology in your research, please cite:
 

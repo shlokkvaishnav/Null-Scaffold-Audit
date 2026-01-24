@@ -145,7 +145,7 @@ def fit_symbolic_experts(
         "unary_operators": config.pysr_unary_operators,
         "complexity_penalty": config.pysr_complexity_penalty,
         "maxsize": 25,
-        "verbosity": 0,  # Quiet mode (set to 1 for debugging)
+        "verbosity": 1,  # Show progress bar (was 0)
     }
     
     experts = MixtureOfSymbolicExperts(

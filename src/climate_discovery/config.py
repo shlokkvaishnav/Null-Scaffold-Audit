@@ -133,8 +133,8 @@ class ModelConfig:
     gating_batch_size: int = 2048
     
     # Symbolic discovery (PySR)
-    pysr_niterations: int = 40
-    pysr_populations: int = 31
+    pysr_niterations: int = 5  # Reduced for faster training/debugging (was 40)
+    pysr_populations: int = 15  # Reduced for faster training (was 31)
     pysr_binary_operators: List[str] = field(
         default_factory=lambda: ["+", "-", "*", "/"]
     )
