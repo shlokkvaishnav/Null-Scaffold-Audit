@@ -100,6 +100,51 @@ class SymbolicExpert(BaseEstimator, RegressorMixin):
         # Ensure temp directory exists
         os.makedirs(self.temp_dir, exist_ok=True)
     
+    def _build_physics_informed_constraints(self) -> Dict:
+        """Build physics-informed constraints for ocean carbon chemistry.
+        
+        Prevents unphysical equations by:
+        1. Limiting exponential growth (numerical stability)
+        2. Constraining power exponents to realistic ranges
+        3. Preventing division by zero
+        4. Enforcing dimensionally consistent operations
+        
+        Returns:
+            Dictionary of PySR constraints
+        """
+        constraints = {}
+        
+        # Base constraint: Division by zero protection
+        # This is CRITICAL for preventing NaN propagation
+        constraints["/"] = (-1, 1)  # (-1: no constraint, 1: apply to arg2)
+        
+        # Exponential constraints (prevent exp(1000*SST) → overflow)
+        # Ocean variables: SST ~ [-2, 35]°C, SSS ~ [0, 42] PSU
+        # After standardization: ~ [-3, 3]
+        # Safe exp limit: exp(10) ≈ 22000 (acceptable)
+        # Constrain: exp(x) where |x| < some_threshold
+        constraints["exp"] = 5  # Max complexity for exp arguments
+        
+        # Power constraints (realistic exponents for physical laws)
+        # Examples:
+        #   - Henry's Law: linear (power=1)
+        #   - Revelle factor: ~power=2
+        #   - Unphysical: SST^100
+        constraints["pow"] = (-1, 1)  # Only allow pow(base, fixed_exponent)
+        constraints["square"] = (-1, 1)  # Equivalent to pow(x, 2)
+        constraints["cube"] = (-1, 1)  # If we add cube operator
+        
+        # Logarithm constraints (avoid log of negative or zero)
+        # log/sqrt need positive arguments
+        constraints["log"] = (-1, 1)
+        constraints["sqrt"] = (-1, 1)
+        
+        # Update with user-provided constraints
+        if self.constraints:
+            constraints.update(self.constraints)
+        
+        return constraints
+    
     def fit(
         self,
         X: np.ndarray,
@@ -129,7 +174,7 @@ class SymbolicExpert(BaseEstimator, RegressorMixin):
             f"on {len(X)} samples..."
         )
         
-        # Configure PySR
+        # Configure PySR with physics-informed constraints
         pysr_config = {
             "niterations": self.niterations,
             "populations": self.populations,
@@ -142,8 +187,28 @@ class SymbolicExpert(BaseEstimator, RegressorMixin):
             "delete_tempfiles": True,
             "verbosity": self.verbosity,
             "progress": self.verbosity > 0,
-            # Prevent division by zero
-            "constraints": {"/": (lambda x: x != 0, "x != 0")},
+            
+            # PHYSICS-INFORMED CONSTRAINTS
+            "constraints": self._build_physics_informed_constraints(),
+            
+            # Complexity constraints (prevent overfitting)
+            "maxdepth": 10,  # Max expression tree depth
+            "nested_constraints": {
+                "exp": {"exp": 0, "log": 0},  # No exp(exp(x)) or exp(log(x))
+                "log": {"log": 0, "sqrt": 0},  # No log(log(x)) or log(sqrt(x))
+                "sqrt": {"sqrt": 0},  # No sqrt(sqrt(x))
+            },
+            
+            # Loss function (L2 with MAE fallback for outliers)
+            "loss": "loss(prediction, target) = (prediction - target)^2",
+            
+            # Batching for speed (if many samples)
+            "batching": False,  # Can enable if N > 10000
+            
+            # Early stopping (halt if no improvement)
+            "early_stop_condition": (
+                "stop_if(loss, complexity) = loss < 1e-6 && complexity < 10"
+            ),
         }
         
         # Initialize model

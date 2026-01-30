@@ -112,37 +112,41 @@ def compute_regime_probs(
     Returns:
         Regime probabilities (lat, lon, K)
     """
-    # Extract gating features with proper 2D alignment
-    X_list = []
-    ref_shape = None
+    # Get spatial dimensions
+    lat = ds["lat"].values
+    lon = ds["lon"].values
+    n_lat, n_lon = len(lat), len(lon)
     
+    # Extract gating features with proper broadcasting
+    X_list = []
     for feat in FEATURES_GATING:
         if feat not in ds:
-            logger.warning(f"Feature {feat} not in dataset, skipping")
-            continue
-            
+            raise KeyError(f"Feature {feat} not in dataset")
+        
         data = ds[feat].isel(time=timestep).values
         
-        # Skip if not 2D (spatial coordinates only)
-        if data.ndim != 2:
-            logger.debug(f"Feature {feat} is {data.ndim}D, expected 2D, skipping")
-            continue
-        
-        # Use first 2D feature as reference
-        if ref_shape is None:
-            ref_shape = data.shape
-            X_list.append(data)
-        else:
-            # Ensure shape matches reference
-            if data.shape == ref_shape:
-                X_list.append(data)
+        # Convert to 2D array (lat, lon)
+        if data.ndim == 0:
+            # Scalar - broadcast to full spatial shape
+            data = np.full((n_lat, n_lon), float(data))
+        elif data.ndim == 1:
+            # 1D array - determine if it's lat or lon and broadcast
+            if len(data) == n_lat:
+                # Latitude dimension - broadcast along lon
+                data = np.broadcast_to(data[:, np.newaxis], (n_lat, n_lon))
+            elif len(data) == n_lon:
+                # Longitude dimension - broadcast along lat
+                data = np.broadcast_to(data[np.newaxis, :], (n_lat, n_lon))
             else:
-                logger.warning(
-                    f"Feature {feat} shape {data.shape} doesn't match reference {ref_shape}, skipping"
-                )
-    
-    if len(X_list) < 2:
-        raise ValueError(f"Need at least 2 valid 2D gating features, got {len(X_list)}")
+                raise ValueError(f"Feature {feat} 1D array length {len(data)} doesn't match lat {n_lat} or lon {n_lon}")
+        elif data.ndim == 2:
+            # Already 2D spatial field
+            if data.shape != (n_lat, n_lon):
+                raise ValueError(f"Feature {feat} shape {data.shape} doesn't match expected ({n_lat}, {n_lon})")
+        else:
+            raise ValueError(f"Feature {feat} has {data.ndim} dimensions, expected 0-2")
+        
+        X_list.append(data)
     
     # Stack: (lat, lon, n_features)
     X = np.stack(X_list, axis=-1)

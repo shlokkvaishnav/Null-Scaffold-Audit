@@ -39,7 +39,7 @@ from climate_discovery.config import (
     TRAIN_NC,
 )
 from climate_discovery.data.datasets import ClimateDataset
-from climate_discovery.models.gating import GatingNetwork
+from climate_discovery.models.gating import GatingNetwork, AttentionGatingNetwork
 from climate_discovery.models.losses import SDMoSELoss
 from climate_discovery.models.mixture import SDMoSE, evaluate_mixture
 from climate_discovery.models.symbolic import MixtureOfSymbolicExperts
@@ -59,6 +59,7 @@ def train_gating_step(
     expert_predictions: np.ndarray,
     device: str,
     epochs: int = 10,
+    dataset=None,  # For accessing spatial/temporal info
 ) -> float:
     """Train gating network with fixed expert predictions.
     
@@ -70,6 +71,7 @@ def train_gating_step(
         expert_predictions: Pre-computed expert outputs (N, K)
         device: Device
         epochs: Number of epochs to train
+        dataset: Training dataset (for spatial/temporal data)
         
     Returns:
         Final training loss
@@ -97,8 +99,18 @@ def train_gating_step(
             # Forward: mixture prediction
             y_pred, probs = model.forward_mixture(X_gate, expert_batch)
             
-            # Compute loss
-            loss_dict = criterion(y_pred, y, probs)
+            # Extract spatial/temporal info for regularization
+            # Gating features: [lat_norm, lon_norm, sst, sss, log_chl, sst_gradient, sin_month, cos_month, year_norm]
+            # Extract lat_norm, lon_norm (indices 0, 1)
+            spatial_coords = X_gate[:, :2]  # (N, 2)
+            
+            # Compute time indices from year_norm (index 8) for temporal regularization
+            # year_norm is (year - 2015) / 10, so reconstruct approximate timestep
+            year_norm = X_gate[:, 8]
+            time_indices = (year_norm * 10).long()  # Approximate years since 2015
+            
+            # Compute loss with regularization
+            loss_dict = criterion(y_pred, y, probs, spatial_coords, time_indices)
             loss = loss_dict["total"]
             
             # Backward
@@ -295,14 +307,27 @@ def main():
     logger.info("INITIALIZING MODEL")
     logger.info("=" * 60)
     
-    # Create gating network
-    gating = GatingNetwork(
-        input_dim=len(FEATURES_GATING),
-        num_regimes=config.n_regimes,
-        hidden_dims=config.gating_hidden_dims,
-        dropout=config.gating_dropout,
-        temperature=1.0,
-    ).to(device)
+    # Create gating network (MLP or Attention-based)
+    if config.gating_type == "attention":
+        logger.info("Using Attention-Based Gating Network")
+        gating = AttentionGatingNetwork(
+            input_dim=len(FEATURES_GATING),
+            num_regimes=config.n_regimes,
+            n_heads=config.attention_n_heads,
+            embed_dim=config.attention_embed_dim,
+            ff_dim=config.attention_ff_dim,
+            dropout=config.gating_dropout,
+            temperature=1.0,
+        ).to(device)
+    else:
+        logger.info("Using Standard MLP Gating Network")
+        gating = GatingNetwork(
+            input_dim=len(FEATURES_GATING),
+            num_regimes=config.n_regimes,
+            hidden_dims=config.gating_hidden_dims,
+            dropout=config.gating_dropout,
+            temperature=1.0,
+        ).to(device)
     
     # Load initial checkpoint if provided
     if args.init_checkpoint:
@@ -330,8 +355,10 @@ def main():
     
     criterion = SDMoSELoss(
         prediction_loss="mse",
-        entropy_weight=config.entropy_weight,
-        balance_weight=0.1,
+        entropy_weight=config.entropy_weight,  # 0.005 (mild)
+        balance_weight=0.0,  # Disabled (use spatial/temporal instead)
+        spatial_weight=config.spatial_smoothness_weight,  # 0.05
+        temporal_weight=config.temporal_smoothness_weight,  # 0.03
     )
     
     # =========================================================================
@@ -395,6 +422,7 @@ def main():
             expert_preds,
             device,
             epochs=args.gating_epochs,
+            dataset=train_dataset,  # Pass dataset for spatial/temporal info
         )
         
         # ---------------------------------------------------------------------

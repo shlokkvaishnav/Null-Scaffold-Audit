@@ -1,0 +1,50 @@
+# Docker Compose configuration for SD-MoSE
+# Simplifies multi-container deployment
+
+version: '3.8'
+
+services:
+  # Main SD-MoSE training service
+  sdmose:
+    build: .
+    image: sdmose:latest
+    container_name: sdmose-train
+    volumes:
+      # Mount data directories
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
+      - ./figures:/app/figures
+      - ./equations:/app/equations
+      - ./results:/app/results
+      # Mount source for development
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+    environment:
+      - PYTHONUNBUFFERED=1
+      - WANDB_API_KEY=${WANDB_API_KEY} # From .env file
+    command: python -m scripts.train.train_sdmose --iterations 10
+
+  # MLflow tracking server (optional)
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: sdmose-mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/mlflow/mlruns
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri /mlflow/mlruns
+
+  # Jupyter notebook for development (optional)
+  jupyter:
+    build: .
+    image: sdmose:latest
+    container_name: sdmose-jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./notebooks:/app/notebooks
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
+    command: jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root
+    environment:
+      - JUPYTER_ENABLE_LAB=yes

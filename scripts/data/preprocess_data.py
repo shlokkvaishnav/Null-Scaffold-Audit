@@ -160,6 +160,76 @@ def add_log_chlorophyll(ds: xr.Dataset, chl_var: str = "chl") -> xr.Dataset:
     return ds
 
 
+def add_sst_gradient(ds: xr.Dataset) -> xr.Dataset:
+    """Compute spatial gradient magnitude of SST.
+    
+    Scientific rationale:
+        |∇SST| indicates ocean fronts and mesoscale features.
+        High gradients mark regime boundaries (e.g., Gulf Stream).
+    
+    Args:
+        ds: Dataset with 'sst', 'lat', 'lon' variables
+        
+    Returns:
+        Dataset with 'sst_gradient' added (°C per degree)
+    """
+    from scipy import ndimage
+    
+    # Get SST as numpy array (time, lat, lon)
+    sst = ds['sst'].values
+    
+    # Get coordinate spacing
+    lats = ds['lat'].values
+    lons = ds['lon'].values
+    dlat = np.abs(lats[1] - lats[0]) if len(lats) > 1 else 1.0
+    dlon = np.abs(lons[1] - lons[0]) if len(lons) > 1 else 1.0
+    
+    # Compute gradients for each timestep
+    n_time = sst.shape[0]
+    gradient_magnitude = np.zeros_like(sst)
+    
+    for t in range(n_time):
+        sst_t = sst[t, :, :]  # (lat, lon)
+        
+        # Fill NaNs with local mean for gradient computation
+        sst_filled = sst_t.copy()
+        mask = np.isnan(sst_t)
+        
+        if np.sum(~mask) > 0:
+            # Use local mean to fill NaNs
+            from scipy.ndimage import generic_filter
+            
+            def local_mean(values):
+                valid = values[~np.isnan(values)]
+                return np.mean(valid) if len(valid) > 0 else 0
+            
+            sst_filled = np.where(
+                mask,
+                generic_filter(sst_t, local_mean, size=3, mode='constant', cval=np.nan),
+                sst_t
+            )
+            sst_filled = np.nan_to_num(sst_filled, nan=np.nanmean(sst_t))
+        else:
+            sst_filled = np.zeros_like(sst_t)
+        
+        # Compute gradients using Sobel operator
+        grad_lat = ndimage.sobel(sst_filled, axis=0) / dlat  # ∂SST/∂lat
+        grad_lon = ndimage.sobel(sst_filled, axis=1) / dlon  # ∂SST/∂lon
+        
+        # Magnitude: |∇SST| = sqrt((∂SST/∂lat)² + (∂SST/∂lon)²)
+        gradient_magnitude[t, :, :] = np.sqrt(grad_lat**2 + grad_lon**2)
+        
+        # Restore NaNs where original SST was NaN
+        gradient_magnitude[t, :, :] = np.where(mask, np.nan, gradient_magnitude[t, :, :])
+    
+    # Add to dataset
+    ds['sst_gradient'] = (['time', 'lat', 'lon'], gradient_magnitude)
+    ds['sst_gradient'].attrs['long_name'] = 'SST spatial gradient magnitude'
+    ds['sst_gradient'].attrs['units'] = 'degC per degree'
+    
+    return ds
+
+
 # =============================================================================
 # COORDINATE HARMONIZATION
 # =============================================================================
@@ -424,12 +494,14 @@ def preprocess(
     ds_merged = add_log_chlorophyll(ds_merged, chl_var="chl")
     ds_merged = add_temporal_features(ds_merged)
     ds_merged = add_spatial_features(ds_merged)
+    ds_merged = add_sst_gradient(ds_merged)
     
     logger.info("✓ Added features:")
     logger.info("  - log_chl (log10 transform)")
     logger.info("  - sin_month, cos_month (cyclic time)")
     logger.info("  - year_norm (normalized year)")
     logger.info("  - lat_norm, lon_norm (normalized coordinates)")
+    logger.info("  - sst_gradient (spatial SST gradient magnitude)")
     
     # =========================================================================
     # TRAIN/TEST SPLIT
@@ -454,7 +526,7 @@ def preprocess(
     logger.info("=" * 60)
     
     # Compute parameters from training data only
-    variables_to_standardize = ["sst", "sss", "log_chl"]
+    variables_to_standardize = ["sst", "sss", "log_chl", "sst_gradient"]
     std_params = compute_standardization_params(ds_train, variables_to_standardize)
     
     # Apply to both train and test

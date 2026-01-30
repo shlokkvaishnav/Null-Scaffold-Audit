@@ -86,7 +86,7 @@ TEST_END = f"{END_YEAR}-12-31"
 # =============================================================================
 
 # Physical drivers (thermodynamic + circulation)
-FEATURES_PHYS = ["sst", "sss"]
+FEATURES_PHYS = ["sst", "sss", "sst_gradient"]
 
 # Biological drivers
 FEATURES_BIO = ["log_chl"]  # log-transform handles skewness, chlorophyll ~ lognormal
@@ -95,18 +95,21 @@ FEATURES_BIO = ["log_chl"]  # log-transform handles skewness, chlorophyll ~ logn
 FEATURES_TIME = ["sin_month", "cos_month", "year_norm"]
 
 # Features for gating network (regime assignment)
-# Includes spatial coordinates for basin-scale structure
-FEATURES_GATING = ["lat_norm", "lon_norm", "sst", "sss", "log_chl"] + FEATURES_TIME
+# Includes spatial coordinates for basin-scale structure + SST gradient for fronts
+FEATURES_GATING = ["lat_norm", "lon_norm", "sst", "sss", "log_chl", "sst_gradient"] + FEATURES_TIME
 
 # Features for symbolic experts (within-regime laws)
 # Excludes lat/lon to enforce spatial structure via gating, not experts
-FEATURES_EXPERT = ["sst", "sss", "log_chl"] + FEATURES_TIME
+# Excludes temporal features - seasonality is in gating (regime selection), not laws
+# Includes SST gradient to capture front-related physics
+FEATURES_EXPERT = ["sst", "sss", "log_chl", "sst_gradient"]
 
 # Complete feature set (for baselines)
 FEATURES_ALL = FEATURES_PHYS + FEATURES_BIO + FEATURES_TIME
 
 # Target variable
 TARGET = "fco2"  # Fugacity of CO₂ in seawater (μatm)
+
 
 
 # =============================================================================
@@ -121,9 +124,15 @@ class ModelConfig:
     n_regimes: int = 6  # K=6 regimes (ablation study: 3, 6, 9)
     
     # Gating network architecture
+    gating_type: str = "mlp"  # Options: "mlp", "attention"
     gating_hidden_dims: List[int] = field(default_factory=lambda: [64, 32])
     gating_dropout: float = 0.1
     gating_activation: str = "relu"  # or "gelu", "tanh"
+    
+    # Attention gating (only used if gating_type="attention")
+    attention_n_heads: int = 5  # Must divide input dimension (10 features → 5 heads works)
+    attention_embed_dim: int = 10  # Same as input dimension
+    attention_ff_dim: int = 40  # 4x embed_dim (standard Transformer)
     
     # Training schedule
     sdmose_iterations: int = 5  # Alternating gating ↔ expert optimization
@@ -133,8 +142,11 @@ class ModelConfig:
     gating_batch_size: int = 2048
     
     # Symbolic discovery (PySR)
-    pysr_niterations: int = 5  # Reduced for faster training/debugging (was 40)
-    pysr_populations: int = 15  # Reduced for faster training (was 31)
+    sd_mose_maxsize: int = 20  # Symbolic: max complexity per expert
+    pysr_niterations: int = 40
+    pysr_populations: int = 31
+    pysr_maxsize: int = 25  # Max equation size (nodes)
+    pysr_complexity_penalty: float = 0.01
     pysr_binary_operators: List[str] = field(
         default_factory=lambda: ["+", "-", "*", "/"]
     )
@@ -148,11 +160,26 @@ class ModelConfig:
     ensemble_seeds: List[int] = field(default_factory=lambda: list(range(5)))
     
     # Regularization
-    entropy_weight: float = 0.01  # Encourage confident regime assignments
+    entropy_weight: float = 0.005  # Mild entropy penalty (reduced from 0.01)
     spatial_smoothness_weight: float = 0.05  # Penalize rapid regime transitions
+    temporal_smoothness_weight: float = 0.03  # Encourage temporal stability
     
     # Device
     device: str = "cuda" if os.getenv("CUDA_VISIBLE_DEVICES") else "cpu"
+    
+    # Hierarchical regimes (experimental)
+    use_hierarchical: bool = False  # Enable hierarchical SD-MoSE
+    n_coarse_regimes: int = 3  # Level 1: ocean basins (Tropical, Mid-Lat, Polar)
+    n_fine_per_coarse: int = 3  # Level 2: processes per basin
+    hierarchical_coarse_entropy: float = 0.01  # Coarse diversity weight
+    hierarchical_fine_entropy: float = 0.005  # Fine diversity weight
+    hierarchical_consistency: float = 0.02  # Cross-basin distinctness
+    
+    # Experiment tracking
+    use_tracking: bool = True  # Enable experiment tracking
+    tracking_backend: str = "wandb"  # "wandb", "mlflow", "both", or "none"
+    tracking_project: str = "sd-mose"  # Project name
+    tracking_offline: bool = False  # Offline mode (save locally)
 
 
 # Default configuration instance

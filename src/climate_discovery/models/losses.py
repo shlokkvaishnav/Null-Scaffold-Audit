@@ -41,10 +41,10 @@ class SDMoSELoss(nn.Module):
     def __init__(
         self,
         prediction_loss: str = "mse",
-        entropy_weight: float = 0.01,
-        balance_weight: float = 0.1,
-        spatial_weight: float = 0.0,
-        temporal_weight: float = 0.0,
+        entropy_weight: float = 0.005,  # Mild entropy penalty (reduced from 0.01)
+        balance_weight: float = 0.0,    # Disabled by default (use spatial/temporal instead)
+        spatial_weight: float = 0.05,   # Enable spatial smoothness
+        temporal_weight: float = 0.03,  # Enable temporal consistency
     ):
         super().__init__()
         

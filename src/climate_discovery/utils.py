@@ -231,6 +231,201 @@ def normalize_coordinates(
     return df
 
 
+def compute_sst_gradient(
+    df: pd.DataFrame,
+    sst_col: str = "sst",
+    lat_col: str = "lat",
+    lon_col: str = "lon",
+    time_col: Optional[str] = "time",
+) -> pd.DataFrame:
+    """Compute spatial gradient magnitude of SST.
+    
+    Args:
+        df: DataFrame with SST and coordinate columns
+        sst_col: Name of SST column (°C)
+        lat_col: Latitude column name
+        lon_col: Longitude column name
+        time_col: Optional time column for temporal grouping
+        
+    Returns:
+        DataFrame with added 'sst_gradient' column (°C per degree)
+        
+    Scientific rationale:
+        |∇SST| indicates ocean fronts and mesoscale features.
+        High gradients mark regime boundaries (e.g., Gulf Stream, Antarctic Convergence).
+        
+    Method:
+        For gridded data: Use finite differences on regular grid
+        For scattered data: Use local polynomial fit or nearest-neighbor approximation
+        
+    Example:
+        >>> df = compute_sst_gradient(df)
+        >>> # High gradient regions are fronts
+        >>> fronts = df[df['sst_gradient'] > df['sst_gradient'].quantile(0.9)]
+    """
+    df = df.copy()
+    
+    if sst_col not in df.columns:
+        raise KeyError(f"SST column '{sst_col}' not found")
+    if lat_col not in df.columns or lon_col not in df.columns:
+        raise KeyError(f"Missing coordinate columns: {lat_col}, {lon_col}")
+    
+    # Check if data is on regular grid
+    lat_unique = df[lat_col].nunique()
+    lon_unique = df[lon_col].nunique()
+    expected_grid_size = lat_unique * lon_unique
+    
+    # If temporal data, compute gradients per timestep
+    if time_col and time_col in df.columns:
+        gradients = []
+        for time_val, group in df.groupby(time_col):
+            grad = _compute_gradient_single_time(
+                group, sst_col, lat_col, lon_col
+            )
+            gradients.append(grad)
+        df['sst_gradient'] = pd.concat(gradients)
+    else:
+        df['sst_gradient'] = _compute_gradient_single_time(
+            df, sst_col, lat_col, lon_col
+        )
+    
+    return df
+
+
+def _compute_gradient_single_time(
+    df: pd.DataFrame,
+    sst_col: str,
+    lat_col: str,
+    lon_col: str,
+) -> pd.Series:
+    """Helper: Compute SST gradient for single timestep.
+    
+    Uses finite differences on approximately gridded data.
+    Falls back to neighbor-based estimation for irregular grids.
+    """
+    # Sort by lat, lon for consistent gradient computation
+    df_sorted = df.sort_values([lat_col, lon_col]).copy()
+    
+    # Get unique lat/lon values
+    lats = np.sort(df_sorted[lat_col].unique())
+    lons = np.sort(df_sorted[lon_col].unique())
+    
+    # Check if reasonably gridded
+    n_points = len(df_sorted)
+    expected_grid = len(lats) * len(lons)
+    
+    if n_points >= 0.7 * expected_grid:  # At least 70% coverage
+        # Use grid-based finite differences
+        gradient = _gradient_on_grid(df_sorted, sst_col, lat_col, lon_col, lats, lons)
+    else:
+        # Use neighbor-based estimation for scattered points
+        gradient = _gradient_scattered(df_sorted, sst_col, lat_col, lon_col)
+    
+    # Return in original index order
+    return gradient.reindex(df.index)
+
+
+def _gradient_on_grid(
+    df: pd.DataFrame,
+    sst_col: str,
+    lat_col: str,
+    lon_col: str,
+    lats: np.ndarray,
+    lons: np.ndarray,
+) -> pd.Series:
+    """Compute gradient using finite differences on grid."""
+    from scipy.ndimage import sobel
+    
+    # Create grid
+    nlat, nlon = len(lats), len(lons)
+    sst_grid = np.full((nlat, nlon), np.nan)
+    
+    # Fill grid
+    for _, row in df.iterrows():
+        i = np.searchsorted(lats, row[lat_col])
+        j = np.searchsorted(lons, row[lon_col])
+        if i < nlat and j < nlon:
+            sst_grid[i, j] = row[sst_col]
+    
+    # Compute gradients using Sobel operator (robust to missing data)
+    # Fill NaNs with local mean for gradient computation
+    mask = ~np.isnan(sst_grid)
+    if np.sum(mask) > 0:
+        from scipy.ndimage import generic_filter
+        sst_filled = sst_grid.copy()
+        
+        def local_mean(values):
+            valid = values[~np.isnan(values)]
+            return np.mean(valid) if len(valid) > 0 else 0
+        
+        # Fill NaNs with local neighborhood mean
+        sst_filled = np.where(
+            np.isnan(sst_grid),
+            generic_filter(sst_grid, local_mean, size=3, mode='constant', cval=np.nan),
+            sst_grid
+        )
+        sst_filled = np.nan_to_num(sst_filled, nan=np.nanmean(sst_grid))
+    else:
+        sst_filled = np.zeros_like(sst_grid)
+    
+    # Compute gradients
+    dlat = np.abs(lats[1] - lats[0]) if len(lats) > 1 else 1.0
+    dlon = np.abs(lons[1] - lons[0]) if len(lons) > 1 else 1.0
+    
+    grad_lat = sobel(sst_filled, axis=0) / dlat  # d(SST)/d(lat)
+    grad_lon = sobel(sst_filled, axis=1) / dlon  # d(SST)/d(lon)
+    
+    # Magnitude: |∇SST| = sqrt(∂SST/∂lat² + ∂SST/∂lon²)
+    grad_magnitude = np.sqrt(grad_lat**2 + grad_lon**2)
+    
+    # Map back to DataFrame
+    gradients = []
+    for _, row in df.iterrows():
+        i = np.searchsorted(lats, row[lat_col])
+        j = np.searchsorted(lons, row[lon_col])
+        if i < nlat and j < nlon:
+            gradients.append(grad_magnitude[i, j])
+        else:
+            gradients.append(0.0)
+    
+    return pd.Series(gradients, index=df.index, name='sst_gradient')
+
+
+def _gradient_scattered(
+    df: pd.DataFrame,
+    sst_col: str,
+    lat_col: str,
+    lon_col: str,
+    n_neighbors: int = 8,
+) -> pd.Series:
+    """Compute gradient using nearest neighbors for scattered points."""
+    from sklearn.neighbors import NearestNeighbors
+    
+    coords = df[[lat_col, lon_col]].values
+    sst_vals = df[sst_col].values
+    
+    # Fit nearest neighbors
+    nbrs = NearestNeighbors(n_neighbors=min(n_neighbors, len(df))).fit(coords)
+    distances, indices = nbrs.kneighbors(coords)
+    
+    # Estimate gradient as max SST difference / min distance to neighbors
+    gradients = []
+    for i in range(len(df)):
+        neighbor_sst = sst_vals[indices[i, 1:]]  # Exclude self (index 0)
+        neighbor_dist = distances[i, 1:]
+        
+        if len(neighbor_dist) > 0 and neighbor_dist[0] > 0:
+            sst_diff = np.abs(neighbor_sst - sst_vals[i])
+            # Gradient ~ max difference / min distance
+            gradient = np.max(sst_diff) / np.min(neighbor_dist[neighbor_dist > 0])
+        else:
+            gradient = 0.0
+        
+        gradients.append(gradient)
+    
+    return pd.Series(gradients, index=df.index, name='sst_gradient')
+
+
 # =============================================================================
 # TENSOR PREPARATION
 # =============================================================================
