@@ -151,7 +151,7 @@ class ModelConfig:
         default_factory=lambda: ["+", "-", "*", "/"]
     )
     pysr_unary_operators: List[str] = field(
-        default_factory=lambda: ["exp", "log", "sqrt", "square"]
+        default_factory=lambda: ["exp", "log", "sqrt", "square", "abs", "tanh"]
     )
     pysr_complexity_penalty: float = 0.01  # Favor simpler equations
     
