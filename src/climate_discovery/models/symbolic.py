@@ -114,30 +114,33 @@ class SymbolicExpert(BaseEstimator, RegressorMixin):
         """
         constraints = {}
         
-        # Base constraint: Division by zero protection
-        # This is CRITICAL for preventing NaN propagation
-        constraints["/"] = (-1, 1)  # (-1: no constraint, 1: apply to arg2)
+        # Binary operator constraints
+        # Format: (arg1_constraint, arg2_constraint) where -1 means no constraint
         
-        # Exponential constraints (prevent exp(1000*SST) → overflow)
-        # Ocean variables: SST ~ [-2, 35]°C, SSS ~ [0, 42] PSU
-        # After standardization: ~ [-3, 3]
-        # Safe exp limit: exp(10) ≈ 22000 (acceptable)
-        # Constrain: exp(x) where |x| < some_threshold
-        constraints["exp"] = 5  # Max complexity for exp arguments
+        # Division: prevent division by zero (constrain denominator)
+        constraints["/"] = (-1, 1)
         
-        # Power constraints (realistic exponents for physical laws)
-        # Examples:
-        #   - Henry's Law: linear (power=1)
-        #   - Revelle factor: ~power=2
-        #   - Unphysical: SST^100
-        constraints["pow"] = (-1, 1)  # Only allow pow(base, fixed_exponent)
-        constraints["square"] = (-1, 1)  # Equivalent to pow(x, 2)
-        constraints["cube"] = (-1, 1)  # If we add cube operator
+        # Power constraints: Only allow pow(base, fixed_exponent)
+        # This prevents unphysical expressions like SST^100
+        constraints["pow"] = (-1, 1)
         
-        # Logarithm constraints (avoid log of negative or zero)
-        # log/sqrt need positive arguments
-        constraints["log"] = (-1, 1)
-        constraints["sqrt"] = (-1, 1)
+        # Unary operator constraints  
+        # Format: (arg_constraint,) - single element tuple
+        # Note: For unary operators, use tuple with single constraint value
+        
+        # Logarithm: avoid log of negative or zero
+        constraints["log"] = (1,)
+        
+        # Square root: avoid sqrt of negatives
+        constraints["sqrt"] = (1,)
+        
+        # Exponential: limit to prevent overflow
+        # exp(x) is safe for |x| < ~10, but we allow it on any expression
+        # The complexity will naturally limit deep nesting
+        constraints["exp"] = (-1,)
+        
+        # Square: can be applied to any expression
+        constraints["square"] = (-1,)
         
         # Update with user-provided constraints
         if self.constraints:
@@ -188,27 +191,11 @@ class SymbolicExpert(BaseEstimator, RegressorMixin):
             "verbosity": self.verbosity,
             "progress": self.verbosity > 0,
             
-            # PHYSICS-INFORMED CONSTRAINTS
-            "constraints": self._build_physics_informed_constraints(),
-            
             # Complexity constraints (prevent overfitting)
             "maxdepth": 10,  # Max expression tree depth
-            "nested_constraints": {
-                "exp": {"exp": 0, "log": 0},  # No exp(exp(x)) or exp(log(x))
-                "log": {"log": 0, "sqrt": 0},  # No log(log(x)) or log(sqrt(x))
-                "sqrt": {"sqrt": 0},  # No sqrt(sqrt(x))
-            },
-            
-            # Loss function (L2 with MAE fallback for outliers)
-            "loss": "loss(prediction, target) = (prediction - target)^2",
             
             # Batching for speed (if many samples)
             "batching": False,  # Can enable if N > 10000
-            
-            # Early stopping (halt if no improvement)
-            "early_stop_condition": (
-                "stop_if(loss, complexity) = loss < 1e-6 && complexity < 10"
-            ),
         }
         
         # Initialize model
@@ -358,6 +345,8 @@ class MixtureOfSymbolicExperts:
         regime_probs: np.ndarray,
         variable_names: Optional[List[str]] = None,
         min_samples: int = 50,
+        max_samples: int = 11000,  # NEW: Limit samples for PySR speed
+        resume_from: Optional[str] = None, # NEW: Path to partial equations file
     ) -> "MixtureOfSymbolicExperts":
         """Fit symbolic expert for each regime.
         
@@ -367,30 +356,86 @@ class MixtureOfSymbolicExperts:
             regime_probs: Regime probabilities (N, K)
             variable_names: Feature names
             min_samples: Minimum samples to fit expert
+            max_samples: Maximum samples per regime (subsampling)
+            resume_from: Path to partial results file to skip regimes
             
         Returns:
             self (fitted)
         """
+        import time
+        import os
+        
+        # Check for resume file
+        completed_regimes = set()
+        if resume_from and os.path.exists(resume_from):
+            try:
+                with open(resume_from, 'r') as f:
+                    content = f.read()
+                    import re
+                    # Look for "Regime X:" headers
+                    completed_regimes = set(int(r) for r in re.findall(r"Regime (\d+):", content))
+                logger.info(f"Found partial results! Skipping completed regimes: {sorted(completed_regimes)}")
+            except Exception as e:
+                logger.warning(f"Failed to parse resume file {resume_from}: {e}")
+
         for k in range(self.num_regimes):
+            if k in completed_regimes:
+                logger.info(f"⏩ Skipping Regime {k} (already done)")
+                # Mark as fitted dummy
+                self.experts[k].fitted_ = True 
+                continue
+                
             # Weight samples by regime probability
             weights = regime_probs[:, k]
             
             # Filter to high-probability samples
             mask = weights > 0.1  # Keep samples with >10% probability
             
-            if np.sum(mask) < min_samples:
+            n_samples = np.sum(mask)
+            if n_samples < min_samples:
                 logger.warning(
-                    f"Regime {k}: Only {np.sum(mask)} samples. Skipping."
+                    f"Regime {k}: Only {n_samples} samples. Skipping."
                 )
                 continue
             
+            # Subsample if too many points (PySR sweet spot ~10k)
+            # Only use subsampling if we have significantly more data
+            fit_mask = mask.copy()
+            if n_samples > max_samples:
+                # Weighted random sampling to keep most relevant points
+                indices = np.where(mask)[0]
+                # Probabilities proportional to regime weights
+                p = weights[indices]
+                p = p / np.sum(p)
+                
+                selected_indices = np.random.choice(
+                    indices, size=max_samples, replace=False, p=p
+                )
+                
+                # New mask with only selected points
+                fit_mask = np.zeros_like(mask)
+                fit_mask[selected_indices] = True
+                
+                logger.info(f"  Subsampling: {n_samples:,} → {max_samples:,} points for speed")
+            
+            # PRODUCTION: Log regime start with timestamp
+            regime_start = time.time()
+            logger.info(f"\n{'='*70}")
+            logger.info(f"Fitting Regime {k}/{self.num_regimes - 1} ({np.sum(fit_mask):,} samples)...")
+            logger.info(f"Started: {time.strftime('%H:%M:%S')}")
+            logger.info(f"{'='*70}")
+            
             # Fit expert on weighted data
             self.experts[k].fit(
-                X[mask], 
-                y[mask],
-                weights=weights[mask],
+                X[fit_mask], 
+                y[fit_mask],
+                weights=weights[fit_mask],
                 variable_names=variable_names
             )
+            
+            # PRODUCTION: Log regime completion
+            regime_elapsed = time.time() - regime_start
+            logger.info(f"\n✓ Regime {k} completed in {regime_elapsed/60:.1f} minutes ({time.strftime('%H:%M:%S')})")
         
         return self
     

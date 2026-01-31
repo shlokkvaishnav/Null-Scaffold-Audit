@@ -361,3 +361,7 @@ class EquationVersionManager:
                 print(f"\nRegime {regime}:")
                 print(f"  v1: {eq1}")
                 print(f"  v2: {eq2}")
+
+
+# Backward compatibility alias
+EquationVersionControl = EquationVersionManager
