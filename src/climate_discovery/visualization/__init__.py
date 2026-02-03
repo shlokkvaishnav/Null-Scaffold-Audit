@@ -16,6 +16,13 @@ from .performance import plot_performance_summary, plot_tradeoff
 from .regimes import plot_regime_distribution, plot_regime_map
 from .equations import plot_sensitivity_heatmap, compute_sensitivity  
 from .publication import generate_all_figures
+from .enhanced import (
+    plot_3d_regime_map,
+    plot_equation_complexity_vs_performance,
+    plot_residual_spatial_analysis,
+    plot_feature_importance_heatmap,
+    create_dashboard_summary
+)
 
 __all__ = [
     # Performance plots
@@ -32,4 +39,11 @@ __all__ = [
     
     # Publication generator
     "generate_all_figures",
+    
+    # Enhanced visualizations (Phase 3)
+    "plot_3d_regime_map",
+    "plot_equation_complexity_vs_performance",
+    "plot_residual_spatial_analysis",
+    "plot_feature_importance_heatmap",
+    "create_dashboard_summary",
 ]
