@@ -28,19 +28,19 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 
 # Import SD-MoSE infrastructure
-from climate_discovery.config import (
+from sdmose.config import (
     FEATURES_EXPERT, FEATURES_GATING, TARGET,
     TRAIN_NC, TEST_NC, ModelConfig,
     FCO2_MIN_PLAUSIBLE, FCO2_MAX_PLAUSIBLE
 )
-from climate_discovery.data.datasets import ClimateDataset
-from climate_discovery.models.symbolic import MixtureOfSymbolicExperts
+from sdmose.data.datasets import ClimateDataset
+from sdmose.models.symbolic import MixtureOfSymbolicExperts
 
 # Advanced features
-from climate_discovery.utils.tracking import ExperimentTracker
-from climate_discovery.utils.equation_version import EquationVersionControl
-from climate_discovery.validation.residual_analysis import ResidualAnalyzer
-from climate_discovery.validation.uncertainty import UncertaintyEstimator
+from sdmose.utils.tracking import ExperimentTracker
+from sdmose.utils.equation_version import EquationVersionControl
+from sdmose.validation.residual_analysis import ResidualAnalyzer
+from sdmose.validation.uncertainty import UncertaintyEstimator
 
 logging.basicConfig(
     level=logging.INFO,
@@ -546,7 +546,7 @@ def main():
     start_time = time.time()
     
     # Use preprocessed fused dataset by default
-    from climate_discovery.config import FUSED_NC
+    from sdmose.config import FUSED_NC
     data_file_to_use = args.data_file or FUSED_NC
     dataset_name = "Preprocessed SOCAT+CMEMS" if args.data_file is None else args.data_file
     

@@ -27,13 +27,13 @@ import xarray as xr
 root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(root / "src"))
 
-from climate_discovery.config import (
+from sdmose.config import (
     FUSED_NC,
     FEATURES_EXPERT,
     TARGET,
     ModelConfig,
 )
-from climate_discovery.models.symbolic import SymbolicExpert
+from sdmose.models.symbolic import SymbolicExpert
 
 logging.basicConfig(
     level=logging.INFO,

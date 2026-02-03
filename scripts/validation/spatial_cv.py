@@ -12,10 +12,10 @@ import matplotlib.pyplot as plt
 root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(root / "src"))
 
-from climate_discovery.config import TRAIN_NC, FEATURES_EXPERT, FEATURES_GATING, TARGET
-from climate_discovery.data.datasets import ClimateDataset
-from climate_discovery.validation.spatial_cv import SpatialCrossValidator
-from climate_discovery.models.symbolic import MixtureOfSymbolicExperts
+from sdmose.config import TRAIN_NC, FEATURES_EXPERT, FEATURES_GATING, TARGET
+from sdmose.data.datasets import ClimateDataset
+from sdmose.validation.spatial_cv import SpatialCrossValidator
+from sdmose.models.symbolic import MixtureOfSymbolicExperts
 from sklearn.cluster import KMeans
 
 

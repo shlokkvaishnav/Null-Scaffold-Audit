@@ -17,7 +17,7 @@ from sklearn.metrics import r2_score, mean_squared_error
 root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(root / "src"))
 
-from climate_discovery.benchmarks import (
+from sdmose.benchmarks import (
     LinearBaseline,
     RFBaseline,
     XGBBaseline,

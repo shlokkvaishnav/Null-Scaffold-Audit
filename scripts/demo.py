@@ -35,7 +35,7 @@ print("="*70)
 print("\n\n[SPATIAL FEATURES] Demo 1: Spatial Feature Engineering")
 print("-"*70)
 
-from climate_discovery.preprocessing import SpatialFeatureEngineer
+from sdmose.preprocessing import SpatialFeatureEngineer
 
 # Create sample ocean data
 sample_data = pd.DataFrame({
@@ -77,7 +77,7 @@ print("  df = engineer.add_all_spatial_features(df)")
 print("\n\n[BENCHMARKING] Demo 2: Model Comparison")
 print("-"*70)
 
-from climate_discovery.benchmarks import (
+from sdmose.benchmarks import (
     LinearBaseline,
     RFBaseline,
     XGBBaseline,
@@ -154,7 +154,7 @@ print("\n\n[VISUALIZATION] Demo 4: Publication-Ready Figures")
 print("-"*70)
 
 try:
-    from climate_discovery.visualization import (
+    from sdmose.visualization import (
         plot_performance_summary,
         plot_tradeoff
     )
@@ -179,7 +179,7 @@ try:
     print("  - figures/demo_tradeoff.png")
     
     print("\nUSAGE:")
-    print("  from climate_discovery.visualization import plot_performance_summary")
+    print("  from sdmose.visualization import plot_performance_summary")
     print("  plot_performance_summary(perf_df, save_path='figures/my_plot.png')")
     
 except Exception as e:

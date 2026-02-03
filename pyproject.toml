@@ -3,12 +3,14 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "climate_discovery"
+name = "sdmose"
 version = "0.1.0"
-description = "A research package for discovering climate equations using neuro-symbolic AI."
+description = "Spatially-Dependent Mixture of Symbolic Experts for ocean carbon prediction"
 authors = [
-  { name = "Shlok Vaishnav", email = "shlok9640@gmail.com" },
+    {name = "Your Name", email = "your.email@example.com"}
 ]
+readme = "README.md"
+license = {text = "MIT"}
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -39,7 +41,7 @@ where = ["src"]
 [tool.isort]
 profile = "black"
 line_length = 88
-known_first_party = ["climate_discovery"]
+known_first_party = ["sdmose"]
 skip_glob = ["*/migrations/*"]
 
 [tool.black]
