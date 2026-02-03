@@ -13,6 +13,12 @@ Usage:
 
 import sys
 from pathlib import Path
+
+# Import juliacall first to avoid torch segfault warning
+try:
+    import juliacall  # noqa: F401
+except ImportError:
+    pass  # Not critical if missing
 import argparse
 import logging
 import time
@@ -35,6 +41,7 @@ from sdmose.config import (
 )
 from sdmose.data.datasets import ClimateDataset
 from sdmose.models.symbolic import MixtureOfSymbolicExperts
+from sdmose.visualization import generate_all_figures
 
 # Advanced features
 from sdmose.utils.tracking import ExperimentTracker
@@ -336,16 +343,6 @@ def stage_4_evaluate_model(data, experts, n_regimes):
     
     logger.info(f"✓ Saved performance to: results/regime_performance.csv")
     
-    # Export LaTeX table for publication
-    perf_df.to_latex(
-        results_dir / "table_performance.tex",
-        float_format="%.3f",
-        index=False,
-        caption="Performance metrics by ocean regime",
-        label="tab:performance"
-    )
-    logger.info(f"✓ Exported LaTeX table: results/table_performance.tex")
-    
     # Run residual analysis
     logger.info("Running residual analysis...")
     try:
@@ -395,119 +392,19 @@ def stage_5_generate_visualizations(data, perf_df, experts):
     figures_dir = Path("figures")
     figures_dir.mkdir(exist_ok=True)
     
-    plt.style.use('seaborn-v0_8-paper')
-    plt.rcParams['figure.dpi'] = 300
-    
-    n_regimes = len(perf_df)
-    
-    # Figure 1: Performance by Regime
-    logger.info("Generating Figure 1: Performance metrics...")
-    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-    fig.suptitle('SD-MoSE Performance by Ocean Regime', fontsize=14, fontweight='bold')
-    
-    colors = plt.cm.viridis(np.linspace(0.2, 0.9, n_regimes))
-    
-    # R² scores
-    axes[0, 0].bar(perf_df['regime'], perf_df['r2'], color=colors, edgecolor='black', linewidth=0.5)
-    axes[0, 0].axhline(y=0, color='red', linestyle='--', alpha=0.5)
-    axes[0, 0].set_xlabel('Regime')
-    axes[0, 0].set_ylabel('R² Score')
-    axes[0, 0].set_title('(a) Prediction Quality')
-    axes[0, 0].grid(axis='y', alpha=0.3)
-    
-    # RMSE
-    axes[0, 1].bar(perf_df['regime'], perf_df['rmse'], color=colors, edgecolor='black', linewidth=0.5)
-    axes[0, 1].set_xlabel('Regime')
-    axes[0, 1].set_ylabel('RMSE (μatm)')
-    axes[0, 1].set_title('(b) Prediction Error')
-    axes[0, 1].grid(axis='y', alpha=0.3)
-    
-    # Coverage
-    percentages = perf_df['frac_samples'] * 100
-    bars = axes[1, 0].bar(perf_df['regime'], percentages, color=colors, edgecolor='black', linewidth=0.5)
-    axes[1, 0].set_xlabel('Regime')
-    axes[1, 0].set_ylabel('Coverage (%)')
-    axes[1, 0].set_title('(c) Geographic Distribution')
-    axes[1, 0].grid(axis='y', alpha=0.3)
-    for bar, pct in zip(bars, percentages):
-        axes[1, 0].text(bar.get_x() + bar.get_width()/2, bar.get_height(),
-                       f'{pct:.1f}%', ha='center', va='bottom', fontsize=9)
-    
-    # Complexity (from real discovered equations)
-    complexities = [
-        experts.experts[i].complexity_ if experts.experts[i].complexity_ is not None else 0
-        for i in range(n_regimes)
-    ]
-    axes[1, 1].bar(range(n_regimes), complexities, color=colors, edgecolor='black', linewidth=0.5)
-    axes[1, 1].set_xlabel('Regime')
-    axes[1, 1].set_ylabel('Equation Complexity')
-    axes[1, 1].set_title('(d) Model Interpretability')
-    axes[1, 1].set_xticks(range(n_regimes))
-    axes[1, 1].grid(axis='y', alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig(figures_dir / "figure1_performance_summary.png", dpi=300, bbox_inches='tight')
-    plt.close()
-    logger.info("✓ Saved: figure1_performance_summary.png")
-    
-    # Figure 2: Feature Importance
-    logger.info("Generating Figure 2: Feature importance...")
-    fig, ax = plt.subplots(figsize=(10, 6))
-    
-    features = ['SST', 'SSS', 'Chlorophyll', 'cos(month)', 'sin(month)']
-    importance = np.array([
-        [1, 0, 1, 1, 0],
-        [1, 0, 0, 0, 0],
-        [1, 0, 0, 0, 0],
-        [0, 1, 0, 1, 0],
-        [0, 0, 0, 1, 0],
-        [1, 0, 0, 0, 1],
-    ])
-    
-    im = ax.imshow(importance.T, cmap='YlOrRd', aspect='auto')
-    ax.set_xticks(range(6))
-    ax.set_yticks(range(5))
-    ax.set_xticklabels([f'R{i}' for i in range(6)])
-    ax.set_yticklabels(features)
-    ax.set_title('Feature Usage Across Ocean Regimes', fontweight='bold', pad=15)
-    ax.set_xlabel('Ocean Regime')
-    ax.set_ylabel('Environmental Variable')
-    
-    for i in range(5):
-        for j in range(6):
-            ax.text(j, i, '✓' if importance.T[i, j] else '',
-                   ha="center", va="center", fontsize=14)
-    
-    plt.colorbar(im, ax=ax, label='Feature Present')
-    plt.tight_layout()
-    plt.savefig(figures_dir / "figure2_feature_importance.png", dpi=300, bbox_inches='tight')
-    plt.close()
-    logger.info("✓ Saved: figure2_feature_importance.png")
-    
-    # Figure 3: Regime Distribution
-    logger.info("Generating Figure 3: Regime distribution...")
-    fig, ax = plt.subplots(figsize=(10, 6))
-    
-    regime_counts = data['regime'].value_counts().sort_index()
-    bars = ax.bar(regime_counts.index, regime_counts.values, color=colors, edgecolor='black', linewidth=0.5)
-    ax.set_xlabel('Regime', fontweight='bold')
-    ax.set_ylabel('Number of Samples', fontweight='bold')
-    ax.set_title('Sample Distribution Across Regimes', fontweight='bold', fontsize=14)
-    ax.grid(axis='y', alpha=0.3)
-    
-    for bar in bars:
-        height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2, height,
-               f'{int(height)}', ha='center', va='bottom')
-    
-    plt.tight_layout()
-    plt.savefig(figures_dir / "figure3_regime_distribution.png", dpi=300, bbox_inches='tight')
-    plt.close()
-    logger.info("✓ Saved: figure3_regime_distribution.png")
-    
-    logger.info(f"✓ Generated 3 publication-ready figures")
-    
-    return True
+    try:
+        # Use the consolidated visualization function
+        generate_all_figures(
+            perf_df=perf_df,
+            data=data,
+            experts=experts,
+            save_dir=figures_dir
+        )
+        logger.info(f"✓ Generated all publication figures in {figures_dir}")
+        return True
+    except Exception as e:
+        logger.error(f"Visualization generation failed: {e}")
+        return False
 
 # ============================================================================
 # MAIN PIPELINE
@@ -535,12 +432,12 @@ def main():
     parser.add_argument('--end-year', type=int, default=None,
                        help='End year for temporal filtering (default: use all data)')
     
-    # Experiment tracking
-    parser.add_argument('--no-tracking', action='store_true', 
-                       help='Disable experiment tracking')
-    parser.add_argument('--tracking-backend', type=str, default='wandb', 
+    # Experiment tracking (disabled by default)
+    parser.add_argument('--enable-tracking', action='store_true', 
+                       help='Enable experiment tracking')
+    parser.add_argument('--tracking-backend', type=str, default='mlflow', 
                        choices=['wandb', 'mlflow', 'both'], 
-                       help='Experiment tracking backend')
+                       help='Experiment tracking backend (requires --enable-tracking)')
     args = parser.parse_args()
     
     start_time = time.time()
@@ -567,13 +464,13 @@ def main():
     if args.start_year or args.end_year:
         year_range = f"{args.start_year or 'ALL'}-{args.end_year or 'ALL'}"
         logger.info(f"  Years: {year_range}")
-    logger.info(f"  Experiment Tracking: {args.tracking_backend if not args.no_tracking else 'Disabled'}")
+    logger.info(f"  Experiment Tracking: {args.tracking_backend if args.enable_tracking else 'Disabled'}")
     logger.info(f"  Started: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info("="*70 + "\n")
     
     # Initialize experiment tracker
     tracker = None
-    if not args.no_tracking:
+    if args.enable_tracking:
         try:
             tracker = ExperimentTracker(
                 backend=args.tracking_backend,
