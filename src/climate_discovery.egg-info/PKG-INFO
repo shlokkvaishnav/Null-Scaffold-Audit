@@ -2,27 +2,26 @@ Metadata-Version: 2.4
 Name: climate_discovery
 Version: 0.1.0
 Summary: A research package for discovering climate equations using neuro-symbolic AI.
-Author-email: Shlok Vaishnav <your.email@example.com>
+Author-email: Shlok Vaishnav <shlok9640@gmail.com>
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
 Requires-Python: >=3.9
 License-File: LICENSE
-Requires-Dist: numpy
-Requires-Dist: pandas
-Requires-Dist: xarray
-Requires-Dist: pysr
-Requires-Dist: torch
-Requires-Dist: scikit-learn
-Requires-Dist: hmmlearn
-Requires-Dist: pyyaml
-Requires-Dist: netCDF4
-Requires-Dist: dask
-Requires-Dist: matplotlib
-Requires-Dist: tqdm
-Provides-Extra: dev
-Requires-Dist: pytest; extra == "dev"
-Requires-Dist: black; extra == "dev"
-Requires-Dist: isort; extra == "dev"
-Requires-Dist: mypy; extra == "dev"
+Requires-Dist: numpy>=1.20.0
+Requires-Dist: pandas>=1.3.0
+Requires-Dist: scipy>=1.7.0
+Requires-Dist: xarray>=0.20.0
+Requires-Dist: netCDF4>=1.5.0
+Requires-Dist: pysr>=0.18.0
+Requires-Dist: torch>=2.0.0
+Requires-Dist: scikit-learn>=1.0.0
+Requires-Dist: xgboost>=1.7.0
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: dask>=2022.0.0
+Requires-Dist: matplotlib>=3.5.0
+Requires-Dist: seaborn>=0.11.0
+Requires-Dist: plotly>=5.18.0
+Requires-Dist: kaleido>=0.2.1
+Requires-Dist: tqdm>=4.60.0
 Dynamic: license-file

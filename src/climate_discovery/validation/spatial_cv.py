@@ -17,8 +17,16 @@ from typing import Dict, List, Tuple, Literal
 from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
+
+# Optional cartopy for enhanced geographic plotting
+try:
+    import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
+    HAS_CARTOPY = True
+except ImportError:
+    HAS_CARTOPY = False
+    ccrs = None
+    cfeature = None
 
 
 @dataclass
@@ -209,7 +217,7 @@ class SpatialCrossValidator:
         
         Args:
             lats: Latitudes
-            lons: Longitudes
+       lons: Longitudes
             save_path: Output path
         """
         folds = self.split(lats, lons)
@@ -222,25 +230,43 @@ class SpatialCrossValidator:
         fig = plt.figure(figsize=(6*n_cols, 4*n_rows))
         
         for i, fold in enumerate(folds):
-            ax = plt.subplot(
-                n_rows, n_cols, i+1,
-                projection=ccrs.PlateCarree()
-            )
-            ax.coastlines()
-            ax.add_feature(cfeature.LAND, facecolor='lightgray')
-            ax.gridlines(alpha=0.3)
-            
-            # Plot train (blue) and test (red)
-            ax.scatter(
-                lons[fold.train_idx], lats[fold.train_idx],
-                c='blue', s=2, alpha=0.3, label='Train',
-                transform=ccrs.PlateCarree()
-            )
-            ax.scatter(
-                lons[fold.test_idx], lats[fold.test_idx],
-                c='red', s=5, alpha=0.6, label='Test',
-                transform=ccrs.PlateCarree()
-            )
+            if HAS_CARTOPY:
+                # Enhanced cartopy visualization
+                ax = plt.subplot(
+                    n_rows, n_cols, i+1,
+                    projection=ccrs.PlateCarree()
+                )
+                ax.coastlines()
+                ax.add_feature(cfeature.LAND, facecolor='lightgray')
+                ax.gridlines(alpha=0.3)
+                
+                # Plot train (blue) and test (red)
+                ax.scatter(
+                    lons[fold.train_idx], lats[fold.train_idx],
+                    c='blue', s=2, alpha=0.3, label='Train',
+                    transform=ccrs.PlateCarree()
+                )
+                ax.scatter(
+                    lons[fold.test_idx], lats[fold.test_idx],
+                    c='red', s=5, alpha=0.6, label='Test',
+                    transform=ccrs.PlateCarree()
+                )
+            else:
+                # Simple matplotlib fallback
+                ax = plt.subplot(n_rows, n_cols, i+1)
+                ax.scatter(
+                    lons[fold.train_idx], lats[fold.train_idx],
+                    c='blue', s=2, alpha=0.3, label='Train'
+                )
+                ax.scatter(
+                    lons[fold.test_idx], lats[fold.test_idx],
+                    c='red', s=5, alpha=0.6, label='Test'
+                )
+                ax.set_xlabel('Longitude')
+                ax.set_ylabel('Latitude')
+                ax.grid(alpha=0.3)
+                ax.set_xlim(-180, 180)
+                ax.set_ylim(-90, 90)
             
             ax.set_title(f"Fold {i+1}: {fold.description}", fontsize=10)
             ax.legend(loc='upper right', fontsize=8)

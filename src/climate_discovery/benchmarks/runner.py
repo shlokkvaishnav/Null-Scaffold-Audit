@@ -86,7 +86,7 @@ class ModelBenchmark:
         print("="*70)
         
         for name, model_info in self.models.items():
-            print(f"\n📊 Evaluating: {name}")
+            print(f"\n[>] Evaluating: {name}")
             
             # Predict
             try:
@@ -282,7 +282,7 @@ def run_all_benchmarks(X_train, y_train, X_test, y_test):
     training_times = {}
     
     # Linear Regression
-    print("\n🔧 Training Linear Regression...")
+    print("\n[*] Training Linear Regression...")
     model = LinearBaseline()
     start = time.time()
     model.fit(X_train, y_train)
@@ -290,7 +290,7 @@ def run_all_benchmarks(X_train, y_train, X_test, y_test):
     benchmark.add_model('Linear', model, interpretable=True)
     
     # Random Forest
-    print("🔧 Training Random Forest...")
+    print("[*] Training Random Forest...")
     model = RFBaseline(n_estimators=200, max_depth=15)
     start = time.time()
     model.fit(X_train, y_train)
@@ -298,7 +298,7 @@ def run_all_benchmarks(X_train, y_train, X_test, y_test):
     benchmark.add_model('RandomForest', model, interpretable=False)
     
     # XGBoost
-    print("🔧 Training XGBoost...")
+    print("[*] Training XGBoost...")
     model = XGBBaseline(n_estimators=200, max_depth=5)
     start = time.time()
     model.fit(X_train, y_train)

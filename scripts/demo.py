@@ -9,6 +9,13 @@ This script demonstrates all Phase 1 (Refactoring) and Phase 2 (Improvements) fe
 
 import sys
 from pathlib import Path
+
+# Import juliacall first to avoid torch segfault warning
+try:
+    import juliacall  # noqa: F401
+except ImportError:
+    pass  # Not critical if missing
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split

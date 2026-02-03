@@ -18,8 +18,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Dict, Optional
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
+
+# Optional cartopy for enhanced geographic plotting
+try:
+    import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
+    HAS_CARTOPY = True
+except ImportError:
+    HAS_CARTOPY = False
+    ccrs = None
+    cfeature = None
 
 
 class ResidualAnalyzer:
@@ -192,22 +200,42 @@ class ResidualAnalyzer:
         
         # 4. Spatial map of residuals
         if self.lats is not None and self.lons is not None:
-            ax4 = plt.subplot(3, 3, 4, projection=ccrs.PlateCarree())
-            ax4.coastlines()
-            ax4.add_feature(cfeature.LAND, facecolor='lightgray')
-            
-            scatter = ax4.scatter(
-                self.lons, self.lats,
-                c=self.residuals,
-                cmap='RdBu_r',
-                s=5,
-                alpha=0.6,
-                vmin=-np.percentile(np.abs(self.residuals), 95),
-                vmax=np.percentile(np.abs(self.residuals), 95),
-                transform=ccrs.PlateCarree(),
-            )
-            plt.colorbar(scatter, ax=ax4, shrink=0.7, label='Residual (μatm)')
-            ax4.set_title('Spatial Residual Pattern', fontsize=11, fontweight='bold')
+            if HAS_CARTOPY:
+                ax4 = plt.subplot(3, 3, 4, projection=ccrs.PlateCarree())
+                ax4.coastlines()
+                ax4.add_feature(cfeature.LAND, facecolor='lightgray')
+                
+                scatter = ax4.scatter(
+                    self.lons, self.lats,
+                    c=self.residuals,
+                    cmap='RdBu_r',
+                    s=5,
+                    alpha=0.6,
+                    vmin=-np.percentile(np.abs(self.residuals), 95),
+                    vmax=np.percentile(np.abs(self.residuals), 95),
+                    transform=ccrs.PlateCarree(),
+                )
+                plt.colorbar(scatter, ax=ax4, shrink=0.7, label='Residual (μatm)')
+                ax4.set_title('Spatial Residual Pattern', fontsize=11, fontweight='bold')
+            else:
+                # Matplotlib fallback
+                ax4 = plt.subplot(3, 3, 4)
+                scatter = ax4.scatter(
+                    self.lons, self.lats,
+                    c=self.residuals,
+                    cmap='RdBu_r',
+                    s=5,
+                    alpha=0.6,
+                    vmin=-np.percentile(np.abs(self.residuals), 95),
+                    vmax=np.percentile(np.abs(self.residuals), 95),
+                )
+                plt.colorbar(scatter, ax=ax4, shrink=0.7, label='Residual (μatm)')
+                ax4.set_xlabel('Longitude')
+                ax4.set_ylabel('Latitude')
+                ax4.set_title('Spatial Residual Pattern', fontsize=11, fontweight='bold')
+                ax4.grid(alpha=0.3)
+                ax4.set_xlim(-180, 180)
+                ax4.set_ylim(-90, 90)
         
         # 5. Residuals vs Latitude
         if self.lats is not None:

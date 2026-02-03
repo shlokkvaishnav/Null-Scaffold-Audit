@@ -16,26 +16,22 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "numpy",
-    "pandas",
-    "xarray",
-    "pysr",
-    "torch",
-    "scikit-learn",
-    "hmmlearn",
-    "pyyaml",
-    "netCDF4",
-    "dask",
-    "matplotlib",
-    "tqdm",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest",
-    "black",
-    "isort",
-    "mypy",
+    "numpy>=1.20.0",
+    "pandas>=1.3.0",
+    "scipy>=1.7.0",
+    "xarray>=0.20.0",
+    "netCDF4>=1.5.0",
+    "pysr>=0.18.0",
+    "torch>=2.0.0",
+    "scikit-learn>=1.0.0",
+    "xgboost>=1.7.0",
+    "pyyaml>=6.0",
+    "dask>=2022.0.0",
+    "matplotlib>=3.5.0",
+    "seaborn>=0.11.0",
+    "plotly>=5.18.0",
+    "kaleido>=0.2.1",
+    "tqdm>=4.60.0",
 ]
 
 [tool.setuptools.packages.find]
