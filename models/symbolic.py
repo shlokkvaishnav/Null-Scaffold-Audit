@@ -380,7 +380,7 @@ class MixtureOfSymbolicExperts:
 
         for k in range(self.num_regimes):
             if k in completed_regimes:
-                logger.info(f"⏩ Skipping Regime {k} (already done)")
+                logger.info(f"[SKIP] Skipping Regime {k} (already done)")
                 # Mark as fitted dummy
                 self.experts[k].fitted_ = True 
                 continue
@@ -435,7 +435,7 @@ class MixtureOfSymbolicExperts:
             
             # PRODUCTION: Log regime completion
             regime_elapsed = time.time() - regime_start
-            logger.info(f"\n✓ Regime {k} completed in {regime_elapsed/60:.1f} minutes ({time.strftime('%H:%M:%S')})")
+            logger.info(f"\n[OK] Regime {k} completed in {regime_elapsed/60:.1f} minutes ({time.strftime('%H:%M:%S')})")
         
         return self
     

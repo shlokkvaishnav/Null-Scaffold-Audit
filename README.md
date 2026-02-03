@@ -265,25 +265,24 @@ The discovery of 6 distinct regimes confirms that the ocean is **not homogeneous
 
 ```
 climate-equation-discovery/
+├── pipeline.py                    # Main entry point
 ├── data/
-│   └── processed/
-│       └── train_dataset.nc          # Preprocessed oceanographic data
-├── src/
-│   └── climate_discovery/
-│       ├── config.py                  # Configuration parameters
-│       ├── data/
-│       │   └── datasets.py            # Data loading utilities
-│       └── models/
-│           └── symbolic.py            # PySR symbolic regression
-├── figures/
-│   ├── figure1_performance_summary.png
-│   ├── figure2_feature_importance.png
-│   └── figure3_regime_distribution.png
-├── notebooks/                         # Analysis notebooks
-├── scripts/
-│   └── run_complete_pipeline.py       # Main execution script
-├── CITATION.cff                       # Citation metadata
-└── README.md                          # This file
+│   ├── loader.py                  # Data loading (SOCAT + Copernicus)
+│   ├── download_socat.py          # Download SOCAT data
+│   ├── download_copernicus.py     # Download CMEMS chlorophyll
+│   ├── preprocess.py              # Preprocess raw data
+│   ├── raw/                       # Downloaded data files
+│   └── processed/                 # Preprocessed NetCDF
+├── models/
+│   ├── gating.py                  # Soft regime assignment (neural/K-means)
+│   ├── symbolic.py                # PySR symbolic regression per regime
+│   └── mixture.py                 # SD-MoSE mixture model
+├── utils/
+│   ├── metrics.py                 # R², RMSE, evaluation
+│   └── features.py                # Feature engineering
+├── results/                       # Output equations and metrics
+├── figures/                       # Visualizations
+└── README.md
 ```
 
 ---
@@ -293,41 +292,36 @@ climate-equation-discovery/
 ### Prerequisites
 ```bash
 # Create virtual environment
-python -m venv .venv
-.venv\Scripts\activate  # Windows
-# source .venv/bin/activate  # Linux/Mac
+python -m venv venv
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # Linux/Mac
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Download data (optional - auto-downloads on first run)
+python data/download_socat.py
+python data/download_copernicus.py  # requires free Copernicus account
 ```
 
 ### Execute Full Pipeline
 ```bash
-python scripts/run_complete_pipeline.py --n-regimes 6 --pysr_iterations 40
+# Full run (6 regimes, 40 iterations)
+python pipeline.py --n-regimes 6 --pysr-iterations 40
+
+# Quick test (5 iterations, subset of data)
+python pipeline.py --pysr-iterations 5 --test
 ```
 
 **Parameters:**
-- `--n-regimes`: Number of ocean regimes to discover (default: 6)
-- `--pysr_iterations`: PySR iterations per regime (default: 40)
-- Runtime: ~30-40 minutes on modern hardware
+- `--n-regimes`: Number of ocean regimes (default: 6)
+- `--pysr-iterations`: PySR iterations per regime (default: 40)
+- `--test`: Use small data subset for quick testing
 
 ### Output
-- Symbolic equations → `results/equations.txt`
-- Performance metrics → `results/regime_performance.csv`
-- LaTeX tables → `results/table_performance.tex`
-- Uncertainty estimates → `results/uncertainty_predictions.csv`
-- Visualizations → `figures/*.png`
-- Residual plots → `figures/residuals/`
-
-### Advanced Pipeline Options
-
-```bash
-# Run with experiment tracking (MLflow)
-python scripts/pipeline.py --enable-tracking --tracking-backend mlflow
-
-# Quick test run (5 iterations)
-python scripts/pipeline.py --pysr_iterations 5
-```
+- Discovered equations → `results/equations.txt`
+- R² and RMSE metrics → printed to console
+- Figures → `figures/*.png`
 
 ---
 
@@ -339,7 +333,7 @@ Experiment tracking is **disabled by default**. To enable tracking with **MLflow
 
 ```bash
 # MLflow (local tracking)
-python scripts/pipeline.py --enable-tracking --tracking-backend mlflow
+python pipeline.py --enable-tracking --tracking-backend mlflow
 ```
 
 **Tracked Metrics:**
