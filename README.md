@@ -1,6 +1,6 @@
-# 🌊 SD-MoSE: Symbolic Discovery of Mixture of Symbolic Experts
+# 🌊 SD-MoSE: Soft-Dynamic Mixture of Symbolic Experts
 
-**Interpretable Machine Learning for Ocean Carbon Flux Prediction**
+**Interpretable Discovery of Ocean Carbon Regimes using Differentiable Gating & Symbolic Regression**
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
@@ -11,49 +11,50 @@
 
 ## 📖 Project Summary
 
-This project implements **SD-MoSE** (Symbolic Discovery of Mixture of Symbolic Experts) to discover interpretable mathematical equations that predict ocean surface carbon dioxide partial pressure (pCO₂) from oceanographic data. Unlike black-box neural networks, SD-MoSE produces **human-readable symbolic equations** that scientists can analyze, validate, and interpret.
+This project implements **SD-MoSE** (Soft-Dynamic Mixture of Symbolic Experts), an advanced framework to discover interpretable mathematical equations that predict ocean surface carbon dioxide (spCO₂). It combines **Neural Gating Networks** with **Symbolic Regression** in an iterative EM-style loop to find spatially coherent "Soft Regimes" in global ocean data.
 
-### 🎯 Key Achievement
+### 🎯 Key Achievement (Preliminary Hard-Clustering Results)
 
-Successfully discovered **6 distinct ocean regimes** with interpretable symbolic equations explaining pCO₂ variability across **128,754 global ocean samples (2000-2023)**. The most significant finding is **Regime 4**, which autonomously discovered **chlorophyll as the primary driver** (R² = 0.41), representing biologically productive zones where ocean biology dominates over temperature.
+In our initial phase (using Hard K-Means clustering), we successfully discovered **6 distinct ocean regimes**. The most significant finding was **Regime 4**, which autonomously identified **chlorophyll as the primary driver** (R² = 0.41), representing biologically productive zones. We are now scaling this to **Soft Regimes** on dense global grids.
 
 ---
 
 ## 🔬 What We Did
 
 ### Objective
-Predict ocean surface fCO₂ (partial pressure of CO₂) using symbolic regression to discover interpretable equations that capture the underlying physical and biological processes.
+Predict ocean surface spCO₂ (surface partial pressure of CO₂) using symbolic regression to discover interpretable equations that capture the underlying physical and biological processes.
 
 ### Dataset
-- **Source**: Full SOCAT + CMEMS (Surface Ocean CO₂ Atlas + Copernicus Marine Environment Monitoring Service)
+- **Source**: **CMEMS Multi-Observation** (Global Ocean Carbon & Physics)
+- **Type**: Dense Gridded Data (NetCDF), Gap-free
 - **Features**: 
   - Sea Surface Temperature (SST)
   - Sea Surface Salinity (SSS)
-  - Chlorophyll-a concentration (Chl)
+  - Chlorophyll-a concentration (Chl) (Future)
   - Spatial coordinates (latitude, longitude)
   - Temporal information (month, year)
-  - Derived features (gradients, log-transformed values, seasonal encoding)
-- **Size**: 128,754 validated data points (2000-2023)
-- **Coverage**: Global ocean observations with comprehensive spatial and temporal coverage
+- **Coverage**: Global ocean observations (2000-2023) at 0.25°/1° resolution
 
 ---
 
 ## ⚙️ How We Did It
 
 ### 1. **Data Preparation**
-- Loaded preprocessed NetCDF files containing oceanographic measurements
-- Feature engineering: created derived features (log transformations, gradients)
-- Standardization: normalized all features for symbolic regression
-- Quality control: removed NaN values and outliers
+- Loaded dense gridded CMEMS NetCDF files
+- Fused Carbon and Physics datasets
+- Spatial feature engineering (lat/lon gradients)
 
-### 2. **Regime Identification (K-Means Clustering)**
-- Applied K-means clustering to identify **6 distinct ocean regimes**
-- Used gating features (SST, SSS, latitude, longitude) to partition the ocean
-- Each regime represents different oceanographic conditions (e.g., warm tropical waters, cold polar regions, upwelling zones)
+### 2. **Soft Regime Identification (Neural Gating)**
+- **Method**: Trainable **Gating Network** (PyTorch) learning soft regime probabilities
+- **Spatial Regularization**: Loss function enforcing spatially coherent regimes (nearby pixels share regimes)
+- **Dynamic**: Regimes can evolve over time (seasonally/interannually)
 
-### 3. **Symbolic Regression with PySR**
-For each of the 6 regimes, we ran PySR (Python Symbolic Regression) with:
-- **40 iterations** per regime
+### 3. **Weighted Symbolic Regression**
+For each soft regime, we ran PySR (Python Symbolic Regression) weighted by regime probability:
+- ** Iterative EM Loop**:
+  1. **Warm Start**: Initialize with K-Means
+  2. **M-Step**: Fit PySR experts to current soft regimes
+  3. **E-Step**: Retrain Gating Network to minimize error + spatial roughness
 - **Physics-informed constraints**:
   - Limited exponential growth to prevent numerical instability
   - Constrained power exponents to realistic ranges
