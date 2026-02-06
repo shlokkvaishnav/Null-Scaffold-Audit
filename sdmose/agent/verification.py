@@ -28,3 +28,27 @@ class VerificationModule:
         )
         
         return violation_log
+    
+    def score_hypothesis(self, hypothesis, observation=None):
+        """
+        Assigns a scalar score used for belief updates.
+        Higher score = better hypothesis.
+        
+        Args:
+            hypothesis: Hypothesis object
+            observation: Optional observation data for likelihood estimation
+        
+        Returns:
+            float: Hypothesis score
+        """
+        # Likelihood proxy (fewer violations = higher likelihood)
+        hypothesis.likelihood = -len(hypothesis.violation_log)
+        
+        # Complexity proxy (string length or AST nodes)
+        hypothesis.complexity = len(str(hypothesis.equation))
+        
+        # Tradeoff: high likelihood, low complexity
+        # Negative complexity penalty encourages simplicity
+        hypothesis.score = hypothesis.likelihood - 0.01 * hypothesis.complexity
+        
+        return hypothesis.score

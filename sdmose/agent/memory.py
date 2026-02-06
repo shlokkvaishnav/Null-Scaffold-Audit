@@ -1,11 +1,13 @@
 class AgentMemory:
     """
     Stores long-term regime transitions and valid hypotheses.
+    Strategic curation, not archival dump.
     """
-    def __init__(self, max_capacity=1000):
+    def __init__(self, max_hypotheses_per_regime=5, max_capacity=1000):
         self.hypotheses = []
         self.transition_matrix = None
         self.regime_history = []
+        self.max_hypotheses_per_regime = max_hypotheses_per_regime
         self.max_capacity = max_capacity
 
     def store(self, hypothesis):
@@ -14,24 +16,50 @@ class AgentMemory:
         """
         self.hypotheses.append(hypothesis)
 
-    def recall(self, query):
+    def recall(self, regime_id=None, query=None):
         """
         Retrieve hypotheses matching query criteria.
+        
+        Args:
+            regime_id: Optional regime ID to filter by
+            query: Optional dict with filtering criteria
         """
-        # TODO: Implement query logic
-        return [h for h in self.hypotheses if h.valid]
+        if regime_id is not None:
+            return [h for h in self.hypotheses if h.regime_id == regime_id and h.valid]
+        
+        if query:
+            return [h for h in self.hypotheses if h.valid]
+        
+        return self.hypotheses
 
     def prune(self, max_size=None):
         """
-        Remove invalid hypotheses from memory.
+        Keep only top-K hypotheses per regime (strategic curation).
+        
+        Returns:
+            int: Number of hypotheses removed
         """
-        max_size = max_size or self.max_capacity
-        self.hypotheses = [h for h in self.hypotheses if h.valid]
+        initial_count = len(self.hypotheses)
         
-        if len(self.hypotheses) > max_size:
-            self.hypotheses = self.hypotheses[-max_size:]
+        kept = []
         
-        return len(self.hypotheses)
+        # Get unique regime IDs
+        regime_ids = set(h.regime_id for h in self.hypotheses)
+        
+        for k in regime_ids:
+            # Get all hypotheses for this regime
+            candidates = [h for h in self.hypotheses if h.regime_id == k and h.valid]
+            
+            # Sort by score (descending)
+            candidates.sort(key=lambda h: h.score if h.score is not None else float('-inf'), reverse=True)
+            
+            # Keep top K
+            kept.extend(candidates[:self.max_hypotheses_per_regime])
+        
+        removed = initial_count - len(kept)
+        self.hypotheses = kept
+        
+        return removed
     
     def export_rejections(self):
         """

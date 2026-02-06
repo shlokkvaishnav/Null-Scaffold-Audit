@@ -89,6 +89,9 @@ class SDMoSEAgent:
             # Verify hypothesis
             h.verify(self.verification_module)
             
+            # Score hypothesis (NEW: explicit evaluation)
+            self.verification_module.score_hypothesis(h, self.observation)
+            
             if h.valid:
                 self.verified_hypotheses.append(h)
             else:
@@ -114,14 +117,8 @@ class SDMoSEAgent:
             num_regimes = self.config.get("agent", {}).get("num_regimes", 3)
             self.belief = BeliefState(num_regimes=num_regimes)
         
-        # Update beliefs based on verified hypotheses
-        evidence = {
-            "num_verified": len(self.verified_hypotheses),
-            "num_rejected": len(self.proposed_hypotheses) - len(self.verified_hypotheses),
-            "hypotheses": self.verified_hypotheses
-        }
-        
-        self.belief.update(evidence)
+        # Update beliefs based on hypothesis scores (Bayesian)
+        self.belief.update(self.verified_hypotheses)
         
         # Store verified hypotheses in memory
         if self.memory is not None:
@@ -144,15 +141,18 @@ class SDMoSEAgent:
         self.learn()
         self.iteration += 1
 
-    def run_loop(self, data_loader, max_iters=10):
+    def run_loop(self, data_loader, max_iters=10, tol=1e-3):
         """
-        Main agent training loop.
+        Main agent training loop with autonomous convergence.
         
         Args:
             data_loader: Iterator yielding data batches
             max_iters: Maximum number of iterations
+            tol: Convergence tolerance for belief change
         """
         print("Initializing GRAIL-V Agent...")
+        import numpy as np
+        prev_pi = None
         
         for i in range(max_iters):
             print(f"\n--- Agent Iteration {i+1}/{max_iters} ---")
@@ -167,17 +167,40 @@ class SDMoSEAgent:
             # Execute one agent step
             self.step(data)
             
+            # Get current belief state
+            pi = self.belief.pi if self.belief else None
+            
             # Report progress
             print(f"  Proposed: {len(self.proposed_hypotheses)}, "
                   f"Verified: {len(self.verified_hypotheses)}, "
                   f"Rejected: {len(self.proposed_hypotheses) - len(self.verified_hypotheses)}")
             
-            if self.belief:
-                print(f"  Beliefs: {self.belief.beliefs}")
+            if pi is not None:
+                print(f"  Belief state: {pi}")
             
-            # Check convergence
-            if self.belief and self.belief.is_converged():
-                print(f"\n[+] Agent converged at iteration {i+1}")
-                break
+            # Check convergence (agent decides when it's done)
+            if prev_pi is not None and pi is not None:
+                delta = np.linalg.norm(pi - prev_pi)
+                print(f"  Belief change: {delta:.6f}")
+                
+                if delta < tol:
+                    print(f"\n[CONVERGED] Agent beliefs stabilized at iteration {i+1}")
+                    break
+            
+            prev_pi = pi.copy() if pi is not None else None
         
         print("\n[+] Agent loop complete")
+    
+    def introspect(self):
+        """
+        Agent self-reporting for transparency and debugging.
+        
+        Returns:
+            dict: Current agent state
+        """
+        return {
+            "iteration": self.iteration,
+            "belief": self.belief.pi.tolist() if self.belief else None,
+            "num_hypotheses": len(self.memory.hypotheses) if self.memory else 0,
+            "num_rejections": len(self.memory.rejection_log) if hasattr(self.memory, 'rejection_log') else 0
+        }
