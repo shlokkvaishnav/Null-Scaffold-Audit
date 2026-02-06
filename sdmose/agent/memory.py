@@ -9,6 +9,7 @@ class AgentMemory:
         self.regime_history = []
         self.max_hypotheses_per_regime = max_hypotheses_per_regime
         self.max_capacity = max_capacity
+        self.pruned_log = []  # Track forgetting
 
     def store(self, hypothesis):
         """
@@ -32,9 +33,12 @@ class AgentMemory:
         
         return self.hypotheses
 
-    def prune(self, max_size=None):
+    def prune(self, current_iteration=None):
         """
         Keep only top-K hypotheses per regime (strategic curation).
+        
+        Args:
+            current_iteration: Current agent iteration for logging
         
         Returns:
             int: Number of hypotheses removed
@@ -54,7 +58,18 @@ class AgentMemory:
             candidates.sort(key=lambda h: h.score if h.score is not None else float('-inf'), reverse=True)
             
             # Keep top K
-            kept.extend(candidates[:self.max_hypotheses_per_regime])
+            top_k = candidates[:self.max_hypotheses_per_regime]
+            pruned = candidates[self.max_hypotheses_per_regime:]
+            
+            kept.extend(top_k)
+            
+            # Log pruned hypotheses (lineage tracking)
+            for h in pruned:
+                self.pruned_log.append({
+                    "hypothesis": h,
+                    "score": h.score,
+                    "iteration": current_iteration
+                })
         
         removed = initial_count - len(kept)
         self.hypotheses = kept

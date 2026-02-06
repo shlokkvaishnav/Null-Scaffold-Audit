@@ -2,17 +2,39 @@ class Hypothesis:
     """
     Represents a single symbolic hypothesis for a specific regime.
     """
-    def __init__(self, equation, regime_id):
+    def __init__(self, equation, regime_id, iteration=0):
         self.equation = equation
         self.regime_id = regime_id
         
         self.valid = True
         self.violation_log = {}
         
-        # Agentic evaluation (NEW)
+        # Agentic evaluation
         self.likelihood = None
         self.complexity = None
         self.score = None
+        
+        # Lineage tracking (GRAIL-V)
+        self.created_at = iteration
+        self.parent_id = None  # For future hypothesis evolution
+    
+    def evaluate(self, features):
+        """
+        Evaluate hypothesis on input features (for data fit).
+        
+        Args:
+            features: numpy array (n_samples, n_features)
+        
+        Returns:
+            predictions: numpy array (n_samples,)
+        """
+        import numpy as np
+        
+        # Placeholder: simple linear combination
+        # TODO: Replace with actual equation evaluation (sympy/pysr)
+        if features.shape[1] > 0:
+            return features[:, 0]  # Use first feature
+        return np.zeros(features.shape[0])
     
     def verify(self, verifier):
         """

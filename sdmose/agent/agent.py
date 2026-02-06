@@ -125,8 +125,8 @@ class SDMoSEAgent:
             for h in self.verified_hypotheses:
                 self.memory.store(h)
             
-            # Prune invalid hypotheses
-            pruned_count = self.memory.prune()
+            # Prune invalid hypotheses (with lineage tracking)
+            pruned_count = self.memory.prune(current_iteration=self.iteration)
         
         return self.belief
 
@@ -153,6 +153,7 @@ class SDMoSEAgent:
         print("Initializing GRAIL-V Agent...")
         import numpy as np
         prev_pi = None
+        prev_hypotheses = None
         
         for i in range(max_iters):
             print(f"\n--- Agent Iteration {i+1}/{max_iters} ---")
@@ -167,8 +168,9 @@ class SDMoSEAgent:
             # Execute one agent step
             self.step(data)
             
-            # Get current belief state
+            # Get current state
             pi = self.belief.pi if self.belief else None
+            current_eqs = [str(h.equation) for h in self.memory.hypotheses] if self.memory else []
             
             # Report progress
             print(f"  Proposed: {len(self.proposed_hypotheses)}, "
@@ -178,16 +180,23 @@ class SDMoSEAgent:
             if pi is not None:
                 print(f"  Belief state: {pi}")
             
-            # Check convergence (agent decides when it's done)
+            # Check belief convergence
             if prev_pi is not None and pi is not None:
                 delta = np.linalg.norm(pi - prev_pi)
                 print(f"  Belief change: {delta:.6f}")
                 
                 if delta < tol:
-                    print(f"\n[CONVERGED] Agent beliefs stabilized at iteration {i+1}")
-                    break
+                    print(f"  [✓] Beliefs converged")
+                    
+                    # Check hypothesis stability
+                    if prev_hypotheses is not None:
+                        unchanged = set(current_eqs) == set(prev_hypotheses)
+                        if unchanged:
+                            print(f"\n[CONVERGED] Belief + hypothesis set stabilized at iteration {i+1}")
+                            break
             
             prev_pi = pi.copy() if pi is not None else None
+            prev_hypotheses = current_eqs
         
         print("\n[+] Agent loop complete")
     
@@ -198,9 +207,15 @@ class SDMoSEAgent:
         Returns:
             dict: Current agent state
         """
+        top_eqs = []
+        if self.memory and self.memory.hypotheses:
+            top_eqs = [str(h.equation) for h in self.memory.hypotheses[:5]]
+        
         return {
             "iteration": self.iteration,
             "belief": self.belief.pi.tolist() if self.belief else None,
             "num_hypotheses": len(self.memory.hypotheses) if self.memory else 0,
-            "num_rejections": len(self.memory.rejection_log) if hasattr(self.memory, 'rejection_log') else 0
+            "num_rejections": len(self.memory.rejection_log) if self.memory and hasattr(self.memory, 'rejection_log') else 0,
+            "num_pruned": len(self.memory.pruned_log) if self.memory and hasattr(self.memory, 'pruned_log') else 0,
+            "top_equations": top_eqs
         }

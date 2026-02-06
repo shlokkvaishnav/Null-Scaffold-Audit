@@ -32,13 +32,21 @@ class BeliefState:
         
         # Softmax update for probabilistic belief revision
         exp_scores = np.exp(scores / temperature)
-        self.pi = exp_scores / (exp_scores.sum() + 1e-12)
+        pi = exp_scores / (exp_scores.sum() + 1e-12)
+        
+        # Entropy regularization (prevents collapse)
+        entropy = -np.sum(pi * np.log(pi + 1e-12))
+        if entropy < 0.1:
+            pi = 0.9 * pi + 0.1 / self.num_regimes
+        
+        self.pi = pi
         self.beliefs = self.pi  # Update alias
         
         # Record update
         self.history.append({
             "scores": scores.copy(),
-            "beliefs": self.pi.copy()
+            "beliefs": self.pi.copy(),
+            "entropy": entropy
         })
         
         return self.pi

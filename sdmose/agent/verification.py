@@ -31,24 +31,43 @@ class VerificationModule:
     
     def score_hypothesis(self, hypothesis, observation=None):
         """
-        Assigns a scalar score used for belief updates.
+        Assigns a scalar score using data fit + physics + complexity.
         Higher score = better hypothesis.
         
         Args:
             hypothesis: Hypothesis object
-            observation: Optional observation data for likelihood estimation
+            observation: Observation dict with features/targets
         
         Returns:
             float: Hypothesis score
         """
-        # Likelihood proxy (fewer violations = higher likelihood)
-        hypothesis.likelihood = -len(hypothesis.violation_log)
+        import numpy as np
         
-        # Complexity proxy (string length or AST nodes)
-        hypothesis.complexity = len(str(hypothesis.equation))
+        # Physics violations (hard penalty)
+        violation_penalty = len(hypothesis.violation_log)
         
-        # Tradeoff: high likelihood, low complexity
-        # Negative complexity penalty encourages simplicity
-        hypothesis.score = hypothesis.likelihood - 0.01 * hypothesis.complexity
+        # Data fit proxy (soft)
+        data_misfit = 0.0
+        if observation is not None and "features" in observation and "targets" in observation:
+            try:
+                y_pred = hypothesis.evaluate(observation["features"])
+                residual = observation["targets"] - y_pred
+                data_misfit = np.mean(residual ** 2)
+            except Exception:
+                data_misfit = 1e3  # Catastrophic failure
+        
+        # Complexity penalty
+        complexity = len(str(hypothesis.equation))
+        
+        # Store components
+        hypothesis.likelihood = -data_misfit
+        hypothesis.complexity = complexity
+        
+        # Combined score: data fit + physics + simplicity
+        hypothesis.score = (
+            -data_misfit
+            - 10.0 * violation_penalty
+            - 0.01 * complexity
+        )
         
         return hypothesis.score
