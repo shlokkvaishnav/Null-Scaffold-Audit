@@ -1,6 +1,6 @@
 class SDMoSEAgent:
     """
-    GRAIL-V Agent Orchestrator.
+    Agent Orchestrator.
     Manages the Perception -> Retrieval -> Reasoning -> Verification -> Learning loop.
     """
     def __init__(self, config):
@@ -191,7 +191,7 @@ class SDMoSEAgent:
             max_iters: Maximum number of iterations
             tol: Convergence tolerance for belief change
         """
-        print("Initializing GRAIL-V Agent...")
+        print("Initializing SD-MoSE Agent...")
         import numpy as np
         prev_pi = None
         prev_hypotheses = None

@@ -14,7 +14,7 @@ class Hypothesis:
         self.complexity = None
         self.score = None
         
-        # Lineage tracking (GRAIL-V)
+        # Lineage tracking for analysis
         self.created_at = iteration
         self.parent_id = None  # For future hypothesis evolution
     

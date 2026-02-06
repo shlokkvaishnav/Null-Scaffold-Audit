@@ -1,5 +1,5 @@
 """
-GRAIL-V Agent Diagnostics Plotting
+Agent Diagnostics Plotting
 
 Generates 3 key visualizations:
 1. Hypothesis growth trajectory (baseline vs no_memory)

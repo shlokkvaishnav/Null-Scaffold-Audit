@@ -24,10 +24,15 @@ data/cache/
 *.csv
 
 # Results
+results/
 results/outputs/
 results/checkpoints/
+results/ablations/
+results/diagnostics/
 wandb/
 mlruns/
+*.png
+*.jpg
 
 # IDE
 .vscode/

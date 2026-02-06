@@ -1,5 +1,5 @@
 """
-GRAIL-V Ablation Experiments
+Ablation Experiments
 
 Runs 5 configurations:
 - A0: Baseline (full agent)
@@ -8,7 +8,7 @@ Runs 5 configurations:
 - A3: No belief updates
 - A4: No reasoning
 
-Records metrics for reviewer validation.
+Records metrics for validation.
 """
 
 import sys

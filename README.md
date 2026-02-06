@@ -1,45 +1,226 @@
-# SD-MoSE-V: Scientific Discovery - Mixture of Scientific Experts (Versioned Agentic System)
+# SD-MoSE: Self-Directed Mixture-of-Symbolic-Experts
 
-SD-MoSE-V is a GRAIL-V compliant agentic framework for climate equation discovery. It uses a core agent to orchestrate symbolic reasoning, memory-augmented regime tracking, and scientific verification.
+> **Autonomous Climate Equation Discovery Through Agentic Reasoning**
 
-## Project Structure
+An agentic framework for discovering interpretable scientific equations from multi-regime observational data. SD-MoSE implements an autonomous loop of observation, reasoning, verification, and learning that converges when symbolic explanations and regime beliefs stabilize.
 
-- `data/`: Raw and processed data.
-- `sdmose/`: Main package.
-  - `agent/`: **Core Cognition** (Perception, Reasoning, Verification, Control).
-  - `experts/`: **Regime Experts** (Symbolic, Gating, Ensembles).
-  - `memory/`: **Dynamics & Storage** (Transition matrices, Viterbi decoding).
-  - `science/`: **Domain Knowledge** (Chemistry laws, Physics constraints).
-  - `learning/`: **Optimization** (EM algorithm, Belief updates).
-- `configs/`: Hydra configuration files.
-- `notebooks/`: Jupyter notebooks for analysis.
-- `scripts/`: Executable scripts.
+---
 
-## Agent Loop
+## 🎯 Key Features
 
-The `sdmose.agent.Agent` orchestrates the following loop:
-1. **Perception**: Encodes raw data into observations.
-2. **Retrieval**: Fetches relevant priors and historical regime patterns.
-3. **Reasoning**: Proposes symbolic hypotheses for the current regime.
-4. **Verification**: Validates hypotheses against scientific constraints.
-5. **Learning**: Updates beliefs and regime experts using EM.
+- **Autonomous Agent**: Self-directed iteration with explicit hypothesis management
+- **Physics-Based Verification**: Rejects equations violating conservation laws or thermodynamic constraints
+- **Multi-Regime Discovery**: Tracks probabilistic beliefs over distinct climate states
+- **Selective Memory**: Strategic hypothesis curation prevents unbounded growth
+- **Interpretable Outputs**: Symbolic equations instead of black-box predictions
 
-## Installation
+---
 
-1. Create the conda environment:
-   ```bash
-   conda env create -f environment.yml
-   conda activate sdmose
-   ```
+## 🏗️ Architecture
 
-2. Install the package:
-   ```bash
-   pip install -e .
-   ```
+The agent consists of five core components: `(Π, H, V, M, B)`
 
-## Usage
+- **Π (Perception)**: Converts raw observations into structured features
+- **H (Hypothesis Space)**: Symbolic equation objects with `(equation, regime, likelihood, complexity, score, timestamp)`
+- **V (Verification)**: Physics constraint validation with detailed logging
+- **M (Memory)**: Top-5 hypotheses per regime with automatic pruning
+- **B (Belief)**: Probabilistic regime assignments updated via Bayesian inference
 
-Run the agent:
-```bash
-python scripts/run_agent.py
+### Agent Loop
+
 ```
+Observe → Retrieve → Reason → Verify → Learn → Converge
+   ↓         ↓         ↓         ↓        ↓        ↓
+ Data    Priors    Symbolic  Physics  Beliefs  Stable
+         +Memory   Equations Checks   +Memory  State
+```
+
+**Autonomous Convergence**: The agent stops when both belief distributions and hypothesis sets stabilize.
+
+---
+
+## 📊 Validation Results
+
+Component necessity validated through ablation experiments:
+
+### Hypothesis Growth Over Time
+
+![Hypothesis Growth](results/diagnostics/hypothesis_growth.png)
+
+**Result**: Disabling memory pruning causes hypothesis count to double (15 → 30), demonstrating that selective forgetting is essential for scalability.
+
+---
+
+### Belief Concentration Analysis
+
+![Belief Entropy](results/diagnostics/entropy_comparison.png)
+
+**Result**: Only the complete agent achieves belief concentration (entropy = 0.863). Removing verification, belief updates, or reasoning maintains maximal entropy (1.099), preventing regime specialization.
+
+---
+
+### Symbolic Interpretability
+
+![Equation Diversity](results/diagnostics/equation_diversity.png)
+
+**Result**: 
+- **Baseline**: Compact symbolic equations with specialized beliefs
+- **No Verify**: Diverse equations without regime commitment
+- **No Memory**: Uncontrolled hypothesis proliferation
+- **No Belief/Reasoning**: Zero interpretable outputs
+
+---
+
+## 🔬 Key Findings
+
+**Empirical validation**:
+1. ✅ Memory pruning prevents unbounded growth
+2. ✅ Physics verification enables belief concentration
+3. ✅ Belief updates actively gate hypothesis storage
+4. ✅ Symbolic reasoning provides interpretability
+
+**Insight**: Interpretability emerges from the interaction of all components—no single module is sufficient.
+
+---
+
+## 🚀 Quick Start
+
+### Installation
+
+```bash
+# Clone repository
+git clone https://github.com/shlokkvaishnav/climate-equation-discovery.git
+cd climate-equation-discovery
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Running Experiments
+
+```bash
+# Run all ablation experiments
+python scripts/run_ablations.py
+
+# Generate diagnostic plots
+python scripts/plot_diagnostics.py
+```
+
+### Basic Usage
+
+```python
+from sdmose.agent.agent import SDMoSEAgent
+import yaml
+
+# Load configuration
+config = yaml.safe_load(open('configs/baseline.yaml'))
+
+# Initialize agent
+agent = SDMoSEAgent(config)
+
+# Run until convergence
+agent.run(data_loader, max_iterations=100)
+
+# Inspect results
+state = agent.introspect()
+print(f"Final hypotheses: {state['num_hypotheses']}")
+print(f"Belief state: {state['belief']}")
+print(f"Top equations: {state['top_equations']}")
+```
+
+---
+
+## 📁 Project Structure
+
+```
+climate-equation-discovery/
+├── sdmose/                  # Core agent implementation
+│   ├── agent/
+│   │   ├── agent.py        # Agent orchestrator
+│   │   ├── perception.py   # Observation encoding
+│   │   ├── reasoning.py    # Symbolic hypothesis generation
+│   │   ├── hypothesis.py   # First-class hypothesis objects
+│   │   ├── belief.py       # Bayesian regime tracking
+│   │   ├── memory.py       # Strategic curation
+│   │   └── retrieval.py    # Prior + memory access
+│   ├── science/
+│   │   ├── constraints.py  # Physics verification
+│   │   └── scoring.py      # Composite scoring
+│   └── data/
+│       └── preprocess.py   # Data pipeline
+├── configs/
+│   ├── baseline.yaml       # Full agent configuration
+│   └── ablations/          # Component ablation configs
+├── scripts/
+│   ├── run_ablations.py    # Automated experiments
+│   └── plot_diagnostics.py # Visualization
+├── docs/
+│   ├── methods_paper.md    # Detailed methods
+│   └── methods_agent.md    # Architecture details
+└── results/                # Generated outputs (gitignored)
+    ├── ablations/
+    └── diagnostics/
+```
+
+---
+
+## 🔍 Technical Details
+
+### Hypothesis Scoring
+
+```python
+score = -MSE(y, ŷ) - 10·violations - 0.01·complexity
+```
+
+Balances data fit, physical plausibility, and equation simplicity.
+
+### Belief Update
+
+```python
+π_k ∝ exp(Σ score(h) / T)  # Softmax over regime scores
+```
+
+With entropy regularization to prevent premature regime collapse.
+
+### Memory Pruning
+
+- Retain top-5 hypotheses per regime
+- Sort by composite score
+- Log pruned hypotheses with timestamps for analysis
+
+---
+
+## 📊 Ablation Configurations
+
+Five experimental configurations validate component necessity:
+
+1. **Baseline**: Full agent with all components active
+2. **No Verify**: Disable physics constraint checking
+3. **No Memory**: Disable hypothesis pruning
+4. **No Belief**: Disable belief state updates
+5. **No Reasoning**: Disable symbolic equation generation
+
+Each ablation is controlled via YAML configuration flags.
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Please open an issue or pull request.
+
+---
+
+## 📧 Contact
+
+**Shlok Vaishnav**  
+GitHub: [@shlokkvaishnav](https://github.com/shlokkvaishnav)
+
+---
+
+**Built with**: Python 3.10+ | PySR | NumPy | Matplotlib
