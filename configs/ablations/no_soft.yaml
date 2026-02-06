@@ -1,0 +1,10 @@
+defaults:
+  - ../base
+
+experiment:
+  name: "ablation_no_soft"
+
+model:
+  type: "sdmose"
+  gating:
+    type: "hard" # vs soft

@@ -1,0 +1,9 @@
+defaults:
+  - ../base
+
+experiment:
+  name: "ablation_no_dynamics"
+
+model:
+  dynamics:
+    enabled: false

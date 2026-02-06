@@ -1,0 +1,14 @@
+defaults:
+  - base
+
+experiment:
+  name: "sdmose_agent"
+
+agent:
+  type: "grail_v"
+  perception:
+    encoder: "identity"
+  memory:
+    capacity: 100
+  learning:
+    max_iterations: 50

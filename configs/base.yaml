@@ -1,0 +1,25 @@
+defaults:
+  - _self_
+
+experiment:
+  name: "sdmose_base"
+  seed: 42
+  device: "cpu" # or cuda
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  batch_size: 32
+  num_workers: 4
+
+model:
+  type: "symbolic" # baseline, symbolic, full
+
+training:
+  epochs: 100
+  learning_rate: 1e-3
+  patience: 10
+
+hydra:
+  run:
+    dir: results/outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}

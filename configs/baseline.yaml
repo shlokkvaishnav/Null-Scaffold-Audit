@@ -1,0 +1,9 @@
+defaults:
+  - base
+
+experiment:
+  name: "baseline_linear"
+
+model:
+  type: "baseline"
+  algorithm: "linear_regression" # random_forest, xgboost

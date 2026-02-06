@@ -1,0 +1,10 @@
+defaults:
+  - ../base
+
+experiment:
+  name: "ablation_no_constraints"
+
+model:
+  constraints:
+    enabled: false
+    lambda_physics: 0.0
