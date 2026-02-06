@@ -1,6 +1,7 @@
 """
 Simple test script for SD-MoSE agent (no Hydra to avoid Python 3.14 incompatibility).
 """
+import numpy as np
 from sdmose.agent import SDMoSEAgent, AgentMemory
 from omegaconf import OmegaConf
 
@@ -12,7 +13,8 @@ def main():
             "type": "grail_v",
             "perception": {"encoder": "identity"},
             "memory": {"capacity": 100},
-            "learning": {"max_iterations": 5}
+            "learning": {"max_iterations": 5},
+            "num_regimes": 3
         }
     })
     
@@ -43,9 +45,33 @@ def main():
     hyp = Hypothesis(equation="y = 2*x + 1", regime_id=0)
     print(f"  - Created hypothesis: {hyp}")
     
-    # Run agent loop
-    print("\n[+] Running agent.run_loop()...")
-    agent.run_loop()
+    # ** NEW: End-to-end test with step() **
+    print("\n[+] Running full agent loop with step()...")
+    
+    # Create sample data
+    sample_data = {
+        "features": np.random.randn(10, 3),
+        "targets": np.random.randn(10),
+        "metadata": {"time": "t=0"}
+    }
+    
+    print(f"  - Sample data shape: features={sample_data['features'].shape}, targets={sample_data['targets'].shape}")
+    
+    # Run one iteration
+    agent.step(sample_data)
+    
+    # Check results
+    print(f"\n[+] Step complete! Results:")
+    print(f"  - Proposed hypotheses: {len(agent.proposed_hypotheses)}")
+    print(f"  - Verified hypotheses: {len(agent.verified_hypotheses)}")
+    print(f"  - Rejected hypotheses: {len(agent.proposed_hypotheses) - len(agent.verified_hypotheses)}")
+    print(f"  - Memory size: {len(agent.memory.hypotheses)}")
+    print(f"  - Belief state: {agent.belief.beliefs if agent.belief else 'None'}")
+    
+    # Show sample hypothesis
+    if agent.verified_hypotheses:
+        print(f"\n  Sample verified hypothesis:")
+        print(f"    {agent.verified_hypotheses[0]}")
     
     print("\n" + "=" * 60)
     print("[SUCCESS] Agent architecture test complete!")

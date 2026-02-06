@@ -13,11 +13,14 @@ class Hypothesis:
         """
         Verify this hypothesis against physics constraints.
         """
-        self.violation_log = verifier.check(self.equation)
+        self.violation_log = verifier.check(self)
+        
+        # Check if any violations exceed threshold
         self.valid = not any(
             v.get("violation_rate", 0) > 0.1 
             for v in self.violation_log.values()
-        )
+        ) if self.violation_log else True
+        
         return self.valid
 
     def __repr__(self):
