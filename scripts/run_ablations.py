@@ -78,6 +78,12 @@ def run_ablation(config_name, max_iters=10):
         metrics["num_hypotheses"].append(state["num_hypotheses"])
         metrics["num_rejected"].append(state["num_rejections"])
         
+        # Debug: Check proposed vs verified
+        if i == 0:
+            print(f"  [DEBUG] Proposed: {len(agent.proposed_hypotheses)}, Verified: {len(agent.verified_hypotheses)}")
+            if len(agent.proposed_hypotheses) > 0:
+                print(f"  [DEBUG] First proposed: {agent.proposed_hypotheses[0]}")
+        
         # Belief entropy
         if state["belief"]:
             pi = np.array(state["belief"])

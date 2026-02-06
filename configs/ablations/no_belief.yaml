@@ -1,5 +1,6 @@
 agent:
   num_regimes: 3
+  reasoning_mode: placeholder
   use_verification: true
   use_memory: true
   use_belief: false  # Ablation: Uniform beliefs, no Bayesian updates

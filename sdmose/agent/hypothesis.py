@@ -30,11 +30,28 @@ class Hypothesis:
         """
         import numpy as np
         
-        # Placeholder: simple linear combination
-        # TODO: Replace with actual equation evaluation (sympy/pysr)
-        if features.shape[1] > 0:
-            return features[:, 0]  # Use first feature
-        return np.zeros(features.shape[0])
+        # Extract features
+        x0 = features[:, 0] if features.shape[1] > 0 else np.zeros(features.shape[0])
+        x1 = features[:, 1] if features.shape[1] > 1 else np.zeros(features.shape[0])
+        
+        eq = str(self.equation).strip()
+        
+        # Deterministic template evaluation
+        if eq == "x0":
+            return x0
+        elif eq == "x1":
+            return x1
+        elif eq == "x0 + x1":
+            return x0 + x1
+        elif eq == "x0 * x1":
+            return x0 * x1
+        elif eq == "x0 + 0.1":
+            return x0 + 0.1
+        elif eq == "x0 - x1":
+            return x0 - x1
+        else:
+            # Fallback: return x0 (penalized by scoring if wrong)
+            return x0
     
     def verify(self, verifier):
         """

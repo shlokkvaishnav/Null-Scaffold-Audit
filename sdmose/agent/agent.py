@@ -49,13 +49,11 @@ class SDMoSEAgent:
     def reason(self):
         """
         Reasoning: Propose symbolic hypotheses for current regime.
-        Maps to: PySR symbolic regression via ReasoningModule
+        Maps to: Symbolic regression via ReasoningModule
         """
         if not hasattr(self, 'reasoning_module') or self.reasoning_module is None:
             from .reasoning import ReasoningModule
             self.reasoning_module = ReasoningModule(self.config)
-        
-        from .hypothesis import Hypothesis
         
         # Get number of regimes
         num_regimes = self.config.get("agent", {}).get("num_regimes", 3)
@@ -63,14 +61,16 @@ class SDMoSEAgent:
         self.proposed_hypotheses = []
         
         for k in range(num_regimes):
-            equation = self.reasoning_module.propose_hypothesis(
+            # Generate hypothesis (already returns Hypothesis object or None)
+            h = self.reasoning_module.propose_hypothesis(
                 observation=self.observation,
                 regime_id=k,
                 priors=self.priors
             )
             
-            h = Hypothesis(equation=equation, regime_id=k)
-            self.proposed_hypotheses.append(h)
+            # Handle None (insufficient data or failure)
+            if h is not None:
+                self.proposed_hypotheses.append(h)
         
         return self.proposed_hypotheses
 
@@ -111,6 +111,11 @@ class SDMoSEAgent:
         Learning: Update regime beliefs and agent memory using EM.
         Maps to: EM + belief update (agent-controlled learning)
         """
+        # Initialize memory if needed
+        if self.memory is None:
+            from .memory import AgentMemory
+            self.memory = AgentMemory()
+        
         # Initialize belief state if needed
         if self.belief is None:
             from .belief import BeliefState
@@ -121,13 +126,12 @@ class SDMoSEAgent:
         self.belief.update(self.verified_hypotheses)
         
         # Store verified hypotheses in memory
-        if self.memory is not None:
-            for h in self.verified_hypotheses:
-                self.memory.store(h)
-            
-            # Prune invalid hypotheses (ablatable)
-            if self.config.get("agent", {}).get("use_memory", True):
-                pruned_count = self.memory.prune(current_iteration=self.iteration)
+        for h in self.verified_hypotheses:
+            self.memory.store(h)
+        
+        # Prune invalid hypotheses (ablatable)
+        if self.config.get("agent", {}).get("use_memory", True):
+            pruned_count = self.memory.prune(current_iteration=self.iteration)
             # else: Ablation - no pruning, memory grows unbounded
         
         return self.belief
