@@ -1,25 +1,56 @@
+"""
+Belief State Module.
+Maintains soft regime beliefs and uncertainty estimates.
+"""
+
 import numpy as np
+from typing import List, Dict, Optional, Any
+
 
 class BeliefState:
     """
     Maintains soft regime beliefs (pi) and uncertainty estimates.
     """
-    def __init__(self, num_regimes=3):
-        self.num_regimes = num_regimes
-        # Uniform initialization
-        self.pi = np.ones(num_regimes) / num_regimes
-        self.beliefs = self.pi  # Alias for backward compatibility
-        self.prev_beliefs = None
-        self.history = []
     
-    def update(self, hypotheses, temperature=1.0):
+    # Constants
+    EPSILON = 1e-12  # Numerical stability
+    ENTROPY_FLOOR = 0.1  # Minimum entropy threshold
+    REGULARIZATION_STRENGTH = 0.1  # Entropy regularization weight
+    
+    def __init__(self, num_regimes: int = 3):
+        """
+        Initialize belief state.
+        
+        Args:
+            num_regimes: Number of regimes to track
+        """
+        if num_regimes < 1:
+            raise ValueError(f"num_regimes must be >= 1, got {num_regimes}")
+        
+        self.num_regimes = num_regimes
+        self.pi = np.ones(num_regimes) / num_regimes  # Uniform initialization
+        self.prev_beliefs: Optional[np.ndarray] = None
+        self.history: List[Dict] = []
+    
+    @property
+    def beliefs(self) -> np.ndarray:
+        """Alias for backward compatibility."""
+        return self.pi
+    
+    def update(self, hypotheses: List, temperature: float = 1.0) -> np.ndarray:
         """
         Bayesian-style belief update using hypothesis scores.
         
         Args:
             hypotheses: List of scored Hypothesis objects
             temperature: Softmax temperature (higher = more uniform)
+        
+        Returns:
+            Updated belief distribution
         """
+        if temperature <= 0:
+            raise ValueError(f"temperature must be > 0, got {temperature}")
+        
         # Store previous beliefs for convergence check
         self.prev_beliefs = self.pi.copy()
         
@@ -27,22 +58,28 @@ class BeliefState:
         scores = np.zeros(self.num_regimes)
         
         for h in hypotheses:
-            if h.score is not None:
-                scores[h.regime_id] += h.score
+            regime_id = getattr(h, 'regime_id', None)
+            score = getattr(h, 'score', None)
+            
+            if regime_id is not None and score is not None:
+                if 0 <= regime_id < self.num_regimes:
+                    scores[regime_id] += score
         
-        # Softmax update for probabilistic belief revision
-        exp_scores = np.exp(scores / temperature)
-        pi = exp_scores / (exp_scores.sum() + 1e-12)
+        # Softmax with numerical stability
+        scores_normalized = scores / temperature
+        scores_normalized -= np.max(scores_normalized)  # Prevent overflow
+        exp_scores = np.exp(scores_normalized)
+        pi = exp_scores / (exp_scores.sum() + self.EPSILON)
         
         # Entropy regularization (prevents collapse)
-        entropy = -np.sum(pi * np.log(pi + 1e-12))
-        if entropy < 0.1:
-            pi = 0.9 * pi + 0.1 / self.num_regimes
+        entropy = self._compute_entropy(pi)
+        if entropy < self.ENTROPY_FLOOR:
+            uniform = np.ones(self.num_regimes) / self.num_regimes
+            pi = (1 - self.REGULARIZATION_STRENGTH) * pi + self.REGULARIZATION_STRENGTH * uniform
         
         self.pi = pi
-        self.beliefs = self.pi  # Update alias
         
-        # Record update
+        # Record update for analysis
         self.history.append({
             "scores": scores.copy(),
             "beliefs": self.pi.copy(),
@@ -50,14 +87,36 @@ class BeliefState:
         })
         
         return self.pi
-        
-    def get_weights(self, regime_id):
+    
+    def _compute_entropy(self, distribution: np.ndarray) -> float:
+        """Compute Shannon entropy of a distribution."""
+        # Filter out zeros to avoid log(0)
+        p = distribution[distribution > self.EPSILON]
+        return -np.sum(p * np.log(p))
+    
+    def get_entropy(self) -> float:
+        """Get current belief entropy."""
+        return self._compute_entropy(self.pi)
+    
+    def get_weights(self, regime_id: int) -> float:
         """
         Get belief weight for a specific regime.
+        
+        Args:
+            regime_id: Regime index
+            
+        Returns:
+            Belief weight (0.0 if invalid regime_id)
         """
-        return self.pi[regime_id] if regime_id < self.num_regimes else 0.0
+        if 0 <= regime_id < self.num_regimes:
+            return float(self.pi[regime_id])
+        return 0.0
     
-    def is_converged(self, tol=1e-3):
+    def get_dominant_regime(self) -> int:
+        """Get the regime with highest belief."""
+        return int(np.argmax(self.pi))
+    
+    def is_converged(self, tol: float = 1e-3) -> bool:
         """
         Check if beliefs have converged.
         
@@ -65,9 +124,15 @@ class BeliefState:
             tol: Convergence tolerance
         
         Returns:
-            bool: True if converged
+            True if converged
         """
         if self.prev_beliefs is None:
             return False
         
-        return np.linalg.norm(self.pi - self.prev_beliefs) < tol
+        return float(np.linalg.norm(self.pi - self.prev_beliefs)) < tol
+    
+    def reset(self) -> None:
+        """Reset to uniform beliefs."""
+        self.pi = np.ones(self.num_regimes) / self.num_regimes
+        self.prev_beliefs = None
+        self.history = []
