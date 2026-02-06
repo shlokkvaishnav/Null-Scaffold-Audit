@@ -125,20 +125,57 @@ class SDMoSEAgent:
             for h in self.verified_hypotheses:
                 self.memory.store(h)
             
-            # Prune invalid hypotheses (with lineage tracking)
-            pruned_count = self.memory.prune(current_iteration=self.iteration)
+            # Prune invalid hypotheses (ablatable)
+            if self.config.get("agent", {}).get("use_memory", True):
+                pruned_count = self.memory.prune(current_iteration=self.iteration)
+            # else: Ablation - no pruning, memory grows unbounded
         
         return self.belief
 
     def step(self, data):
         """
-        Execute one full GRAIL-V loop iteration.
+        Single GRAIL-V cycle: observe -> retrieve -> reason -> verify -> learn
+        
+        Config-based ablation flags:
+        - use_verification: Toggle physics-based verification
+        - use_memory: Toggle memory pruning (in learn())
+        - use_belief: Toggle Bayesian belief updates
+        - use_reasoning: Toggle symbolic reasoning
         """
+        # 1. Perception
         self.observe(data)
+        
+        # 2. Retrieval
         self.retrieve()
-        self.reason()
-        self.verify()
-        self.learn()
+        
+        # 3. Reasoning (ablatable)
+        if self.config.get("agent", {}).get("use_reasoning", True):
+            self.reason()
+        else:
+            # Ablation: Skip symbolic generation
+            self.proposed_hypotheses = []
+        
+        # 4. Verification (ablatable)
+        if self.config.get("agent", {}).get("use_verification", True):
+            self.verify()
+        else:
+            # Ablation: Accept all hypotheses without verification
+            self.verified_hypotheses = self.proposed_hypotheses
+        
+        # 5. Learning (ablatable belief updates, memory handled in learn())
+        if self.config.get("agent", {}).get("use_belief", True):
+            self.learn()
+        else:
+            # Ablation: Skip belief updates, keep uniform
+            if self.belief is None:
+                from .belief import BeliefState
+                num_regimes = self.config.get("agent", {}).get("num_regimes", 3)
+                self.belief = BeliefState(num_regimes=num_regimes)
+            # Store hypotheses but don't update beliefs
+            if self.memory is not None:
+                for h in self.verified_hypotheses:
+                    self.memory.store(h)
+        
         self.iteration += 1
 
     def run_loop(self, data_loader, max_iters=10, tol=1e-3):

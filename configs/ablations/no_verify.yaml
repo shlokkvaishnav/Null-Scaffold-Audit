@@ -1,0 +1,6 @@
+agent:
+  num_regimes: 3
+  use_verification: false  # Ablation: Skip physics verification
+  use_memory: true
+  use_belief: true
+  use_reasoning: true
