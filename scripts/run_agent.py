@@ -1,10 +1,10 @@
 import hydra
-from sdmose.agent.agent import Agent
+from sdmose.agent import SDMoSEAgent
 
 @hydra.main(config_path="../configs", config_name="agent")
 def main(cfg):
     print("Initializing GRAIL-V Agent...")
-    agent = Agent(cfg)
+    agent = SDMoSEAgent(cfg)
     agent.run_loop()
 
 if __name__ == "__main__":
