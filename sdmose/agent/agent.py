@@ -144,10 +144,40 @@ class SDMoSEAgent:
         self.learn()
         self.iteration += 1
 
-    def run_loop(self):
+    def run_loop(self, data_loader, max_iters=10):
         """
-        Main execution loop (called from run_agent.py).
+        Main agent training loop.
+        
+        Args:
+            data_loader: Iterator yielding data batches
+            max_iters: Maximum number of iterations
         """
         print("Initializing GRAIL-V Agent...")
-        # TODO: Full training loop
-        pass
+        
+        for i in range(max_iters):
+            print(f"\n--- Agent Iteration {i+1}/{max_iters} ---")
+            
+            # Get next data batch
+            try:
+                data = next(data_loader)
+            except StopIteration:
+                print("[!] Data exhausted")
+                break
+            
+            # Execute one agent step
+            self.step(data)
+            
+            # Report progress
+            print(f"  Proposed: {len(self.proposed_hypotheses)}, "
+                  f"Verified: {len(self.verified_hypotheses)}, "
+                  f"Rejected: {len(self.proposed_hypotheses) - len(self.verified_hypotheses)}")
+            
+            if self.belief:
+                print(f"  Beliefs: {self.belief.beliefs}")
+            
+            # Check convergence
+            if self.belief and self.belief.is_converged():
+                print(f"\n[+] Agent converged at iteration {i+1}")
+                break
+        
+        print("\n[+] Agent loop complete")
