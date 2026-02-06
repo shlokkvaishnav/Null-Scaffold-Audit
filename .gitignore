@@ -31,8 +31,12 @@ results/ablations/
 results/diagnostics/
 wandb/
 mlruns/
+
+# Generated images (but allow docs/images for documentation)
 *.png
+!docs/images/*.png
 *.jpg
+!docs/images/*.jpg
 
 # IDE
 .vscode/
