@@ -45,7 +45,7 @@ Component necessity validated through ablation experiments:
 
 ### Hypothesis Growth Over Time
 
-![Hypothesis Growth](results/diagnostics/hypothesis_growth.png)
+![Hypothesis Growth](docs/images/hypothesis_growth.png)
 
 **Result**: Disabling memory pruning causes hypothesis count to double (15 → 30), demonstrating that selective forgetting is essential for scalability.
 
@@ -53,7 +53,7 @@ Component necessity validated through ablation experiments:
 
 ### Belief Concentration Analysis
 
-![Belief Entropy](results/diagnostics/entropy_comparison.png)
+![Belief Entropy](docs/images/entropy_comparison.png)
 
 **Result**: Only the complete agent achieves belief concentration (entropy = 0.863). Removing verification, belief updates, or reasoning maintains maximal entropy (1.099), preventing regime specialization.
 
@@ -61,7 +61,7 @@ Component necessity validated through ablation experiments:
 
 ### Symbolic Interpretability
 
-![Equation Diversity](results/diagnostics/equation_diversity.png)
+![Equation Diversity](docs/images/equation_diversity.png)
 
 **Result**: 
 - **Baseline**: Compact symbolic equations with specialized beliefs
