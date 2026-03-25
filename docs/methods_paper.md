@@ -1,5 +1,19 @@
 # Methods Documentation
 
+## Paper Narrative Lock
+
+This project is framed as a **VSB + IGBU** method:
+- Primary: Variational Symbolic Bayes over regime-conditioned symbolic candidate banks.
+- Secondary: Information-Geometric Belief Update for simplex-safe regime dynamics.
+- Support: symbolic gate, Lyapunov screening, constraints, memory loop.
+
+For camera-ready algorithm and theorem packaging, see:
+- `docs/training_algorithm_vsb_igbu.md`
+- `docs/sdmose_decision_freeze.md`
+- `docs/novelty_positioning.md`
+
+---
+
 ## Agent Architecture
 
 We implement an autonomous agent that maintains explicit symbolic hypotheses, verifies them against physical constraints, and updates probabilistic beliefs over regime assignments. The agent operates through iterative cycles of observation, retrieval, reasoning, verification, and learning, converging when both beliefs and discovered equations stabilize.

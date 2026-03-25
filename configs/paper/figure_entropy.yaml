@@ -1,0 +1,6 @@
+figure_id: entropy_concentration
+source_script: scripts/reproduce_benchmarks.py
+dataset_split: validation
+metric: belief_entropy
+group_by: [model, seed]
+output: results/reproducibility/figure_entropy.csv

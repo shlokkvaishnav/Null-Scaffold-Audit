@@ -1,0 +1,10 @@
+table_id: main_benchmark
+source_script: scripts/reproduce_benchmarks.py
+models:
+  - pysr_global
+  - neural_moe
+  - lightgbm
+  - sdmose_full
+metrics: [rmse, mae, calibration_error]
+report: mean_ci
+output: results/reproducibility/table_main.csv

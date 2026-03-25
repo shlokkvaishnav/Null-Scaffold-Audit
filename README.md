@@ -129,6 +129,30 @@ print(f"Top equations: {state['top_equations']}")
 
 ---
 
+
+## 🧭 Paper Decision Freeze (VSB + IGBU)
+
+The repo now locks the paper trajectory as:
+- **Primary contribution**: Variational Symbolic Bayes (VSB) over regime-conditioned hypotheses
+- **Secondary contribution**: Information-Geometric Belief Update (IGBU)
+- **Support components**: symbolic gate, Lyapunov screening, constraints, memory loop
+
+See:
+- `docs/sdmose_decision_freeze.md`
+- `docs/training_algorithm_vsb_igbu.md`
+- `docs/novelty_positioning.md`
+- `docs/reproducibility_protocol.md`
+
+### One-command benchmark reproduction
+
+```bash
+python scripts/reproduce_benchmarks.py --config configs/paper/benchmark_minimal.yaml
+```
+
+Use `configs/paper/benchmark_full.yaml` for the 10-seed full run.
+
+---
+
 ## 📁 Project Structure
 
 ```
