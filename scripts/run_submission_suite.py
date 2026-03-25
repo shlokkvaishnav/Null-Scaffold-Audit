@@ -1,0 +1,357 @@
+"""Submission benchmark suite runner.
+
+Runs train+eval across all benchmark model variants declared in configs/paper/*.yaml.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+import os
+import platform
+import sys
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Tuple
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import numpy as np
+import yaml
+from scipy import stats
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+from sdmose.agent.agent import SDMoSEAgent
+from sdmose.experts.baselines import BaselineModel
+from sdmose.experts.ensemble import Ensemble
+from sdmose.experts.symbolic import SymbolicRegressor
+
+
+@dataclass
+class DatasetSplit:
+    x_train: np.ndarray
+    y_train: np.ndarray
+    x_test: np.ndarray
+    y_test: np.ndarray
+
+
+def _hardware_metadata() -> Dict[str, Any]:
+    metadata = {
+        "python_version": sys.version.split()[0],
+        "platform": platform.platform(),
+        "machine": platform.machine(),
+        "processor": platform.processor(),
+        "cpu_count": os.cpu_count(),
+    }
+    try:
+        import torch
+
+        metadata["torch_version"] = torch.__version__
+        metadata["cuda_available"] = bool(torch.cuda.is_available())
+        metadata["cuda_device_count"] = int(torch.cuda.device_count()) if torch.cuda.is_available() else 0
+    except Exception:
+        metadata["torch_version"] = None
+        metadata["cuda_available"] = False
+        metadata["cuda_device_count"] = 0
+    return metadata
+
+
+def _synthetic_regression(seed: int, n_samples: int = 1000, n_features: int = 6) -> DatasetSplit:
+    rng = np.random.default_rng(seed)
+    x = rng.normal(size=(n_samples, n_features))
+    y = (
+        1.5 * x[:, 0]
+        - 0.8 * x[:, 1]
+        + 0.5 * x[:, 2] * x[:, 3]
+        + np.sin(x[:, 4])
+        + 0.1 * rng.normal(size=n_samples)
+    )
+    split = int(0.8 * n_samples)
+    return DatasetSplit(x_train=x[:split], y_train=y[:split], x_test=x[split:], y_test=y[split:])
+
+
+def _calibration_error(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    residual = np.asarray(y_true) - np.asarray(y_pred)
+    return float(np.abs(np.mean(residual)) / (np.std(y_true) + 1e-12))
+
+
+def _evaluate(y_true: np.ndarray, y_pred: np.ndarray, equation: str | None = None) -> Dict[str, float]:
+    rmse = float(np.sqrt(mean_squared_error(y_true, y_pred)))
+    mae = float(mean_absolute_error(y_true, y_pred))
+    complexity = float(len(equation)) if equation else float("nan")
+    return {
+        "rmse": rmse,
+        "mae": mae,
+        "calibration_error": _calibration_error(y_true, y_pred),
+        "symbolic_complexity": complexity,
+    }
+
+
+def _run_pysr_global(data: DatasetSplit, seed: int) -> Tuple[np.ndarray, str]:
+    model = SymbolicRegressor(
+        {
+            "backend": "pysr",
+            "niterations": 25,
+            "population_size": 40,
+            "populations": 8,
+            "random_state": seed,
+        }
+    )
+    model.fit(data.x_train, data.y_train)
+    return model.predict(data.x_test), model.equation
+
+
+def _run_neural_moe(data: DatasetSplit, seed: int) -> Tuple[np.ndarray, str]:
+    model = Ensemble({"random_state": seed, "n_estimators": 250, "max_iter": 400})
+    model.fit(data.x_train, data.y_train)
+    return model.predict(data.x_test), "neural_moe_ensemble"
+
+
+def _run_baseline(data: DatasetSplit, seed: int, model_type: str) -> Tuple[np.ndarray, str]:
+    model = BaselineModel({"model_type": model_type, "random_state": seed})
+    model.fit(data.x_train, data.y_train)
+    return model.predict(data.x_test), model_type
+
+
+def _run_sdmose(data: DatasetSplit, seed: int, variant: str, budget: Dict[str, Any]) -> Tuple[np.ndarray, str]:
+    agent_cfg: Dict[str, Any] = {
+        "agent": {
+            "num_regimes": int(budget.get("regimes", 3)),
+            "use_verification": True,
+            "use_memory": True,
+            "use_belief": True,
+            "use_reasoning": True,
+            "reasoning_mode": "placeholder",
+        }
+    }
+
+    if variant == "no_vsb":
+        agent_cfg["agent"]["use_verification"] = False
+    elif variant == "no_igbu":
+        agent_cfg["agent"]["use_belief"] = False
+    elif variant == "no_constraints_stability":
+        agent_cfg["agent"]["use_verification"] = False
+    elif variant != "sdmose_full":
+        raise NotImplementedError(f"Missing SD-MoSE wiring for variant: {variant}")
+
+    agent = SDMoSEAgent(agent_cfg)
+    max_iters = int(budget.get("max_iters", 10))
+    obs = {"features": data.x_train, "targets": data.y_train}
+    for _ in range(max_iters):
+        agent.step(obs)
+
+    if not agent.memory or not agent.memory.hypotheses:
+        raise RuntimeError(f"Variant '{variant}' produced no hypotheses; implementation wiring appears broken.")
+
+    best = max(agent.memory.hypotheses, key=lambda h: getattr(h, "score", float("-inf")))
+    y_pred = best.evaluate(data.x_test)
+    return y_pred, str(best.equation)
+
+
+def _runner_for_variant(variant: str):
+    if variant == "pysr_global":
+        return _run_pysr_global
+    if variant == "neural_moe":
+        return _run_neural_moe
+    if variant in {"lightgbm", "xgboost"}:
+        return lambda data, seed, _variant=variant: _run_baseline(data, seed, model_type=_variant)
+    if variant in {"sdmose_full", "no_vsb", "no_igbu", "no_constraints_stability"}:
+        return None
+    raise NotImplementedError(f"Missing implementation wiring for model variant: {variant}")
+
+
+def _write_csv(rows: List[Dict[str, Any]], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not rows:
+        return
+    with path.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def _ci(values: Iterable[float], confidence_level: float) -> Tuple[float, float, float]:
+    arr = np.asarray(list(values), dtype=float)
+    mean = float(np.mean(arr))
+    if len(arr) < 2:
+        return mean, mean, mean
+    sem = stats.sem(arr)
+    lo, hi = stats.t.interval(confidence_level, len(arr) - 1, loc=mean, scale=sem)
+    return mean, float(lo), float(hi)
+
+
+def _significance(per_seed: List[Dict[str, Any]], metrics: List[str], baseline: str) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    by_model: Dict[str, List[Dict[str, Any]]] = {}
+    for row in per_seed:
+        by_model.setdefault(row["model"], []).append(row)
+
+    if baseline not in by_model:
+        return rows
+
+    baseline_rows = sorted(by_model[baseline], key=lambda r: int(r["seed"]))
+
+    for model, model_rows in by_model.items():
+        if model == baseline:
+            continue
+        model_rows = sorted(model_rows, key=lambda r: int(r["seed"]))
+        if len(model_rows) != len(baseline_rows):
+            continue
+        for metric in metrics:
+            x = np.array([float(r[metric]) for r in model_rows])
+            y = np.array([float(r[metric]) for r in baseline_rows])
+            t_stat, p_val = stats.ttest_rel(x, y)
+            rows.append(
+                {
+                    "model": model,
+                    "baseline": baseline,
+                    "metric": metric,
+                    "t_stat": float(t_stat),
+                    "p_value": float(p_val),
+                    "mean_delta": float(np.mean(x - y)),
+                }
+            )
+    return rows
+
+
+def run_config(config_path: Path, output_root: Path) -> Dict[str, str]:
+    with config_path.open() as handle:
+        config = yaml.safe_load(handle)
+
+    if "models" not in config:
+        return {}
+
+    experiment = config["experiment_name"]
+    seeds = config["seed_policy"]["seeds"]
+    metrics = config["metrics"]
+    confidence_level = float(config.get("significance", {}).get("confidence_level", 0.95))
+    variants = list(dict.fromkeys(config.get("models", []) + config.get("ablations", [])))
+
+    for variant in variants:
+        if variant.startswith("sdmose") or variant.startswith("no_"):
+            continue
+        _runner_for_variant(variant)
+
+    output_dir = output_root / experiment
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    hardware = _hardware_metadata()
+    per_seed_rows: List[Dict[str, Any]] = []
+
+    for variant in variants:
+        for seed in seeds:
+            data = _synthetic_regression(seed=seed)
+            started = time.perf_counter()
+
+            if variant.startswith("sdmose") or variant.startswith("no_"):
+                y_pred, equation = _run_sdmose(data, seed=seed, variant=variant, budget=config.get("budget", {}))
+            else:
+                runner = _runner_for_variant(variant)
+                y_pred, equation = runner(data, seed)
+
+            duration = time.perf_counter() - started
+            model_metrics = _evaluate(data.y_test, y_pred, equation=equation)
+            model_metrics["runtime_seconds"] = float(duration)
+
+            row = {
+                "experiment": experiment,
+                "config_path": str(config_path),
+                "model": variant,
+                "seed": int(seed),
+                "equation": equation,
+                **{m: float(model_metrics[m]) for m in model_metrics},
+                "hardware": json.dumps(hardware, sort_keys=True),
+            }
+            per_seed_rows.append(row)
+
+    summary_rows: List[Dict[str, Any]] = []
+    for variant in variants:
+        subset = [r for r in per_seed_rows if r["model"] == variant]
+        for metric in metrics + ["runtime_seconds"]:
+            values = [float(r[metric]) for r in subset]
+            mean, ci_lo, ci_hi = _ci(values, confidence_level)
+            summary_rows.append(
+                {
+                    "experiment": experiment,
+                    "model": variant,
+                    "metric": metric,
+                    "mean": mean,
+                    "ci_low": ci_lo,
+                    "ci_high": ci_hi,
+                    "n": len(values),
+                    "confidence_level": confidence_level,
+                }
+            )
+
+    significance_rows = _significance(
+        per_seed_rows,
+        metrics=[m for m in metrics if m in {"rmse", "mae", "calibration_error", "symbolic_complexity", "runtime_seconds"}],
+        baseline="sdmose_full" if "sdmose_full" in variants else variants[0],
+    )
+
+    per_seed_json = output_dir / "per_seed_metrics.json"
+    per_seed_csv = output_dir / "per_seed_metrics.csv"
+    summary_json = output_dir / "aggregate_summary.json"
+    summary_csv = output_dir / "aggregate_summary.csv"
+    significance_json = output_dir / "significance_tests.json"
+    significance_csv = output_dir / "significance_tests.csv"
+    runtime_json = output_dir / "runtime_hardware_metadata.json"
+
+    per_seed_json.write_text(json.dumps(per_seed_rows, indent=2))
+    _write_csv(per_seed_rows, per_seed_csv)
+    summary_json.write_text(json.dumps(summary_rows, indent=2))
+    _write_csv(summary_rows, summary_csv)
+    significance_json.write_text(json.dumps(significance_rows, indent=2))
+    _write_csv(significance_rows, significance_csv)
+
+    runtime_payload = {
+        "experiment": experiment,
+        "hardware": hardware,
+        "runtime_seconds_total": float(sum(r["runtime_seconds"] for r in per_seed_rows)),
+        "runtime_seconds_by_model": {
+            model: float(sum(r["runtime_seconds"] for r in per_seed_rows if r["model"] == model))
+            for model in variants
+        },
+    }
+    runtime_json.write_text(json.dumps(runtime_payload, indent=2))
+
+    return {
+        "config": str(config_path),
+        "per_seed_json": str(per_seed_json),
+        "per_seed_csv": str(per_seed_csv),
+        "summary_json": str(summary_json),
+        "summary_csv": str(summary_csv),
+        "significance_json": str(significance_json),
+        "significance_csv": str(significance_csv),
+        "runtime_json": str(runtime_json),
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Run benchmark submission suite for all paper configs.")
+    parser.add_argument("--config-glob", default="configs/paper/*.yaml", help="Glob for benchmark config files.")
+    parser.add_argument("--output-root", default="results/submission_suite", help="Directory for run artifacts.")
+    args = parser.parse_args()
+
+    config_paths = sorted(Path(".").glob(args.config_glob))
+    if not config_paths:
+        raise FileNotFoundError(f"No configs found for glob: {args.config_glob}")
+
+    outputs = []
+    for config_path in config_paths:
+        result = run_config(config_path=config_path, output_root=Path(args.output_root))
+        if result:
+            outputs.append(result)
+
+    index_path = Path(args.output_root) / "run_index.json"
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    index_path.write_text(json.dumps(outputs, indent=2))
+    print(json.dumps({"runs": outputs, "index": str(index_path)}, indent=2))
+
+
+if __name__ == "__main__":
+    main()
