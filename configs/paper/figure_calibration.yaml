@@ -1,0 +1,7 @@
+figure_id: belief_calibration_per_seed
+source_script: scripts/reproduce_benchmarks.py
+dataset_split: validation
+metric: ece
+group_by: [model, seed]
+source_table: calibration_diagnostics.per_seed
+output: results/reproducibility/figure_belief_calibration.csv

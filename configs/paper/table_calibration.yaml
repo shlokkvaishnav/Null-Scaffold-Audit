@@ -1,0 +1,11 @@
+table_id: belief_calibration_summary
+source_script: scripts/reproduce_benchmarks.py
+models:
+  - pysr_global
+  - neural_moe
+  - lightgbm
+  - sdmose_full
+metrics: [ece, brier, nll]
+source_table: calibration_diagnostics.aggregate
+report: mean_ci
+output: results/reproducibility/table_calibration.csv

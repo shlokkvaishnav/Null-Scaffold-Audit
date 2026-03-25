@@ -24,3 +24,7 @@ budget:
   max_iters: 25
   candidate_bank_size: 20
   regimes: 4
+
+calibration:
+  ece_bins: 12
+  num_samples: 256
