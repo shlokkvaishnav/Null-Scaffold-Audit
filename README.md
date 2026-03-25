@@ -98,22 +98,21 @@ pip install -r requirements.txt
 
 ### Running Experiments
 
-```bash
-# Run all ablation experiments
-python scripts/run_ablations.py
-
-# Generate diagnostic plots
-python scripts/plot_diagnostics.py
-```
+The core mechanism for discovering equations is the SDMoSE Python API. We have recently upgraded the gating module to explicitly leverage a **Symbolic Gate Function (SGF)** for physically-enforced interpretability.
 
 ### Basic Usage
 
 ```python
 from sdmose.agent.agent import SDMoSEAgent
-import yaml
+from sdmose.experts.symbolic_gate import SymbolicGate
 
-# Load configuration
-config = yaml.safe_load(open('configs/baseline.yaml'))
+# Configure the agent programmatically
+config = {
+    # Example agent hyperparams...
+}
+
+# The routing agent assigns covariates to regimes using the sparse SGF layer
+symbolic_gate = SymbolicGate(num_inputs=4, num_experts=3)
 
 # Initialize agent
 agent = SDMoSEAgent(config)
@@ -143,23 +142,19 @@ climate-equation-discovery/
 │   │   ├── belief.py       # Bayesian regime tracking
 │   │   ├── memory.py       # Strategic curation
 │   │   └── retrieval.py    # Prior + memory access
+│   ├── experts/
+│   │   └── symbolic_gate.py# Interpretable symbolic routing logic
 │   ├── science/
 │   │   ├── constraints.py  # Physics verification
 │   │   └── scoring.py      # Composite scoring
 │   └── data/
 │       └── preprocess.py   # Data pipeline
-├── configs/
-│   ├── baseline.yaml       # Full agent configuration
-│   └── ablations/          # Component ablation configs
 ├── scripts/
 │   ├── run_ablations.py    # Automated experiments
 │   └── plot_diagnostics.py # Visualization
-├── docs/
-│   ├── methods_paper.md    # Detailed methods
-│   └── methods_agent.md    # Architecture details
-└── results/                # Generated outputs (gitignored)
-    ├── ablations/
-    └── diagnostics/
+└── docs/
+    ├── methods_paper.md    # Detailed methods
+    └── methods_agent.md    # Architecture details
 ```
 
 ---
@@ -188,19 +183,7 @@ With entropy regularization to prevent premature regime collapse.
 - Sort by composite score
 - Log pruned hypotheses with timestamps for analysis
 
----
 
-## 📊 Ablation Configurations
-
-Five experimental configurations validate component necessity:
-
-1. **Baseline**: Full agent with all components active
-2. **No Verify**: Disable physics constraint checking
-3. **No Memory**: Disable hypothesis pruning
-4. **No Belief**: Disable belief state updates
-5. **No Reasoning**: Disable symbolic equation generation
-
-Each ablation is controlled via YAML configuration flags.
 
 ---
 

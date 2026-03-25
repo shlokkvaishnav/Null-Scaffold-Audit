@@ -1,9 +1,0 @@
-defaults:
-  - ../base
-
-experiment:
-  name: "ablation_no_bio"
-
-data:
-  features:
-    include_bio: false

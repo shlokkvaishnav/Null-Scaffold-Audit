@@ -1,7 +1,0 @@
-agent:
-  num_regimes: 3
-  reasoning_mode: placeholder
-  use_verification: true
-  use_memory: false  # Ablation: No pruning, memory grows unbounded
-  use_belief: true
-  use_reasoning: true

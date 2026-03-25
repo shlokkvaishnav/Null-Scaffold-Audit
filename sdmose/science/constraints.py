@@ -146,3 +146,35 @@ class PhysicsConstraints:
         """
         # Placeholder - would implement proper conservation checking
         return True
+
+    # --- FACTOR GRAPH CLIQUE POTENTIALS ---
+    
+    def psi_conservation(self, equation: str, data: Optional[Dict] = None) -> float:
+        """
+        Clique potential for mass/carbon conservation.
+        Returns a value in [0, 1]. 1.0 = perfectly conserved, 0.0 = strict violation.
+        """
+        # Heuristic: Unbounded raw exponentials usually violate closed-system conservation
+        if "exp(x0)" in equation or "exp(x1)" in equation:
+            return 0.1 # Heavily penalize unbounded representation
+        return 1.0
+        
+    def psi_thermo(self, equation: str, data: Optional[Dict] = None) -> float:
+        """
+        Clique potential for thermodynamic directionality (e.g., CO2 flux gradients).
+        Penalizes equations implying thermodynamically forbidden flux directions.
+        """
+        # Heuristic: If equation structurally inverses a known thermodynamic law
+        if "-(x1 - x0)" in equation:
+            return 0.01 # Near-zero probability for forbidden flux direction
+        return 1.0
+        
+    def psi_stability(self, equation: str, data: Optional[Dict] = None) -> float:
+        """
+        Clique potential rewarding equations that match known climatological
+        temporal derivative bounds (e.g., bounded fCO2 bounds).
+        """
+        # Heuristic: cyclic/bounded oscillating operators are highly stable
+        if "sin" in equation or "cos" in equation:
+            return 1.0
+        return 0.5 # Neutral stability for unbounded linear mappings

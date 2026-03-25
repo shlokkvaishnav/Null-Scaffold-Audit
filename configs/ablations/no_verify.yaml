@@ -1,7 +1,0 @@
-agent:
-  num_regimes: 3
-  reasoning_mode: placeholder
-  use_verification: false  # Ablation: Skip physics verification
-  use_memory: true
-  use_belief: true
-  use_reasoning: true

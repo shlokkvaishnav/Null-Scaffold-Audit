@@ -136,3 +136,42 @@ class Hypothesis:
     
     def __hash__(self) -> int:
         return hash((self.equation, self.regime_id))
+
+    def compute_composite_score(self, y_true: np.ndarray, y_pred: np.ndarray, 
+                                screener: Any, x: np.ndarray, 
+                                lambdas: Dict[str, float]) -> float:
+        """
+        Compute total evaluation score accounting for accuracy, physics laws, 
+        parsimony, and dynamic Lyapunov stability.
+        
+        score(h) = -MSE(y, y_hat) - lambda_v * violations - lambda_c * complexity - lambda_s * Omega_stab(f_k)
+        """
+        if y_true is None or y_pred is None or len(y_true) == 0:
+            return 0.0
+            
+        # Ensure 1D arrays for MSE summation
+        y_true_flat = np.asarray(y_true).ravel()
+        y_pred_flat = np.asarray(y_pred).ravel()
+        
+        # 1. Mean Squared Error (Accuracy fit)
+        self.mse = float(np.mean((y_true_flat - y_pred_flat)**2))
+        
+        # 2. Hard Physics Violations
+        self.violations_penalty = 0.0
+        if hasattr(self, 'violation_log') and self.violation_log:
+            self.violations_penalty = sum(v.get("violation_rate", 0) for v in self.violation_log.values())
+            
+        # 3. Complexity (Parsimony proxy)
+        self.complexity = float(self.complexity if self.complexity is not None else len(self.equation))
+        
+        # 4. Lyapunov Stability (Dynamical Stability Screening)
+        self.stability_penalty = screener.compute_stability_penalty(self, x) if screener else 0.0
+        
+        # Fetch lambda weights
+        l_v = lambdas.get("v", 10.0)
+        l_c = lambdas.get("c", 0.01)
+        l_s = lambdas.get("s", 1.0)
+        
+        # Final penalty subtraction
+        self.score = -self.mse - (l_v * self.violations_penalty) - (l_c * self.complexity) - (l_s * self.stability_penalty)
+        return self.score
