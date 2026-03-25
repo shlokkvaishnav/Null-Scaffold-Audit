@@ -9,6 +9,8 @@ from statistics import mean, stdev
 import numpy as np
 import yaml
 
+from sdmose.experiments.contract import validate_baseline_contract
+
 
 def _set_seed(seed: int) -> None:
     np.random.seed(seed)
@@ -50,9 +52,12 @@ def run(config_path: Path) -> dict:
     with config_path.open() as f:
         config = yaml.safe_load(f)
 
+    validate_baseline_contract(config, runner_name="scripts/reproduce_benchmarks.py")
+
     seeds = config["seed_policy"]["seeds"]
     models = config["models"] + config.get("ablations", [])
     metrics = config["metrics"]
+    split_name = config["dataset_split"]["test"]
 
     output_dir = Path("results/reproducibility")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -65,7 +70,7 @@ def run(config_path: Path) -> dict:
         for seed in seeds:
             _set_seed(seed)
             t0 = time.perf_counter()
-            result = {"seed": seed, "model": model}
+            result = {"seed": seed, "model": model, "split": split_name}
             for metric in metrics:
                 result[metric] = _fake_metric(seed, model, metric)
                 summary[model][metric].append(result[metric])
