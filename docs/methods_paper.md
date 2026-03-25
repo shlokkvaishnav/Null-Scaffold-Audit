@@ -1,13 +1,13 @@
 # Methods Documentation
 
-## Paper Narrative Lock
+## Method Specification Lock
 
 This project is framed as a **VSB + IGBU** method:
 - Primary: Variational Symbolic Bayes over regime-conditioned symbolic candidate banks.
 - Secondary: Information-Geometric Belief Update for simplex-safe regime dynamics.
 - Support: symbolic gate, Lyapunov screening, constraints, memory loop.
 
-For camera-ready algorithm and theorem packaging, see:
+For experiment protocol and theorem packaging, see:
 - `docs/training_algorithm_vsb_igbu.md`
 - `docs/sdmose_decision_freeze.md`
 - `docs/novelty_positioning.md`

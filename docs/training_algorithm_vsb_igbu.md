@@ -1,4 +1,4 @@
-# Training Algorithm: VSB + IGBU (Camera-Ready Specification)
+# Training Algorithm: VSB + IGBU (Method Specification)
 
 ## Inputs
 - Dataset \(\mathcal{D}=\{(x_t,y_t)\}_{t=1}^T\)

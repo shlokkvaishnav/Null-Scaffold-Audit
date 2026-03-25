@@ -1,6 +1,6 @@
 # SD-MoSE Decision Freeze (Project-Specific)
 
-This document locks the paper narrative and implementation targets for the current codebase.
+This document locks the method specification and implementation targets for the current codebase.
 
 ## 1) Contribution Scope (Frozen)
 
@@ -35,9 +35,9 @@ The update:
 ### Optional proposition
 Surrogate ELBO model-selection consistency under finite candidate bank assumptions.
 
-## 3) Camera-Ready Algorithm Requirements
+## 3) Release Validation Algorithm Requirements
 
-The paper must include one explicit algorithm with:
+The method specification must include one explicit algorithm with:
 - inputs / outputs,
 - exact objective decomposition,
 - E-step / M-step blocks,
@@ -61,7 +61,7 @@ Statistical protocol:
 
 ## 5) Reproducibility Bar
 
-Require before submission:
+Require before release validation:
 - fixed config files for each figure/table,
 - deterministic seed policy,
 - one-command benchmark reproduction,
@@ -73,7 +73,7 @@ Reference implementation:
 - `scripts/reproduce_benchmarks.py`
 - `docs/reproducibility_protocol.md`
 
-## 6) Intro / Rebuttal Preemption
+## 6) Positioning / Validation Notes
 
 Add subsection: **"What is genuinely new vs composition"**, covering:
 - why this is not "PySR + MoE glue",

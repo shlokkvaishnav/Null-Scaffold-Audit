@@ -1,6 +1,6 @@
 # What is genuinely new vs composition
 
-Use this subsection in intro/rebuttal.
+Use this subsection in method positioning and release-validation notes.
 
 ## Why this is not "PySR + MoE glue"
 The core novelty is the coupling between:

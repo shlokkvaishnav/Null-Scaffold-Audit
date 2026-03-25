@@ -1,6 +1,6 @@
 # SD-MoSE Agent: Methods Backbone
 
-This document defines the **exact semantics** of the SD-MoSE GRAIL-V agent based on the actual implementation. This freezes design intent and serves as the foundation for the Methods section.
+This document defines the **exact semantics** of the SD-MoSE GRAIL-V agent based on the actual implementation. This freezes design intent and serves as the foundation for the method specification.
 
 ---
 
@@ -151,7 +151,7 @@ if not h.valid:
 Rejection logs provide:
 - **Negative examples** for symbolic search (avoid similar forms)
 - **Explainability**: Which constraints are most restrictive
-- **Paper statistics**: Rejection rates per regime
+- **Validation statistics**: Rejection rates per regime
 
 ---
 

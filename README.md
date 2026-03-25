@@ -130,9 +130,9 @@ print(f"Top equations: {state['top_equations']}")
 ---
 
 
-## 🧭 Paper Decision Freeze (VSB + IGBU)
+## 🧭 Release Validation Freeze (VSB + IGBU)
 
-The repo now locks the paper trajectory as:
+The repo now locks the release validation trajectory as:
 - **Primary contribution**: Variational Symbolic Bayes (VSB) over regime-conditioned hypotheses
 - **Secondary contribution**: Information-Geometric Belief Update (IGBU)
 - **Support components**: symbolic gate, Lyapunov screening, constraints, memory loop
@@ -143,7 +143,7 @@ See:
 - `docs/novelty_positioning.md`
 - `docs/reproducibility_protocol.md`
 
-### One-command benchmark reproduction
+### One-command benchmark protocol
 
 ```bash
 python scripts/reproduce_benchmarks.py --config configs/paper/benchmark_minimal.yaml
@@ -177,7 +177,7 @@ climate-equation-discovery/
 │   ├── run_ablations.py    # Automated experiments
 │   └── plot_diagnostics.py # Visualization
 └── docs/
-    ├── methods_paper.md    # Detailed methods
+    ├── methods_paper.md    # Method specification
     └── methods_agent.md    # Architecture details
 ```
 
