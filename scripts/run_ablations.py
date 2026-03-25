@@ -17,10 +17,17 @@ import yaml
 import json
 from pathlib import Path
 
-# Add sdmose to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add script + repo roots to path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sdmose.agent.agent import SDMoSEAgent
+from reproducibility import (
+    enforce_deterministic_runtime,
+    log_run_manifest,
+    validate_determinism_config,
+    write_manifest,
+)
 
 
 def load_config(config_path):
@@ -51,7 +58,13 @@ def run_ablation(config_name, max_iters=10):
     # Load config
     config_path = Path(f"configs/ablations/{config_name}.yaml")
     config = load_config(config_path)
-    
+    config = validate_determinism_config(config)
+    enforce_deterministic_runtime(config)
+
+    output_dir = Path("results/ablations")
+    manifest = log_run_manifest(config)
+    write_manifest(output_dir, manifest, config_name)
+
     # Initialize agent
     agent = SDMoSEAgent(config)
     

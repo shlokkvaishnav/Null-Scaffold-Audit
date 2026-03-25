@@ -2,6 +2,12 @@ experiment_name: benchmark_full
 seed_policy:
   deterministic: true
   seeds: [7, 11, 23, 47, 101, 131, 181, 223, 269, 307]
+deterministic_runtime:
+  python_hash_seed: 7
+  torch_use_deterministic_algorithms: true
+  cudnn_deterministic: true
+  cudnn_benchmark: false
+  cublas_workspace_config: ":4096:8"
 models:
   - pysr_global
   - neural_moe
