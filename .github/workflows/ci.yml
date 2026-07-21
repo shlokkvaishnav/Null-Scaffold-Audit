@@ -25,7 +25,7 @@ jobs:
           python-version: "3.11"
       - run: pip install mypy
       - run: pip install -e ".[dev,gbm]"
-      - run: mypy equation_discovery
+      - run: mypy equation_discovery engine
 
   test:
     runs-on: ubuntu-latest

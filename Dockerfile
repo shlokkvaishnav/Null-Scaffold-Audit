@@ -9,6 +9,7 @@ RUN apt-get update \
 
 COPY pyproject.toml ./
 COPY equation_discovery ./equation_discovery
+COPY engine ./engine
 RUN pip install --no-cache-dir --prefix=/install ".[dev,gbm]"
 
 FROM python:3.11-slim AS runtime
@@ -20,6 +21,7 @@ RUN apt-get update \
 
 COPY --from=builder /install /usr/local
 COPY equation_discovery ./equation_discovery
+COPY engine ./engine
 COPY configs ./configs
 COPY tests ./tests
 
