@@ -3,8 +3,8 @@ import pytest
 torch = pytest.importorskip("torch", reason="torch is an optional extra ([torch]), not installed in the default image")
 import unittest
 import numpy as np
-from equation_discovery.inference.variational import JointELBO
-from equation_discovery.core.belief import EquationConfidenceTracker
+from physics_discovery.inference.variational import JointELBO
+from physics_discovery.core.belief import EquationConfidenceTracker
 
 # Mock Hypothesis class for testing EquationBeliefState
 class MockHypothesis:

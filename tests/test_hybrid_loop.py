@@ -5,7 +5,7 @@ import torch.nn as nn
 import numpy as np
 import unittest
 
-from equation_discovery.inference.trainer import DiscoveryTrainer
+from physics_discovery.inference.trainer import DiscoveryTrainer
 
 # Mock SD-MoSE JointELBO Module
 class MockJointELBO(nn.Module):

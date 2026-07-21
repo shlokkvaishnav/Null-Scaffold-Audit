@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from equation_discovery.core.belief import GeodesicConfidenceUpdater
+from physics_discovery.core.belief import GeodesicConfidenceUpdater
 
 class TestGeodesicConfidenceUpdater(unittest.TestCase):
     def test_eta_zero_stationary(self):

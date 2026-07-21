@@ -16,4 +16,4 @@ jobs:
       - name: Run tests inside container
         run: docker compose run --rm api pytest tests/ -v
       - name: Run smoke benchmark inside container
-        run: docker compose run --rm api python -m equation_discovery.evaluation.benchmark_runner --subset smoke --backend gplearn
+        run: docker compose run --rm api python -m physics_discovery.evaluation.benchmark_runner --subset smoke --backend gplearn

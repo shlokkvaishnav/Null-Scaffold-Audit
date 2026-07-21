@@ -6,8 +6,8 @@ ground-truth equation (fit metrics + symbolic/numeric equivalence), and
 writes JSON+CSV result artifacts.
 
 Usage:
-    python -m equation_discovery.evaluation.benchmark_runner --subset smoke
-    python -m equation_discovery.evaluation.benchmark_runner --subset all --backend gplearn
+    python -m physics_discovery.evaluation.benchmark_runner --subset smoke
+    python -m physics_discovery.evaluation.benchmark_runner --subset all --backend gplearn
 
 Three models are compared per equation:
 - "symbolic_regression": the raw symbolic-regression generator, called directly.
@@ -28,12 +28,12 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List
 
-from equation_discovery.core.agent import DiscoveryAgent
-from equation_discovery.data.feynman_loader import generate_feynman_dataset, list_feynman_equations
-from equation_discovery.evaluation.metrics import compute_fit_metrics
-from equation_discovery.evaluation.rediscovery import check_equivalence
-from equation_discovery.generators.baselines import BaselineModel
-from equation_discovery.generators.symbolic import SymbolicHypothesisGenerator
+from physics_discovery.core.agent import DiscoveryAgent
+from physics_discovery.data.feynman_loader import generate_feynman_dataset, list_feynman_equations
+from physics_discovery.evaluation.metrics import compute_fit_metrics
+from physics_discovery.evaluation.rediscovery import check_equivalence
+from physics_discovery.generators.baselines import BaselineModel
+from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator
 
 SMOKE_SUBSET_SIZE = 8
 

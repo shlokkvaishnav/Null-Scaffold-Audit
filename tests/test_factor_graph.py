@@ -1,7 +1,7 @@
 import numpy as np
 import unittest
-from equation_discovery.validation.equation_validity import EquationValidator
-from equation_discovery.core.belief import FactorGraphConfidenceUpdater
+from physics_discovery.validation.equation_validity import EquationValidator
+from physics_discovery.core.belief import FactorGraphConfidenceUpdater
 
 # Mock hypothesis class targeting string equations and regime ids
 class MockHypothesis:
@@ -22,7 +22,7 @@ class TestFactorGraphPropagation(unittest.TestCase):
 
         # log/sqrt of a negative literal is NOT flagged: candidate equations
         # are evaluated with protected sqrt(|x|)/log(|x|) semantics (see
-        # equation_discovery.core.expression_eval), matching gplearn's own
+        # physics_discovery.core.expression_eval), matching gplearn's own
         # protected-function behavior, so these are not actually ill-defined.
         # (A real regression: this exact pattern once caused a genuinely
         # good Coulomb's-law candidate to be rejected outright.)

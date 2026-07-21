@@ -7,7 +7,7 @@ does not reimplement any of it. The adapters exist so the orchestrator can
 drive this pipeline the same way it would drive any future plugin; the
 underlying classes (`SymbolicHypothesisGenerator`, `BaselineModel`,
 `Ensemble`, `DiscoveryAgent`) are unchanged and still importable/usable
-directly (e.g. by `equation_discovery.evaluation.benchmark_runner`, which
+directly (e.g. by `physics_discovery.evaluation.benchmark_runner`, which
 predates this plugin layer and is untouched by it).
 """
 
@@ -19,13 +19,13 @@ import numpy as np
 
 from engine.plugin import Dataset
 from engine.registry import PluginRegistry
-from equation_discovery.core.agent import DiscoveryAgent
-from equation_discovery.data.feynman_loader import generate_feynman_dataset
-from equation_discovery.evaluation.metrics import compute_fit_metrics
-from equation_discovery.generators.baselines import BaselineModel
-from equation_discovery.generators.ensemble import Ensemble
-from equation_discovery.generators.symbolic import SymbolicHypothesisGenerator
-from equation_discovery.validation.equation_validity import EquationValidator
+from physics_discovery.core.agent import DiscoveryAgent
+from physics_discovery.data.feynman_loader import generate_feynman_dataset
+from physics_discovery.evaluation.metrics import compute_fit_metrics
+from physics_discovery.generators.baselines import BaselineModel
+from physics_discovery.generators.ensemble import Ensemble
+from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator
+from physics_discovery.validation.equation_validity import EquationValidator
 
 
 class SymbolicRegressionAlgorithm:
@@ -92,7 +92,7 @@ class NeuralEnsembleAlgorithm:
 class DiscoveryAgentAlgorithm:
     """AlgorithmPlugin adapter around the full DiscoveryAgent loop.
 
-    Mirrors equation_discovery.evaluation.benchmark_runner._run_discovery_agent:
+    Mirrors physics_discovery.evaluation.benchmark_runner._run_discovery_agent:
     num_regimes=1 because a Feynman equation is one global closed form, not a
     regime-switching system.
     """

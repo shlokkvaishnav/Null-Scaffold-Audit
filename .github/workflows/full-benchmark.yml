@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -e ".[dev,gbm]"
-      - run: python -m equation_discovery.evaluation.benchmark_runner --subset all --backend gplearn
+      - run: python -m physics_discovery.evaluation.benchmark_runner --subset all --backend gplearn
       - uses: actions/upload-artifact@v4
         with:
           name: feynman-benchmark-results

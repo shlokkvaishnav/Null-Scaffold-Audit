@@ -2,8 +2,8 @@
 Simple test script for the equation-discovery agent (no Hydra to avoid Python 3.14 incompatibility).
 """
 import numpy as np
-from equation_discovery.core.agent import DiscoveryAgent
-from equation_discovery.core.archive import HypothesisArchive
+from physics_discovery.core.agent import DiscoveryAgent
+from physics_discovery.core.archive import HypothesisArchive
 from omegaconf import OmegaConf
 
 def main():
@@ -42,7 +42,7 @@ def main():
     
     # Test hypothesis creation
     print("\n[+] Testing Hypothesis class...")
-    from equation_discovery.core.hypothesis import Hypothesis
+    from physics_discovery.core.hypothesis import Hypothesis
     hyp = Hypothesis(equation="y = 2*x + 1", regime_id=0)
     print(f"  - Created hypothesis: {hyp}")
     

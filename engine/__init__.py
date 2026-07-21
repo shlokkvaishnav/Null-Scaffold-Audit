@@ -1,7 +1,7 @@
 """SDE core engine: domain-agnostic orchestration over algorithm/domain plugins.
 
 This package owns workflow sequencing only. It must never import from
-`equation_discovery` or any other domain-specific package -- science and
+`physics_discovery` or any other domain-specific package -- science and
 domain logic live behind the `AlgorithmPlugin`/`DomainPlugin` interfaces in
 `engine.plugin`, registered into an `engine.registry.PluginRegistry` and
 driven by `engine.orchestrator.DiscoveryOrchestrator`.

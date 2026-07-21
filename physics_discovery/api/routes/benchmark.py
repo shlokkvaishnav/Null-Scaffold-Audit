@@ -6,14 +6,14 @@ NOT exposed via this endpoint -- it is slow (many symbolic-regression
 fits) and would block a request/worker for minutes. Run it instead via the
 CLI:
 
-    python -m equation_discovery.evaluation.benchmark_runner --subset all
+    python -m physics_discovery.evaluation.benchmark_runner --subset all
 """
 
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
 
-from equation_discovery.evaluation.benchmark_runner import run_benchmark
+from physics_discovery.evaluation.benchmark_runner import run_benchmark
 
 router = APIRouter(prefix="/benchmark", tags=["benchmark"])
 
@@ -36,7 +36,7 @@ async def run_feynman_benchmark(
             status_code=400,
             detail=(
                 "Only subset='smoke' is supported via this endpoint (fast, ~8 equations). "
-                "Run 'python -m equation_discovery.evaluation.benchmark_runner --subset all' "
+                "Run 'python -m physics_discovery.evaluation.benchmark_runner --subset all' "
                 "for the full benchmark."
             ),
         )

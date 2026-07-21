@@ -17,10 +17,10 @@ import yaml
 import json
 from pathlib import Path
 
-# Add equation_discovery to path
+# Add physics_discovery to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from equation_discovery.core.agent import DiscoveryAgent
+from physics_discovery.core.agent import DiscoveryAgent
 
 
 def load_config(config_path):

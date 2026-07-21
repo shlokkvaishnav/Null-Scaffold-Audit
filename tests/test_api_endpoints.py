@@ -1,4 +1,12 @@
-"""Integration tests for the FastAPI equation-discovery service."""
+"""Integration tests for the FastAPI equation-discovery service.
+
+The API transitively imports several compiled sklearn extensions -- in some
+locked-down environments (e.g. a Windows Application Control / AppLocker
+policy) one or more of these DLLs are blocked at import time. Skip this
+module rather than error collection when that happens; verify via Docker
+(Linux, unaffected) instead. See tests/test_feynman_plugin.py for the same
+pattern.
+"""
 
 from __future__ import annotations
 
@@ -7,9 +15,13 @@ import time
 import unittest
 
 import numpy as np
+import pytest
 from fastapi.testclient import TestClient
 
-from equation_discovery.api.main import app
+try:
+    from physics_discovery.api.main import app
+except ImportError as exc:
+    pytest.skip(f"physics_discovery.api.main not importable here: {exc}", allow_module_level=True)
 
 
 def _make_synthetic_csv_bytes(seed: int = 0, n_rows: int = 50) -> bytes:

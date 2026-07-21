@@ -7,9 +7,9 @@ from pathlib import Path
 
 from fastapi import APIRouter, Form, HTTPException, UploadFile
 
-from equation_discovery.api.schemas import DatasetInfo
-from equation_discovery.api.worker import DATASETS, register_dataset
-from equation_discovery.data.tabular import load_csv
+from physics_discovery.api.schemas import DatasetInfo
+from physics_discovery.api.worker import DATASETS, register_dataset
+from physics_discovery.data.tabular import load_csv
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 

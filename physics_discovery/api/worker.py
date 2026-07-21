@@ -14,8 +14,8 @@ from typing import Any, Dict, List, Tuple
 
 import numpy as np
 
-from equation_discovery.core.agent import DiscoveryAgent
-from equation_discovery.evaluation.metrics import compute_fit_metrics
+from physics_discovery.core.agent import DiscoveryAgent
+from physics_discovery.evaluation.metrics import compute_fit_metrics
 
 # dataset_id -> (X, y, feature_names)
 DATASETS: Dict[str, Tuple[np.ndarray, np.ndarray, List[str]]] = {}

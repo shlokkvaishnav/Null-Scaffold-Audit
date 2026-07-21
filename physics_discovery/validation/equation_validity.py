@@ -6,7 +6,7 @@ deliberately narrow: it catches obviously ill-defined expressions before they
 are scored, it does not attempt to encode any domain-specific physics.
 
 Note on log/sqrt of negative literals: candidate equations are evaluated
-via equation_discovery.core.expression_eval.safe_evaluate, which treats
+via physics_discovery.core.expression_eval.safe_evaluate, which treats
 sqrt/log as *protected* operations (sqrt(|x|), log(|x|)) to match gplearn's
 own protected-function semantics. So a literal like "log(-0.878)" is not
 actually ill-defined under how these equations are evaluated -- it safely

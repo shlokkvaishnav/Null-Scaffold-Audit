@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "equation_discovery"
+name = "scientific-discovery-engine"
 version = "0.1.0"
-description = "An agentic system that automates the scientist's hypothesize-test-refine loop for closed-form equation discovery via symbolic regression, benchmarked on the AI-Feynman physics equation set."
+description = "Scientific Discovery Engine (SDE): a domain-agnostic engine (engine/) that orchestrates swappable algorithm/domain plugins behind stable interfaces, plus a CLI (cli/) and the first plugin, physics_discovery -- an agentic hypothesize-test-refine system for closed-form equation discovery via symbolic regression, benchmarked on the AI-Feynman physics equation set."
 authors = [{ name = "Shlok Vaishnav" }]
 readme = "README.md"
 requires-python = ">=3.11"
@@ -20,7 +20,12 @@ dependencies = [
     "uvicorn[standard]",
     "pydantic",
     "python-multipart",
+    "typer",
+    "pyyaml",
 ]
+
+[project.scripts]
+sde = "cli.main:app"
 
 [project.optional-dependencies]
 pysr = ["pysr"]
@@ -29,7 +34,7 @@ gbm = ["xgboost", "lightgbm"]
 dev = ["pytest", "ruff", "mypy", "black", "jupyterlab", "matplotlib", "httpx"]
 
 [tool.setuptools.packages.find]
-include = ["equation_discovery*", "engine*"]
+include = ["physics_discovery*", "engine*", "cli*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -63,7 +63,7 @@ class GplearnReasoner:
             return None
 
         try:
-            from equation_discovery.generators.symbolic import SymbolicHypothesisGenerator
+            from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator
 
             gplearn_config = {
                 "backend": "gplearn",

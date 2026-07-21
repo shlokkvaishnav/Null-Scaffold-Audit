@@ -1,0 +1,13 @@
+domain: feynman_physics
+algorithm: symbolic_regression
+domain_kwargs:
+  equation_id: coulomb_force
+  n_samples: 200
+  seed: 0
+algorithm_kwargs:
+  backend: gplearn
+  population_size: 200
+  generations: 10
+  random_state: 0
+train_fraction: 0.8
+seed: 0

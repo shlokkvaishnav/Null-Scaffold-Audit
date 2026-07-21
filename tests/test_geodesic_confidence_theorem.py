@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from equation_discovery.core.belief import GeodesicConfidenceUpdater
+from physics_discovery.core.belief import GeodesicConfidenceUpdater
 
 
 class TestGeodesicConfidenceUpdaterProperties(unittest.TestCase):

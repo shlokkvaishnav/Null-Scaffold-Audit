@@ -21,13 +21,13 @@ if str(ROOT) not in sys.path:
 
 import yaml
 
-from equation_discovery.core.agent import DiscoveryAgent
-from equation_discovery.data.synthetic import SplitData as DatasetSplit
-from equation_discovery.data.synthetic import generate_synthetic_regression
-from equation_discovery.evaluation.metrics import compute_fit_metrics, confidence_interval, paired_significance
-from equation_discovery.generators.baselines import BaselineModel
-from equation_discovery.generators.ensemble import Ensemble
-from equation_discovery.generators.symbolic import SymbolicHypothesisGenerator
+from physics_discovery.core.agent import DiscoveryAgent
+from physics_discovery.data.synthetic import SplitData as DatasetSplit
+from physics_discovery.data.synthetic import generate_synthetic_regression
+from physics_discovery.evaluation.metrics import compute_fit_metrics, confidence_interval, paired_significance
+from physics_discovery.generators.baselines import BaselineModel
+from physics_discovery.generators.ensemble import Ensemble
+from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator
 
 
 def _hardware_metadata() -> Dict[str, Any]:

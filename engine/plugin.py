@@ -1,7 +1,7 @@
 """Stable interfaces that algorithm and domain plugins must implement.
 
 These are the seams the orchestrator drives. A plugin implementation (e.g.
-the migrated equation_discovery Feynman/physics pipeline) lives outside this
+the migrated physics_discovery Feynman/physics pipeline) lives outside this
 package and imports these types -- this module must never import back from a
 concrete plugin.
 """

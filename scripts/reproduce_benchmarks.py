@@ -3,16 +3,16 @@
 Reads a config from configs/paper/*.yaml, validates it against the shared
 experiment contract, and runs REAL model fitting/evaluation across the
 configured seeds and model variants on a synthetic regression dataset
-(equation_discovery.data.synthetic.generate_synthetic_regression). This
+(physics_discovery.data.synthetic.generate_synthetic_regression). This
 replaces the previous hash-seeded fake-metric placeholder with actual
 computation: baselines (linear/RF/xgboost/lightgbm) via
-equation_discovery.generators.baselines.BaselineModel, a neural+tree
-ensemble via equation_discovery.generators.ensemble.Ensemble, and a symbolic
-regressor via equation_discovery.generators.symbolic.SymbolicHypothesisGenerator.
+physics_discovery.generators.baselines.BaselineModel, a neural+tree
+ensemble via physics_discovery.generators.ensemble.Ensemble, and a symbolic
+regressor via physics_discovery.generators.symbolic.SymbolicHypothesisGenerator.
 
 For a full Feynman-equation rediscovery run (rather than the synthetic
 regression dataset used here for fast, config-driven reproducibility), use
-`python -m equation_discovery.evaluation.benchmark_runner` instead.
+`python -m physics_discovery.evaluation.benchmark_runner` instead.
 """
 
 from __future__ import annotations
@@ -31,12 +31,12 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from equation_discovery.data.synthetic import generate_synthetic_regression
-from equation_discovery.evaluation.metrics import compute_fit_metrics, confidence_interval
-from equation_discovery.experiments.contract import validate_baseline_contract
-from equation_discovery.generators.baselines import BaselineModel
-from equation_discovery.generators.ensemble import Ensemble
-from equation_discovery.generators.symbolic import SymbolicHypothesisGenerator
+from physics_discovery.data.synthetic import generate_synthetic_regression
+from physics_discovery.evaluation.metrics import compute_fit_metrics, confidence_interval
+from physics_discovery.experiments.contract import validate_baseline_contract
+from physics_discovery.generators.baselines import BaselineModel
+from physics_discovery.generators.ensemble import Ensemble
+from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator
 
 
 def _run_variant(variant: str, seed: int, budget: Dict[str, Any]):

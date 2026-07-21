@@ -1,6 +1,6 @@
 import unittest
 
-from equation_discovery.experiments.contract import (
+from physics_discovery.experiments.contract import (
     BASELINE_EXPERIMENT_CONTRACT,
     ExperimentContractError,
     validate_baseline_contract,

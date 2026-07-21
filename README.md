@@ -1,27 +1,59 @@
-# Equation Discovery Agent
+# Scientific Discovery Engine (SDE)
 
-An agentic system that automates the scientist's hypothesize → test → refine loop for closed-form equation discovery, using symbolic regression as the hypothesis-generation engine. Given any tabular dataset (features → target), the agent proposes candidate equations, scores them for fit and validity, tracks confidence across competing hypotheses, and iteratively refines until the hypothesis set converges.
+SDE is a small, domain-agnostic engine (`engine/`) that orchestrates a fixed
+workflow — load data, split, fit, predict, validate, score — while
+delegating every step that touches actual scientific content to a plugin.
+The engine doesn't know what a "physics equation" is; it only knows the
+shapes of a dataset and of an algorithm/domain plugin.
 
-The system is evaluated against the **AI-Feynman symbolic regression benchmark** — a set of real physics equations with known ground truth — reporting equation-rediscovery rate alongside predictive accuracy (RMSE) against standard ML baselines (gradient-boosted trees, small neural ensembles). It's exposed as a small FastAPI service (submit a dataset, get back a discovered equation) and ships fully containerized.
+**`physics_discovery/`** is the first plugin: an agentic system that
+automates the scientist's hypothesize → test → refine loop for closed-form
+equation discovery, using symbolic regression as the hypothesis-generation
+engine. Given any tabular dataset (features → target), it proposes candidate
+equations, scores them for fit and validity, tracks confidence across
+competing hypotheses, and iteratively refines until the hypothesis set
+converges. It's evaluated against the **AI-Feynman symbolic regression
+benchmark** — 36 real physics equations with known ground truth — reporting
+equation-rediscovery rate alongside predictive accuracy (RMSE) against
+standard ML baselines (gradient-boosted trees, small neural ensembles).
+
+Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the engine and
+plugin fit together, and [docs/PLUGIN_GUIDE.md](docs/PLUGIN_GUIDE.md) if
+you're adding a new algorithm or scientific domain.
 
 ## Quick start
-
-The only setup step is:
 
 ```bash
 docker compose up --build
 ```
 
-No local Python install, no host `pip install` — everything (symbolic regression backend, ML baselines, API server) runs inside the container. The API is then available at `http://localhost:8000` (interactive docs at `/docs`).
-
-Run the test suite or the benchmark inside the container:
+No local Python install, no host `pip install` — everything (symbolic
+regression backend, ML baselines, API server, CLI) runs inside the
+container. The physics_discovery API is then available at
+`http://localhost:8000` (interactive docs at `/docs`).
 
 ```bash
 docker compose run --rm api pytest tests/ -v
-docker compose run --rm api python -m equation_discovery.evaluation.benchmark_runner --subset smoke
+docker compose run --rm api sde list-plugins
+docker compose run --rm api sde run configs/run/coulomb_symbolic.yaml
 ```
 
-## API
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for local (non-Docker) setup,
+the full test/CI breakdown, and reproducing paper benchmark results.
+
+## The `sde` CLI
+
+```bash
+sde list-plugins                                    # what's registered
+sde run configs/run/coulomb_symbolic.yaml           # run one domain+algorithm plugin pair
+sde benchmark configs/paper/benchmark_minimal.yaml  # validated paper-style multi-model comparison
+```
+
+## physics_discovery API
+
+The FastAPI service is a separate, direct way to drive the physics_discovery
+plugin (upload a CSV, get back a discovered equation) — independent of the
+engine/CLI path above.
 
 | Endpoint | Description |
 |---|---|
@@ -32,41 +64,19 @@ docker compose run --rm api python -m equation_discovery.evaluation.benchmark_ru
 | `GET /benchmark/feynman?subset=smoke` | Run a quick Feynman rediscovery check synchronously and return the results table |
 | `GET /health` | Liveness check |
 
-## Architecture
+## Repository layout
 
 ```
-Observe → Retrieve → Reason → Verify → Learn → Converge
-  data     priors    generate  score/   update   stable
-           +archive  hypothesis validate confidence hypothesis
-                                                     set
+engine/             the platform: plugin contract, registry, orchestrator, config schemas
+cli/                 the `sde` command-line entry point
+physics_discovery/  the first plugin: physics/Feynman equation-discovery agent + FastAPI service
+configs/            run/ (single orchestrator runs) and paper/ (benchmark comparison tables)
+scripts/             standalone entry points (reproduce_benchmarks, run_ablations, ...)
+tests/               pytest suite
+docs/                architecture, plugin guide, development guide
 ```
 
-- **`equation_discovery/core/`** — the agent loop itself: `DiscoveryAgent` orchestrates observation, hypothesis generation, scoring, and confidence tracking; `Hypothesis` is a first-class equation object (formula, fit score, complexity); `HypothesisScorer` combines data fit with validity/complexity penalties; `HypothesisArchive` retains the top hypotheses and prunes the rest; `ConfidenceTracker` (and its geodesic/factor-graph variants) tracks belief over competing hypotheses via Bayesian-style updates; `ConvergenceController` decides when the loop has stabilized.
-- **`equation_discovery/generators/`** — hypothesis generators: symbolic regression (`gplearn` by default, optional `PySR` backend), gradient-boosted tree baselines, and a small neural ensemble.
-- **`equation_discovery/validation/`** — `EquationValidator` rejects equations with structural issues (division by zero, log/sqrt of negatives); `LyapunovScreener` screens for dynamically unstable candidates via finite-difference Jacobian analysis.
-- **`equation_discovery/data/`** — synthetic regression data, a CSV loader for arbitrary datasets, and a self-contained loader for 36 AI-Feynman physics equations (metadata committed as JSON, sample data generated deterministically at runtime — no network access required).
-- **`equation_discovery/evaluation/`** — fit metrics, confidence intervals and paired significance tests, and symbolic/numeric equivalence checking against ground-truth equations (the rediscovery benchmark).
-- **`equation_discovery/api/`** — the FastAPI service.
-
-## Symbolic regression backend
-
-Symbolic regression defaults to **`gplearn`** (pure Python, no external runtime dependency) both in Docker and CI. `PySR` is available as an opt-in backend (`SYMBOLIC_BACKEND=pysr`) for higher-quality search, but it depends on a Julia runtime and requires a longer image rebuild — not the default, to keep `docker compose up` fast and reliable.
-
-## Development (without Docker)
-
-```bash
-pip install -e ".[dev,gbm]"
-pytest tests/ -v
-python -m equation_discovery.evaluation.benchmark_runner --subset smoke
-```
-
-## Reproducing benchmark results
-
-```bash
-python scripts/reproduce_benchmarks.py --config configs/paper/benchmark_minimal.yaml
-```
-
-Use `configs/paper/benchmark_full.yaml` for the full 10-seed run. Both compute real metrics (RMSE, MAE, calibration error, symbolic complexity) from actual model fits — no placeholder numbers.
+Full breakdown in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## License
 

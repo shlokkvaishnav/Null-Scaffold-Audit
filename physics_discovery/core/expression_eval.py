@@ -16,7 +16,7 @@ from typing import Optional
 import numpy as np
 import sympy
 
-# See equation_discovery/evaluation/rediscovery.py for the rationale: sympify
+# See physics_discovery/evaluation/rediscovery.py for the rationale: sympify
 # treats an unknown name like "mul" as an opaque Function unless it's given a
 # real definition, so gplearn's prefix notation needs these registered.
 GPLEARN_FUNCTIONS = {

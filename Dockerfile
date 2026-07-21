@@ -8,8 +8,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./
-COPY equation_discovery ./equation_discovery
+COPY physics_discovery ./physics_discovery
 COPY engine ./engine
+COPY cli ./cli
 RUN pip install --no-cache-dir --prefix=/install ".[dev,gbm]"
 
 FROM python:3.11-slim AS runtime
@@ -20,13 +21,16 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /install /usr/local
-COPY equation_discovery ./equation_discovery
+COPY physics_discovery ./physics_discovery
 COPY engine ./engine
+COPY cli ./cli
+COPY scripts ./scripts
 COPY configs ./configs
 COPY tests ./tests
 
 ENV SYMBOLIC_BACKEND=gplearn \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
 
 EXPOSE 8000
-CMD ["uvicorn", "equation_discovery.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "physics_discovery.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

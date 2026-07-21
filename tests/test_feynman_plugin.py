@@ -1,24 +1,29 @@
-"""Integration tests for equation_discovery.plugins.feynman: the first real
+"""Integration tests for physics_discovery.plugins.feynman: the first real
 plugin behind the engine.plugin interfaces, driven through the orchestrator.
 
-Requires sklearn.metrics (used by equation_discovery.evaluation.metrics) to be
-importable; skipped otherwise rather than erroring collection.
+The plugin transitively imports several compiled sklearn extensions
+(sklearn.metrics, sklearn.ensemble, ...) -- in some locked-down environments
+(e.g. a Windows Application Control / AppLocker policy) one or more of these
+DLLs are blocked at import time. Skip this module rather than error
+collection when that happens; verify via Docker (Linux, unaffected) instead.
 """
 
 from __future__ import annotations
 
 import pytest
 
-pytest.importorskip("sklearn.metrics")
-
 from engine.orchestrator import DiscoveryOrchestrator, ExperimentConfig
 from engine.registry import PluginRegistry
-from equation_discovery.plugins.feynman import (
-    FeynmanDomainPlugin,
-    GBMBaselineAlgorithm,
-    SymbolicRegressionAlgorithm,
-    register,
-)
+
+try:
+    from physics_discovery.plugins.feynman import (
+        FeynmanDomainPlugin,
+        GBMBaselineAlgorithm,
+        SymbolicRegressionAlgorithm,
+        register,
+    )
+except ImportError as exc:
+    pytest.skip(f"physics_discovery.plugins.feynman not importable here: {exc}", allow_module_level=True)
 
 EQUATION_ID = "coulomb_force"
 
