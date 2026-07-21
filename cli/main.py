@@ -15,6 +15,7 @@ from pathlib import Path
 import typer
 
 from engine.config import load_baseline_experiment_config, load_run_config
+from engine.discovery import discover_plugins
 from engine.orchestrator import DiscoveryOrchestrator
 from engine.registry import PluginRegistry
 
@@ -22,18 +23,18 @@ app = typer.Typer(add_completion=False, help="Scientific Discovery Engine CLI.")
 
 
 def _default_registry() -> PluginRegistry:
-    """The registry of plugins the CLI knows about out of the box.
+    """Build a registry from every installed SDE plugin entry point.
 
-    Extend this as new plugins are added -- it is the one place that wires
-    concrete plugin modules into the CLI's default registry. Order matters:
-    physics_discovery.plugins.synthetic only registers a domain and reuses
-    the algorithms feynman.register already added.
+    No plugin module is imported by name here. Anybody can add their own
+    domain or algorithm without touching this file: install a package that
+    declares an entry point in the "sde.plugins" group (see
+    docs/PLUGIN_GUIDE.md) and it is picked up automatically. This repo's own
+    plugins (physics_discovery.plugins.feynman / .synthetic) are registered
+    the same way, via entry points in this repo's own pyproject.toml -- not
+    special-cased here.
     """
-    from physics_discovery.plugins import feynman, synthetic
-
     registry = PluginRegistry()
-    feynman.register(registry)
-    synthetic.register(registry)
+    discover_plugins(registry)
     return registry
 
 

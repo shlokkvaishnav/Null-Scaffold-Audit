@@ -75,18 +75,41 @@ def register(registry: PluginRegistry) -> None:
     registry.register_algorithm(MyAlgorithm.name, MyAlgorithm)
 ```
 
-Then wire it into the CLI's default registry in `cli/main.py::_default_registry`:
+**This is the important part: you do not edit this repo to make your plugin
+available.** `cli/main.py::_default_registry()` never imports a plugin module
+by name — it calls `engine.discovery.discover_plugins(registry)`, which finds
+every installed package's `register` function via a Python packaging entry
+point and calls it. To make your plugin discoverable, declare an entry point
+in **your own package's** `pyproject.toml`:
 
-```python
-def _default_registry() -> PluginRegistry:
-    from physics_discovery.plugins import feynman
-    from my_package.plugins import my_plugin_module   # add this
-
-    registry = PluginRegistry()
-    feynman.register(registry)
-    my_plugin_module.register(registry)                # and this
-    return registry
+```toml
+[project.entry-points."sde.plugins"]
+my_domain = "my_package.plugins:register"
 ```
+
+`pip install` your package (into the same environment SDE runs in) and
+`sde list-plugins` / `sde run` will pick it up automatically — no fork, no
+patch, no PR against this repo required. This repo's own two plugins are
+registered exactly the same way, in *this* repo's `pyproject.toml`:
+
+```toml
+[project.entry-points."sde.plugins"]
+feynman_physics = "physics_discovery.plugins.feynman:register"
+synthetic_regression = "physics_discovery.plugins.synthetic:register"
+```
+
+They are not special-cased anywhere in `engine/` or `cli/` — if you deleted
+those two lines, `physics_discovery`'s plugins would simply stop being
+discovered, exactly like removing anyone else's entry point would. See
+`engine/discovery.py` for the loader itself: it loads every entry point in
+the `"sde.plugins"` group, calls `register(registry)` on each, and warns
+(without aborting the others) if any single one fails to import or raises.
+
+**One real caveat**: entry points are packaging metadata — they only exist
+once a package is actually installed (`pip install`, including editable
+installs). Running straight from an uninstalled source checkout, `sde
+list-plugins` will report an empty registry, not an error. This is expected,
+not a bug — see [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Testing your plugin
 

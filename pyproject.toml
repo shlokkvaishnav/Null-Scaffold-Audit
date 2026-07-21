@@ -27,6 +27,14 @@ dependencies = [
 [project.scripts]
 sde = "cli.main:app"
 
+# Any installed package can add its own domain/algorithm plugins by declaring
+# entry points in this same group in its own pyproject.toml -- see
+# engine/discovery.py and docs/PLUGIN_GUIDE.md. This repo's own plugins are
+# registered the same way, not special-cased anywhere in engine/ or cli/.
+[project.entry-points."sde.plugins"]
+feynman_physics = "physics_discovery.plugins.feynman:register"
+synthetic_regression = "physics_discovery.plugins.synthetic:register"
+
 [project.optional-dependencies]
 pysr = ["pysr"]
 torch = ["torch"]

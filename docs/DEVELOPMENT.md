@@ -28,6 +28,16 @@ pytest tests/ -v
 sde list-plugins
 ```
 
+> **Plugin discovery requires an actual install.** `sde list-plugins` (and
+> `_default_registry()` generally) discovers plugins via the `"sde.plugins"`
+> Python packaging entry-point group (`engine/discovery.py`) — entry points
+> are metadata written at install time, not something importable from a bare
+> source checkout. Skip `pip install -e .` (e.g. because you're only running
+> from source and verifying everything via Docker/CI instead) and
+> `sde list-plugins` will report an empty registry, not an error. CI and the
+> Docker image both run `pip install`, so this only affects ad hoc local
+> runs against an uninstalled checkout.
+
 > **Note on sandboxed/locked-down environments:** some Windows environments
 > under an Application Control / AppLocker-style policy block `sklearn`'s
 > compiled extensions at import time (`DLL load failed ... An Application
@@ -35,9 +45,8 @@ sde list-plugins
 > imports `physics_discovery.evaluation.metrics` (and thus most of the
 > Feynman plugin). This is an environment restriction, not a project bug --
 > `tests/test_api_endpoints.py` and `tests/test_feynman_plugin.py` both guard
-> against it (the latter via `pytest.importorskip("sklearn.metrics")`). If
-> you hit this, verify via Docker (Linux, unaffected) instead of chasing it
-> locally.
+> against it. If you hit this, verify via Docker (Linux, unaffected) instead
+> of chasing it locally.
 
 ## Project layout
 
@@ -60,9 +69,11 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit together and
 
 ```bash
 pytest tests/ -v                                  # everything
-pytest tests/test_engine_orchestrator.py -v       # engine seams only (fast, no ML deps)
+pytest tests/test_engine_orchestrator.py -v       # engine seams only (fake plugins, no ML deps)
+pytest tests/test_engine_discovery.py -v          # entry-point discovery mechanism (mocked, no install needed)
 pytest tests/test_feynman_plugin.py -v            # the real plugin, through the orchestrator
-pytest tests/test_cli.py -v                       # the `sde` CLI
+pytest tests/test_synthetic_plugin.py -v          # the second (synthetic) plugin
+pytest tests/test_cli.py -v                       # the `sde` CLI (requires `pip install -e .` -- see note above)
 ```
 
 ## CI (`.github/workflows/ci.yml`)
@@ -111,3 +122,9 @@ Add it to `dependencies` (always needed) or the appropriate
 `engine`, `cli`, `physics_discovery` today), add its glob to
 `[tool.setuptools.packages.find].include` and to the relevant `COPY` lines in
 `Dockerfile` (both the `builder` and `runtime` stages).
+
+To add a *plugin* rather than a dependency of this repo, you generally don't
+edit this repo at all -- see [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md). This repo's
+own plugins are declared as `"sde.plugins"` entry points in this
+`pyproject.toml`; that table is the one place to touch if you're adding a
+plugin *inside* this repo rather than in a separate installable package.

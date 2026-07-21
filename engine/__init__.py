@@ -9,6 +9,7 @@ driven by `engine.orchestrator.DiscoveryOrchestrator`.
 
 from __future__ import annotations
 
+from engine.discovery import discover_plugins
 from engine.orchestrator import DiscoveryOrchestrator, ExperimentConfig, RunResult
 from engine.plugin import AlgorithmPlugin, Dataset, DomainPlugin
 from engine.registry import PluginRegistry
@@ -17,6 +18,7 @@ __all__ = [
     "AlgorithmPlugin",
     "Dataset",
     "DiscoveryOrchestrator",
+    "discover_plugins",
     "DomainPlugin",
     "ExperimentConfig",
     "PluginRegistry",

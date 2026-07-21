@@ -27,6 +27,7 @@ method), you write it against the interfaces described here, not against
 engine/             <- the platform. Domain-agnostic. Never imports a plugin.
   plugin.py           Dataset, AlgorithmPlugin, DomainPlugin (the contract)
   registry.py         PluginRegistry: name -> factory lookup
+  discovery.py         discover_plugins: finds installed "sde.plugins" entry points, calls each one's register()
   orchestrator.py     ExperimentConfig, RunResult, DiscoveryOrchestrator
   config.py           pydantic schemas for YAML configs (RunConfig, BaselineExperimentConfig)
 
@@ -47,9 +48,14 @@ physics_discovery/  <- the first plugin (physics/Feynman equation discovery)
 
 **Dependency direction is one-way**: `physics_discovery/plugins/feynman.py`
 imports from `engine/`. Nothing in `engine/` or `cli/` imports from
-`physics_discovery/` except by name, through the registry, at runtime. If you
-ever see `engine/*.py` importing a concrete plugin module directly, that's a
-bug — file it.
+`physics_discovery/`, or any other plugin package, **at all** — not even by
+name. Plugins are found dynamically at runtime via `engine/discovery.py`
+(Python packaging entry points, see below), not hardcoded into `cli/main.py`
+or anywhere else. This is what makes the engine usable for a domain nobody
+building this repo has thought of: a third party can add a plugin by
+installing their own package, without a PR against this repo. If you ever
+see `engine/*.py` or `cli/*.py` importing a concrete plugin module by name,
+that's a bug — file it.
 
 ## The plugin contract (`engine/plugin.py`)
 
@@ -134,19 +140,34 @@ sde run configs/run/coulomb_symbolic.yaml          # one orchestrator run
 sde benchmark configs/paper/benchmark_minimal.yaml # paper-style comparison
 ```
 
-`_default_registry()` in `cli/main.py` is the one place that wires concrete
-plugin modules into the CLI: `physics_discovery.plugins.feynman` (registers
-both the `feynman_physics` domain and all four algorithms) and
-`physics_discovery.plugins.synthetic` (registers the `synthetic_regression`
-domain only, reusing feynman's algorithms). Adding another plugin means
-adding one `register(registry)` call there — see
-[PLUGIN_GUIDE.md](PLUGIN_GUIDE.md).
+`_default_registry()` in `cli/main.py` builds an empty `PluginRegistry` and
+calls `engine.discovery.discover_plugins(registry)` — it does not import
+`physics_discovery` (or anything else) by name. Discovery works via Python
+packaging entry points: any installed package that declares one under the
+`"sde.plugins"` group gets its `register(registry)` called automatically.
+This repo's own two plugins are registered the same way, via entry points in
+*this repo's* `pyproject.toml`:
+
+```toml
+[project.entry-points."sde.plugins"]
+feynman_physics = "physics_discovery.plugins.feynman:register"
+synthetic_regression = "physics_discovery.plugins.synthetic:register"
+```
+
+Adding a plugin from a separate package requires **no change to this repo**:
+add the same kind of entry point to your own package's `pyproject.toml`,
+`pip install` it, and `sde list-plugins` picks it up next run — see
+[PLUGIN_GUIDE.md](PLUGIN_GUIDE.md). Entry points are packaging metadata, so
+they only exist once a package is actually installed; see
+[DEVELOPMENT.md](DEVELOPMENT.md) for what that means for local dev without
+Docker.
 
 ## What's deliberately not built yet
 
-Dynamic/sandboxed plugin loading, a report generator, a validation-strategy
-plugin type (OOD/bootstrap/sensitivity), distributed execution, a third real
-plugin (e.g. PySR as its own `AlgorithmPlugin`). These are true next steps,
-not oversights — see [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md) for what the second
+Sandboxed/permissioned plugin loading (right now any installed entry point
+is trusted and executed), a report generator, a validation-strategy plugin
+type (OOD/bootstrap/sensitivity), distributed execution, a third real plugin
+(e.g. PySR as its own `AlgorithmPlugin`). These are true next steps, not
+oversights — see [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md) for what the second
 plugin (`synthetic_regression`) already validated about the interfaces, and
 why that's a data point rather than a permanent guarantee.

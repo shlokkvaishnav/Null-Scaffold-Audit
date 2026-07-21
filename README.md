@@ -4,7 +4,11 @@ SDE is a small, domain-agnostic engine (`engine/`) that orchestrates a fixed
 workflow — load data, split, fit, predict, validate, score — while
 delegating every step that touches actual scientific content to a plugin.
 The engine doesn't know what a "physics equation" is; it only knows the
-shapes of a dataset and of an algorithm/domain plugin.
+shapes of a dataset and of an algorithm/domain plugin. Plugins are found at
+runtime via Python packaging entry points (`engine/discovery.py`), not
+hardcoded into the engine or CLI — anyone can add a plugin for their own
+domain by installing a package that declares one, with no change to this
+repo. See [docs/PLUGIN_GUIDE.md](docs/PLUGIN_GUIDE.md).
 
 **`physics_discovery/`** is the first plugin: an agentic system that
 automates the scientist's hypothesize → test → refine loop for closed-form
