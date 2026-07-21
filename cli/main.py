@@ -24,13 +24,16 @@ app = typer.Typer(add_completion=False, help="Scientific Discovery Engine CLI.")
 def _default_registry() -> PluginRegistry:
     """The registry of plugins the CLI knows about out of the box.
 
-    Extend this as new plugins (Step 4+) are added -- it is the one place
-    that wires concrete plugin modules into the CLI's default registry.
+    Extend this as new plugins are added -- it is the one place that wires
+    concrete plugin modules into the CLI's default registry. Order matters:
+    physics_discovery.plugins.synthetic only registers a domain and reuses
+    the algorithms feynman.register already added.
     """
-    from physics_discovery.plugins import feynman
+    from physics_discovery.plugins import feynman, synthetic
 
     registry = PluginRegistry()
     feynman.register(registry)
+    synthetic.register(registry)
     return registry
 
 

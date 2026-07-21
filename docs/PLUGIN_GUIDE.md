@@ -105,18 +105,39 @@ Two layers, both demonstrated in the existing test suite:
 
 If your plugin's dependencies might not be importable everywhere (e.g. they
 need a compiled extension that's blocked in some sandboxed environments),
-guard the test module with `pytest.importorskip("your_dependency")` at the
-top, the way `tests/test_feynman_plugin.py` does for `sklearn.metrics` —
-skip, don't error collection, when the environment genuinely can't run it.
+wrap the import in `try/except ImportError: pytest.skip(..., allow_module_level=True)`
+at the top of the test module, the way `tests/test_feynman_plugin.py` and
+`tests/test_synthetic_plugin.py` do — skip, don't error collection, when the
+environment genuinely can't run it. Plain `pytest.importorskip("sklearn.metrics")`
+is not enough here: the actual failure can come from a *different* sklearn
+submodule (e.g. `sklearn.ensemble`) imported transitively later in the same
+module, so guard the real downstream import, not a proxy for it.
 
-## Why there's no plugin #2 yet, and why that matters
+## What the second plugin already validated
+
+`physics_discovery/plugins/synthetic.py` (`SyntheticRegressionDomainPlugin`)
+is the second plugin the interfaces were checked against, per the principle
+below — a domain with no `equation_id`, no known ground-truth formula, and
+different `domain_kwargs` entirely, run through the *same* algorithm plugins
+`physics_discovery/plugins/feynman.py` registers. It required **no changes**
+to `Dataset`, `AlgorithmPlugin`, or `DomainPlugin` — `metadata` being a plain
+`dict` and `validate`/`score` not assuming a ground-truth comparison was
+already enough. See `tests/test_synthetic_plugin.py`.
+
+That's one data point, not a permanent stamp of approval — a third plugin
+(PySR as its own `AlgorithmPlugin`, already a project dependency via the
+`pysr` extra, or a domain with categorical/non-numeric features) may still
+surface a real gap. Treat this section as "known to work as of the second
+plugin," not "proven forever."
+
+## Why a second (and third) plugin matters
 
 The interfaces in `engine/plugin.py` were designed against exactly one real
-implementation (physics_discovery). A contract shaped by one example is a
-guess dressed up as a decision. **Before treating these interfaces as
-stable**, implement a second plugin that's meaningfully different — e.g. a
-plain synthetic-data domain, or PySR as its own algorithm plugin (already a
-project dependency via the `pysr` extra) — and see what breaks. If the
-second plugin needs a change to `Dataset`, `AlgorithmPlugin`, or
-`DomainPlugin`, that's the interface doing its job: better to find it with
-two plugins than after a dozen are built against a contract that was wrong.
+implementation (physics_discovery) and validated against a second
+(`synthetic_regression`, above). A contract shaped by too few examples is a
+guess dressed up as a decision. **Before treating these interfaces as fully
+stable**, keep stress-testing with plugins that are meaningfully different
+from what's already there. If a new plugin needs a change to `Dataset`,
+`AlgorithmPlugin`, or `DomainPlugin`, that's the interface doing its job:
+better to find it early than after a dozen plugins are built against a
+contract that was wrong.

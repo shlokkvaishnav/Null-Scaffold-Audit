@@ -31,7 +31,7 @@ def test_list_plugins_reports_feynman_plugin() -> None:
 
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
-    assert payload["domains"] == ["feynman_physics"]
+    assert payload["domains"] == ["feynman_physics", "synthetic_regression"]
     assert "symbolic_regression" in payload["algorithms"]
     assert "gbm_baseline" in payload["algorithms"]
 

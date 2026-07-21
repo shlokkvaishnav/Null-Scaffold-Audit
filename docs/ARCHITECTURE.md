@@ -41,7 +41,8 @@ physics_discovery/  <- the first plugin (physics/Feynman equation discovery)
   validation/          EquationValidator, LyapunovStabilityScreener
   experiments/         the shared baseline experiment contract (see below)
   api/                 the FastAPI service (unrelated to engine/ — a separate way to drive physics_discovery directly)
-  plugins/feynman.py   the adapter layer: wraps everything above as an AlgorithmPlugin/DomainPlugin
+  plugins/feynman.py    the adapter layer: wraps everything above as an AlgorithmPlugin/DomainPlugin
+  plugins/synthetic.py  a second DomainPlugin (no ground truth), reusing feynman.py's algorithms
 ```
 
 **Dependency direction is one-way**: `physics_discovery/plugins/feynman.py`
@@ -134,14 +135,18 @@ sde benchmark configs/paper/benchmark_minimal.yaml # paper-style comparison
 ```
 
 `_default_registry()` in `cli/main.py` is the one place that wires concrete
-plugin modules (currently just `physics_discovery.plugins.feynman`) into the
-CLI. Adding a second plugin means adding one `register(registry)` call there
-— see [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md).
+plugin modules into the CLI: `physics_discovery.plugins.feynman` (registers
+both the `feynman_physics` domain and all four algorithms) and
+`physics_discovery.plugins.synthetic` (registers the `synthetic_regression`
+domain only, reusing feynman's algorithms). Adding another plugin means
+adding one `register(registry)` call there — see
+[PLUGIN_GUIDE.md](PLUGIN_GUIDE.md).
 
 ## What's deliberately not built yet
 
 Dynamic/sandboxed plugin loading, a report generator, a validation-strategy
-plugin type (OOD/bootstrap/sensitivity), distributed execution, a second
-real plugin. These are true next steps, not oversights — see
-[PLUGIN_GUIDE.md](PLUGIN_GUIDE.md) for why a second plugin should land before
-any of the interfaces above are treated as stable.
+plugin type (OOD/bootstrap/sensitivity), distributed execution, a third real
+plugin (e.g. PySR as its own `AlgorithmPlugin`). These are true next steps,
+not oversights — see [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md) for what the second
+plugin (`synthetic_regression`) already validated about the interfaces, and
+why that's a data point rather than a permanent guarantee.
