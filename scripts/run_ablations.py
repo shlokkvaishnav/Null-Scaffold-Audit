@@ -17,10 +17,10 @@ import yaml
 import json
 from pathlib import Path
 
-# Add sdmose to path
+# Add equation_discovery to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sdmose.agent.agent import SDMoSEAgent
+from equation_discovery.core.agent import DiscoveryAgent
 
 
 def load_config(config_path):
@@ -30,7 +30,7 @@ def load_config(config_path):
 
 
 def create_sample_data(n_samples=50, n_features=3):
-    """Create synthetic climate data for testing."""
+    """Create synthetic regression data for testing."""
     np.random.seed(42)
     features = np.random.randn(n_samples, n_features)
     targets = features[:, 0] + 0.5 * features[:, 1] + np.random.randn(n_samples) * 0.1
@@ -53,7 +53,7 @@ def run_ablation(config_name, max_iters=10):
     config = load_config(config_path)
     
     # Initialize agent
-    agent = SDMoSEAgent(config)
+    agent = DiscoveryAgent(config)
     
     # Create data
     data = create_sample_data()

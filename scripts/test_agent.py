@@ -1,8 +1,9 @@
 """
-Simple test script for SD-MoSE agent (no Hydra to avoid Python 3.14 incompatibility).
+Simple test script for the equation-discovery agent (no Hydra to avoid Python 3.14 incompatibility).
 """
 import numpy as np
-from sdmose.agent import SDMoSEAgent, AgentMemory
+from equation_discovery.core.agent import DiscoveryAgent
+from equation_discovery.core.archive import HypothesisArchive
 from omegaconf import OmegaConf
 
 def main():
@@ -19,15 +20,15 @@ def main():
     })
     
     print("=" * 60)
-    print("SD-MoSE Agent Test (GRAIL-V Architecture)")
+    print("Discovery Agent Test")
     print("=" * 60)
-    
+
     # Initialize agent
     print("\n[+] Initializing agent with config...")
-    agent = SDMoSEAgent(cfg)
-    
+    agent = DiscoveryAgent(cfg)
+
     # Initialize memory
-    agent.memory = AgentMemory()
+    agent.memory = HypothesisArchive()
     print("[+] Memory initialized")
     
     # Test agent loop structure
@@ -41,7 +42,7 @@ def main():
     
     # Test hypothesis creation
     print("\n[+] Testing Hypothesis class...")
-    from sdmose.agent import Hypothesis
+    from equation_discovery.core.hypothesis import Hypothesis
     hyp = Hypothesis(equation="y = 2*x + 1", regime_id=0)
     print(f"  - Created hypothesis: {hyp}")
     

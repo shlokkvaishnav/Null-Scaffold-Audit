@@ -1,9 +1,11 @@
-import torch
+import pytest
+
+torch = pytest.importorskip("torch", reason="torch is an optional extra ([torch]), not installed in the default image")
 import torch.nn as nn
 import numpy as np
 import unittest
 
-from sdmose.learning.trainer import SDMoSETrainer
+from equation_discovery.inference.trainer import DiscoveryTrainer
 
 # Mock SD-MoSE JointELBO Module
 class MockJointELBO(nn.Module):
@@ -70,7 +72,7 @@ class TestHybridDiscreteContinuousOptimizer(unittest.TestCase):
         # across the discrete boundary
         initial_weights = gate.linear.weight.clone()
         
-        trainer = SDMoSETrainer(agent=agent, gate_module=gate, elbo_module=elbo, lr=0.1)
+        trainer = DiscoveryTrainer(agent=agent, gate_module=gate, elbo_module=elbo, lr=0.1)
         
         # 2. Dummy observational data (16 samples, 4 features)
         x = torch.randn(16, 4)

@@ -1,6 +1,6 @@
 import unittest
 
-from sdmose.experiments.contract import (
+from equation_discovery.experiments.contract import (
     BASELINE_EXPERIMENT_CONTRACT,
     ExperimentContractError,
     validate_baseline_contract,
@@ -11,8 +11,8 @@ class TestExperimentContract(unittest.TestCase):
     def test_valid_contract_passes(self):
         config = {
             **BASELINE_EXPERIMENT_CONTRACT,
-            "models": ["pysr_global", "sdmose_full"],
-            "ablations": ["no_vsb"],
+            "models": ["pysr_global", "discovery_agent_full"],
+            "ablations": ["no_scoring"],
         }
         validate_baseline_contract(config, runner_name="test")
 

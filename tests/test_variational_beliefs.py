@@ -1,8 +1,10 @@
-import torch
+import pytest
+
+torch = pytest.importorskip("torch", reason="torch is an optional extra ([torch]), not installed in the default image")
 import unittest
 import numpy as np
-from sdmose.learning.variational import JointELBO
-from sdmose.agent.belief import EquationBeliefState
+from equation_discovery.inference.variational import JointELBO
+from equation_discovery.core.belief import EquationConfidenceTracker
 
 # Mock Hypothesis class for testing EquationBeliefState
 class MockHypothesis:
@@ -20,7 +22,7 @@ class TestVariationalBeliefs(unittest.TestCase):
         h3 = MockHypothesis("sin(x0)", 0, 8.0, 2)
         h4 = MockHypothesis("x1", 1, 15.0, 1)
         
-        ebs = EquationBeliefState(regime_id=0)
+        ebs = EquationConfidenceTracker(regime_id=0)
         q_h = ebs.update([h1, h2, h3, h4], temperature=1.0)
         
         # h4 should be ignored (wrong regime)
@@ -39,43 +41,32 @@ class TestVariationalBeliefs(unittest.TestCase):
     def test_joint_elbo_forward(self):
         num_regimes = 2
         batch_size = 4
-        
-        elbo_module = JointELBO(num_regimes=num_regimes, complexity_penalty=0.1)
-        
+
+        elbo_module = JointELBO(num_regimes=num_regimes, transition_prior=0.9)
+
         # Mock inputs
-        # log_likelihoods matrix across regimes and max hypotheses
-        log_likelihoods = torch.randn(batch_size, num_regimes, 3, requires_grad=True)
-        
-        # q_z: soft regime assignments from the gate
-        q_z_logits = torch.randn(batch_size, num_regimes, requires_grad=True)
-        q_z = torch.softmax(q_z_logits, dim=-1)
-        
-        # q_h_list: distribution over equations per regime
-        # Regime 0 has 3 active hypotheses, Regime 1 has 2 active hypotheses
-        q_h_0 = torch.softmax(torch.randn(3, requires_grad=True), dim=-1)
-        q_h_1 = torch.softmax(torch.randn(2, requires_grad=True), dim=-1)
-        q_h_list = [q_h_0, q_h_1]
-        
-        # complexities of these hypotheses
-        comp_0 = torch.tensor([1.0, 3.0, 2.0])
-        comp_1 = torch.tensor([1.0, 5.0])
-        comp_list = [comp_0, comp_1]
-        
-        loss = elbo_module(
-            log_likelihoods=log_likelihoods,
-            q_z=q_z,
-            q_h_list=q_h_list,
-            h_complexities_list=comp_list
-        )
-        
+        # log_likelihoods: (T, Num_Regimes), already contains the inner
+        # hypothesis-expectation term per the JointELBO.forward docstring.
+        log_likelihoods = torch.randn(batch_size, num_regimes, requires_grad=True)
+
+        # gate_probs: soft regime assignments from the gate, over the batch
+        # (treated as a temporal sequence of length batch_size)
+        gate_logits = torch.randn(batch_size, num_regimes, requires_grad=True)
+        gate_probs = torch.softmax(gate_logits, dim=-1)
+
+        outputs = elbo_module(log_likelihoods=log_likelihoods, gate_probs=gate_probs)
+        loss = outputs["loss"]
+
         # Ensure it correctly generated the scalar ELBO and graph connects
         self.assertTrue(loss.requires_grad)
         self.assertIsNotNone(loss.item())
-        
+        self.assertIn("elbo", outputs)
+        self.assertIn("kl_z", outputs)
+
         # Backprop test
         loss.backward()
         self.assertIsNotNone(log_likelihoods.grad)
-        self.assertIsNotNone(q_z_logits.grad)
+        self.assertIsNotNone(gate_logits.grad)
         
 if __name__ == '__main__':
     unittest.main()

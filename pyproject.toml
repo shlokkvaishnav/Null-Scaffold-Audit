@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "equation_discovery"
+version = "0.1.0"
+description = "An agentic system that automates the scientist's hypothesize-test-refine loop for closed-form equation discovery via symbolic regression, benchmarked on the AI-Feynman physics equation set."
+authors = [{ name = "Shlok Vaishnav" }]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "scipy",
+    "scikit-learn",
+    "gplearn",
+    "sympy",
+    "pandas",
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic",
+    "python-multipart",
+]
+
+[project.optional-dependencies]
+pysr = ["pysr"]
+torch = ["torch"]
+gbm = ["xgboost", "lightgbm"]
+dev = ["pytest", "ruff", "mypy", "black", "jupyterlab", "matplotlib", "httpx"]
+
+[tool.setuptools.packages.find]
+include = ["equation_discovery*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true

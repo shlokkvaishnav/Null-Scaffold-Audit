@@ -1,0 +1,424 @@
+[
+  {
+    "id": "coulomb_force",
+    "name": "Coulomb's law",
+    "formula": "q1 * q2 / (4 * pi * eps0 * r**2)",
+    "variables": ["q1", "q2", "eps0", "r"],
+    "ranges": {
+      "q1": [1.0, 5.0],
+      "q2": [1.0, 5.0],
+      "eps0": [1.0, 2.0],
+      "r": [1.0, 10.0]
+    },
+    "n_vars": 4
+  },
+  {
+    "id": "newton_gravitation",
+    "name": "Newton's law of gravitation",
+    "formula": "G * m1 * m2 / r**2",
+    "variables": ["G", "m1", "m2", "r"],
+    "ranges": {
+      "G": [0.5, 2.0],
+      "m1": [1.0, 20.0],
+      "m2": [1.0, 20.0],
+      "r": [1.0, 10.0]
+    },
+    "n_vars": 4
+  },
+  {
+    "id": "ideal_gas_law",
+    "name": "Ideal gas law (pressure)",
+    "formula": "n * R * T / V",
+    "variables": ["n", "R", "T", "V"],
+    "ranges": {
+      "n": [1.0, 10.0],
+      "R": [1.0, 10.0],
+      "T": [200.0, 400.0],
+      "V": [1.0, 20.0]
+    },
+    "n_vars": 4
+  },
+  {
+    "id": "kinetic_energy",
+    "name": "Kinetic energy",
+    "formula": "0.5 * m * v**2",
+    "variables": ["m", "v"],
+    "ranges": {
+      "m": [0.1, 20.0],
+      "v": [0.1, 30.0]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "relativistic_energy_momentum",
+    "name": "Relativistic energy-momentum relation",
+    "formula": "sqrt((m * c**2)**2 + (p * c)**2)",
+    "variables": ["m", "c", "p"],
+    "ranges": {
+      "m": [0.1, 10.0],
+      "c": [1.0, 5.0],
+      "p": [0.1, 10.0]
+    },
+    "n_vars": 3
+  },
+  {
+    "id": "snells_law",
+    "name": "Snell's law (refraction angle ratio)",
+    "formula": "n1 * sin(theta1) / n2",
+    "variables": ["n1", "theta1", "n2"],
+    "ranges": {
+      "n1": [1.0, 2.5],
+      "theta1": [0.05, 1.4],
+      "n2": [1.0, 2.5]
+    },
+    "n_vars": 3
+  },
+  {
+    "id": "shm_period",
+    "name": "Simple harmonic motion period",
+    "formula": "2 * pi * sqrt(m / k)",
+    "variables": ["m", "k"],
+    "ranges": {
+      "m": [0.1, 10.0],
+      "k": [1.0, 50.0]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "ohms_law",
+    "name": "Ohm's law",
+    "formula": "I * R",
+    "variables": ["I", "R"],
+    "ranges": {
+      "I": [0.01, 10.0],
+      "R": [1.0, 100.0]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "doppler_effect",
+    "name": "Doppler effect (non-relativistic, observer moving)",
+    "formula": "f0 * (v + vo) / v",
+    "variables": ["f0", "v", "vo"],
+    "ranges": {
+      "f0": [20.0, 2000.0],
+      "v": [300.0, 350.0],
+      "vo": [-50.0, 50.0]
+    },
+    "n_vars": 3
+  },
+  {
+    "id": "planck_spectral_radiance",
+    "name": "Planck's law spectral energy density factor",
+    "formula": "1 / (exp(h * f / (k * T)) - 1)",
+    "variables": ["h", "f", "k", "T"],
+    "ranges": {
+      "h": [0.1, 1.0],
+      "f": [1.0, 5.0],
+      "k": [0.5, 1.5],
+      "T": [50.0, 500.0]
+    },
+    "n_vars": 4
+  },
+  {
+    "id": "projectile_range",
+    "name": "Projectile range on level ground",
+    "formula": "v**2 * sin(2 * theta) / g",
+    "variables": ["v", "theta", "g"],
+    "ranges": {
+      "v": [1.0, 50.0],
+      "theta": [0.05, 1.5],
+      "g": [8.0, 12.0]
+    },
+    "n_vars": 3
+  },
+  {
+    "id": "centripetal_force",
+    "name": "Centripetal force",
+    "formula": "m * v**2 / r",
+    "variables": ["m", "v", "r"],
+    "ranges": {
+      "m": [0.1, 20.0],
+      "v": [0.1, 30.0],
+      "r": [0.5, 20.0]
+    },
+    "n_vars": 3
+  },
+  {
+    "id": "gravitational_potential_energy",
+    "name": "Gravitational potential energy (near surface)",
+    "formula": "m * g * h",
+    "variables": ["m", "g", "h"],
+    "ranges": {
+      "m": [0.1, 50.0],
+      "g": [8.0, 12.0],
+      "h": [0.0, 100.0]
+    },
+    "n_vars": 3
+  },
+  {
+    "id": "work_energy",
+    "name": "Work (force times distance)",
+    "formula": "F * d",
+    "variables": ["F", "d"],
+    "ranges": {
+      "F": [0.1, 100.0],
+      "d": [0.0, 50.0]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "power_work_time",
+    "name": "Power (work over time)",
+    "formula": "W / t",
+    "variables": ["W", "t"],
+    "ranges": {
+      "W": [0.1, 1000.0],
+      "t": [0.1, 100.0]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "momentum",
+    "name": "Momentum",
+    "formula": "m * v",
+    "variables": ["m", "v"],
+    "ranges": {
+      "m": [0.1, 50.0],
+      "v": [-30.0, 30.0]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "boltzmann_factor",
+    "name": "Boltzmann factor",
+    "formula": "exp(-E / (k * T))",
+    "variables": ["E", "k", "T"],
+    "ranges": {
+      "E": [0.0, 10.0],
+      "k": [0.5, 1.5],
+      "T": [50.0, 500.0]
+    },
+    "n_vars": 3
+  },
+  {
+    "id": "thin_lens_equation",
+    "name": "Thin lens equation (image distance)",
+    "formula": "1 / (1 / f - 1 / do)",
+    "variables": ["f", "do"],
+    "ranges": {
+      "f": [1.0, 5.0],
+      "do": [10.0, 50.0]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "bernoulli_dynamic_pressure",
+    "name": "Bernoulli dynamic pressure term",
+    "formula": "0.5 * rho * v**2",
+    "variables": ["rho", "v"],
+    "ranges": {
+      "rho": [0.5, 1500.0],
+      "v": [0.1, 50.0]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "rc_discharge",
+    "name": "RC circuit charge decay",
+    "formula": "Q0 * exp(-t / (R * C))",
+    "variables": ["Q0", "t", "R", "C"],
+    "ranges": {
+      "Q0": [0.1, 10.0],
+      "t": [0.0, 5.0],
+      "R": [1.0, 100.0],
+      "C": [0.01, 1.0]
+    },
+    "n_vars": 4
+  },
+  {
+    "id": "pendulum_small_angle_period",
+    "name": "Pendulum small-angle period",
+    "formula": "2 * pi * sqrt(L / g)",
+    "variables": ["L", "g"],
+    "ranges": {
+      "L": [0.1, 10.0],
+      "g": [8.0, 12.0]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "hookes_law_force",
+    "name": "Hooke's law spring force",
+    "formula": "-k * x",
+    "variables": ["k", "x"],
+    "ranges": {
+      "k": [1.0, 100.0],
+      "x": [-2.0, 2.0]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "spring_potential_energy",
+    "name": "Spring potential energy",
+    "formula": "0.5 * k * x**2",
+    "variables": ["k", "x"],
+    "ranges": {
+      "k": [1.0, 100.0],
+      "x": [-2.0, 2.0]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "refractive_index_relation",
+    "name": "Refractive index from speed of light ratio",
+    "formula": "c / v",
+    "variables": ["c", "v"],
+    "ranges": {
+      "c": [2.9, 3.1],
+      "v": [1.0, 2.9]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "torque",
+    "name": "Torque",
+    "formula": "F * r * sin(theta)",
+    "variables": ["F", "r", "theta"],
+    "ranges": {
+      "F": [0.1, 100.0],
+      "r": [0.01, 5.0],
+      "theta": [0.0, 3.14]
+    },
+    "n_vars": 3
+  },
+  {
+    "id": "angular_momentum",
+    "name": "Angular momentum",
+    "formula": "m * v * r",
+    "variables": ["m", "v", "r"],
+    "ranges": {
+      "m": [0.1, 20.0],
+      "v": [0.1, 30.0],
+      "r": [0.1, 10.0]
+    },
+    "n_vars": 3
+  },
+  {
+    "id": "escape_velocity",
+    "name": "Escape velocity",
+    "formula": "sqrt(2 * G * M / r)",
+    "variables": ["G", "M", "r"],
+    "ranges": {
+      "G": [0.5, 2.0],
+      "M": [1.0, 100.0],
+      "r": [1.0, 20.0]
+    },
+    "n_vars": 3
+  },
+  {
+    "id": "coulomb_potential_energy",
+    "name": "Coulomb potential energy",
+    "formula": "q1 * q2 / (4 * pi * eps0 * r)",
+    "variables": ["q1", "q2", "eps0", "r"],
+    "ranges": {
+      "q1": [1.0, 5.0],
+      "q2": [1.0, 5.0],
+      "eps0": [1.0, 2.0],
+      "r": [1.0, 10.0]
+    },
+    "n_vars": 4
+  },
+  {
+    "id": "capacitor_energy",
+    "name": "Capacitor stored energy",
+    "formula": "0.5 * C * V**2",
+    "variables": ["C", "V"],
+    "ranges": {
+      "C": [0.01, 10.0],
+      "V": [0.1, 100.0]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "inductor_energy",
+    "name": "Inductor stored energy",
+    "formula": "0.5 * L * I**2",
+    "variables": ["L", "I"],
+    "ranges": {
+      "L": [0.01, 10.0],
+      "I": [0.1, 20.0]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "wave_frequency",
+    "name": "Wave frequency from speed and wavelength",
+    "formula": "v / lam",
+    "variables": ["v", "lam"],
+    "ranges": {
+      "v": [1.0, 340.0],
+      "lam": [0.01, 10.0]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "gravitational_field_strength",
+    "name": "Gravitational field strength",
+    "formula": "G * M / r**2",
+    "variables": ["G", "M", "r"],
+    "ranges": {
+      "G": [0.5, 2.0],
+      "M": [1.0, 100.0],
+      "r": [1.0, 20.0]
+    },
+    "n_vars": 3
+  },
+  {
+    "id": "malus_law",
+    "name": "Malus's law (transmitted intensity)",
+    "formula": "I0 * cos(theta)**2",
+    "variables": ["I0", "theta"],
+    "ranges": {
+      "I0": [0.1, 100.0],
+      "theta": [0.0, 3.14]
+    },
+    "n_vars": 2
+  },
+  {
+    "id": "resistivity_resistance",
+    "name": "Resistance from resistivity, length, area",
+    "formula": "rho * ell / A",
+    "variables": ["rho", "ell", "A"],
+    "ranges": {
+      "rho": [0.01, 5.0],
+      "ell": [0.1, 10.0],
+      "A": [0.001, 1.0]
+    },
+    "n_vars": 3
+  },
+  {
+    "id": "time_dilation",
+    "name": "Relativistic time dilation",
+    "formula": "t0 / sqrt(1 - v**2 / c**2)",
+    "variables": ["t0", "v", "c"],
+    "ranges": {
+      "t0": [0.1, 10.0],
+      "v": [0.0, 0.9],
+      "c": [1.0, 1.2]
+    },
+    "n_vars": 3
+  },
+  {
+    "id": "specific_heat_energy",
+    "name": "Heat energy from specific heat capacity",
+    "formula": "m * c * dT",
+    "variables": ["m", "c", "dT"],
+    "ranges": {
+      "m": [0.1, 20.0],
+      "c": [0.1, 5.0],
+      "dT": [-50.0, 50.0]
+    },
+    "n_vars": 3
+  }
+]

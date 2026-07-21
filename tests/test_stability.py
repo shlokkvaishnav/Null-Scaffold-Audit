@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from sdmose.science.stability import LyapunovScreener
+from equation_discovery.validation.dynamical_stability import LyapunovScreener
 
 class MockStableHypothesis:
     # A perfectly stable identity function (Jacobian is flat baseline)

@@ -1,6 +1,6 @@
 experiment_name: benchmark_minimal
 dataset_split:
-  strategy: canonical_time_split
+  strategy: seeded_random_split
   train: train
   validation: validation
   test: test
@@ -11,11 +11,11 @@ models:
   - pysr_global
   - neural_moe
   - lightgbm
-  - sdmose_full
+  - discovery_agent_full
 ablations:
-  - no_vsb
-  - no_igbu
-  - no_constraints_stability
+  - no_scoring
+  - no_confidence_tracking
+  - no_validation
 metrics:
   - rmse
   - mae

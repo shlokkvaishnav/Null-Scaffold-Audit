@@ -1,10 +1,10 @@
 import hydra
-from sdmose.agent import SDMoSEAgent
+from equation_discovery.core.agent import DiscoveryAgent
 
 @hydra.main(config_path="../configs", config_name="agent")
 def main(cfg):
     print("Initializing Agent...")
-    agent = SDMoSEAgent(cfg)
+    agent = DiscoveryAgent(cfg)
     agent.run_loop()
 
 if __name__ == "__main__":
