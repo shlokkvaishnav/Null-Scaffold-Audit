@@ -29,7 +29,7 @@ gbm = ["xgboost", "lightgbm"]
 dev = ["pytest", "ruff", "mypy", "black", "jupyterlab", "matplotlib", "httpx"]
 
 [tool.setuptools.packages.find]
-include = ["equation_discovery*"]
+include = ["equation_discovery*", "engine*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
