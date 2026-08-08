@@ -7,7 +7,31 @@ Names exported here are a compatibility commitment; anything absent from
 
 from __future__ import annotations
 
+from engine.audit.arms import (
+    ArmOutcomes,
+    AuditReport,
+    BaseSearcher,
+    Budget,
+    NotSeparableError,
+    Scaffold,
+    SearchOutcome,
+    audit,
+    run_arms,
+)
 from engine.audit.statistics import equivalence_verdict
 from engine.audit.verdict import MetricVerdict, Verdict
 
-__all__ = ["MetricVerdict", "Verdict", "equivalence_verdict"]
+__all__ = [
+    "ArmOutcomes",
+    "AuditReport",
+    "BaseSearcher",
+    "Budget",
+    "MetricVerdict",
+    "NotSeparableError",
+    "Scaffold",
+    "SearchOutcome",
+    "Verdict",
+    "audit",
+    "equivalence_verdict",
+    "run_arms",
+]
