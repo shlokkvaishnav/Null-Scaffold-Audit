@@ -74,12 +74,19 @@ jobs:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
       - run: uv sync --frozen --extra dev --extra gbm
-      # The coverage floor is scoped to tools/ because that is the code
-      # Milestone 0 introduces. It widens as each subsystem is rebuilt against
-      # its RFC; a floor averaged over a tree that is being replaced measures
-      # nothing (BOOTSTRAP.md section 11).
+      # The coverage floor covers the code written against an RFC, not the
+      # tree awaiting migration. It widens as each subsystem is rebuilt; a
+      # floor averaged over code that is being replaced measures nothing
+      # (BOOTSTRAP.md section 11).
+      #
+      # Coverage targets are given as paths, not module names: --cov=engine.audit
+      # imports the package for source discovery and collides with numpy's
+      # extension modules ("cannot load module more than once per process").
       - name: Test suite with coverage floor
-        run: uv run pytest tests/ -v --cov=tools --cov-report=term-missing --cov-fail-under=95
+        run: >
+          uv run pytest tests/ -v
+          --cov=tools --cov=engine/audit
+          --cov-report=term-missing --cov-fail-under=95
 
   # Constitution Article 5. This is the project's central architectural claim,
   # and the only reason it is a claim rather than a hope is that this job fails

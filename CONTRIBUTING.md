@@ -36,7 +36,7 @@ Run everything CI runs, before you push:
 ```bash
 uv run ruff check . && uv run ruff format --check .
 uv run mypy engine tools
-uv run pytest tests/ --cov=tools --cov-fail-under=95
+uv run pytest tests/ --cov=tools --cov=engine/audit --cov-fail-under=95
 uv run python tools/check_domain_independence.py --path engine
 ```
 
