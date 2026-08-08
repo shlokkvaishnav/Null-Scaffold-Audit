@@ -25,6 +25,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
+from engine.audit.degeneracy import DegeneracyReport, assess_degeneracy
 from engine.audit.statistics import equivalence_verdict
 from engine.audit.verdict import MetricVerdict, Verdict
 
@@ -67,6 +68,10 @@ class SearchOutcome:
     metrics: Mapping[str, float]
     evaluations_used: int
     representation: str | None = None
+    # Every candidate the arm proposed internally, in order. Optional: a pipeline
+    # that does not expose its internals is not penalised, it is simply reported
+    # as unassessed for degeneracy (RFC-0001 section 4.3).
+    intermediate_representations: tuple[str, ...] = ()
 
 
 @runtime_checkable
@@ -143,6 +148,9 @@ class AuditReport:
     verdict: Verdict
     per_metric: dict[str, MetricVerdict]
     arms: ArmOutcomes
+    # Reported beside the verdict, never folded into it. NULL says the wrapper did
+    # not help; DEGENERATE says why, and the two are different findings.
+    degeneracy: DegeneracyReport = field(default_factory=lambda: DegeneracyReport(assessed=False))
     limitations: list[str] = field(default_factory=list)
 
 
@@ -299,5 +307,6 @@ def audit(
         verdict=_overall(per_metric),
         per_metric=per_metric,
         arms=arms,
+        degeneracy=assess_degeneracy([o.intermediate_representations for o in arms.treatment]),
         limitations=limitations,
     )

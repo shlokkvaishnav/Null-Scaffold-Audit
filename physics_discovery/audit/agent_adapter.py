@@ -213,9 +213,16 @@ class DiscoveryAgentScaffold:
         agent = DiscoveryAgent(config)
         observation = {"features": problem.x_train, "targets": problem.y_train}
 
+        # Collected per step rather than read from memory at the end, because the
+        # archive stores only *verified* hypotheses and deduplicates them. Reading
+        # it would hide the repetition this check exists to find: three identical
+        # proposals become one archive entry, which looks like one proposal rather
+        # than like a loop that proposed the same thing three times.
+        proposals: list[str] = []
         with count_fits() as counter:
             for _ in range(self.max_iters):
                 agent.step(observation)
+                proposals.extend(str(h.equation) for h in agent.proposed_hypotheses)
 
         if not agent.memory or not agent.memory.hypotheses:
             raise RuntimeError(f"scaffold produced no candidate on seed {seed}")
@@ -234,4 +241,5 @@ class DiscoveryAgentScaffold:
             metrics=metrics,
             evaluations_used=counter["fits"] * self.population_size * self.generations,
             representation=equation,
+            intermediate_representations=tuple(proposals),
         )

@@ -18,6 +18,7 @@ from engine.audit.arms import (
     audit,
     run_arms,
 )
+from engine.audit.degeneracy import DegeneracyReport, assess_degeneracy
 from engine.audit.statistics import equivalence_verdict
 from engine.audit.verdict import MetricVerdict, Verdict
 
@@ -26,11 +27,13 @@ __all__ = [
     "AuditReport",
     "BaseSearcher",
     "Budget",
+    "DegeneracyReport",
     "MetricVerdict",
     "NotSeparableError",
     "Scaffold",
     "SearchOutcome",
     "Verdict",
+    "assess_degeneracy",
     "audit",
     "equivalence_verdict",
     "run_arms",

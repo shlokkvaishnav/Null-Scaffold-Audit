@@ -140,6 +140,7 @@ def main() -> int:
             f"evals: treatment={arms.treatment_evaluations} control={arms.control_evaluations}",
             flush=True,
         )
+        print(f"        degeneracy: {report.degeneracy.summary()}", flush=True)
         for metric, verdict in report.per_metric.items():
             print(
                 f"        {metric:<20} {verdict.verdict.value:<13} "
@@ -169,6 +170,8 @@ def main() -> int:
                 "scaffold": report.scaffold,
                 "verdict": report.verdict.value,
                 "identical_representation_rate": arms.identical_representation_rate,
+                "degeneracy": dataclasses.asdict(report.degeneracy),
+                "degenerate": report.degeneracy.degenerate,
                 "restarts_per_seed": arms.restarts_per_seed,
                 "treatment_evaluations": arms.treatment_evaluations,
                 "control_evaluations": arms.control_evaluations,
