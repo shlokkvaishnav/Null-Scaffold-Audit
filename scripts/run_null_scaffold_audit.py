@@ -86,6 +86,30 @@ def margins_for(problem: RediscoveryProblem) -> dict[str, float]:
     }
 
 
+def write_artifacts(
+    out: Path, config: dict[str, Any], reports: list[dict[str, Any]], rows: list[dict[str, Any]]
+) -> None:
+    """Write the artifacts, overwriting whatever was there.
+
+    Called after every problem, not once at the end. A long sweep that is
+    interrupted -- and these run for hours -- would otherwise produce nothing at
+    all, discarding every completed problem because one was still running.
+    Partial results are worth strictly more than no results, provided the file
+    says how far it got, which `problems_completed` does.
+    """
+    out.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "config": {**config, "problems_completed": len(reports)},
+        "reports": reports,
+    }
+    (out / "audit.json").write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+    if rows:
+        with (out / "audit.csv").open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
+            writer.writeheader()
+            writer.writerows(rows)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--subset", choices=["smoke", "all"], default="smoke")
@@ -113,6 +137,19 @@ def main() -> int:
 
     rows: list[dict[str, Any]] = []
     reports: list[dict[str, Any]] = []
+    config: dict[str, Any] = {
+        "seeds": len(seeds),
+        "max_iters": args.max_iters,
+        "population_size": args.population_size,
+        "generations": args.generations,
+        "n_samples": args.n_samples,
+        "evaluations_per_fit": args.population_size * args.generations,
+        "margins": {
+            "rmse": f"{RMSE_MARGIN_FRACTION} * std(y_test)",
+            "symbolic_complexity": COMPLEXITY_MARGIN,
+            "exact_recovery": RECOVERY_MARGIN,
+        },
+    }
 
     for equation_id in equation_ids:
         problem = build_problem(equation_id, args.n_samples, seed=0)
@@ -182,28 +219,9 @@ def main() -> int:
                 "limitations": report.limitations,
             }
         )
+        write_artifacts(args.out, config, reports, rows)
 
-    args.out.mkdir(parents=True, exist_ok=True)
-    config = {
-        "seeds": len(seeds),
-        "max_iters": args.max_iters,
-        "population_size": args.population_size,
-        "generations": args.generations,
-        "n_samples": args.n_samples,
-        "margins": {
-            "rmse": f"{RMSE_MARGIN_FRACTION} * std(y_test)",
-            "symbolic_complexity": COMPLEXITY_MARGIN,
-            "exact_recovery": RECOVERY_MARGIN,
-        },
-    }
-    (args.out / "audit.json").write_text(
-        json.dumps({"config": config, "reports": reports}, indent=2, default=str), encoding="utf-8"
-    )
-    if rows:
-        with (args.out / "audit.csv").open("w", newline="", encoding="utf-8") as handle:
-            writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
-            writer.writeheader()
-            writer.writerows(rows)
+    write_artifacts(args.out, config, reports, rows)
 
     verdict_counts: dict[str, int] = {}
     for report_row in reports:
