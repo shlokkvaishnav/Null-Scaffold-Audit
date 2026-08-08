@@ -111,19 +111,50 @@ def _outcome_metrics(problem: RediscoveryProblem, equation: str, seed: int) -> d
     """
     candidate = Hypothesis(equation=equation, regime_id=0, iteration=0)
     y_pred = np.asarray(candidate.evaluate(problem.x_test), dtype=float)
+
+    # A candidate can be non-evaluable on some test rows -- log of a negative,
+    # division by zero -- and a symbolic search will produce such expressions
+    # routinely. Those rows fall back to the training-set mean, which is what a
+    # predictor that has learned nothing would say, so an unusable equation
+    # scores like an uninformative one rather than crashing the sweep.
+    #
+    # Dropping the seed instead would be worse than arbitrary: failures are not
+    # evenly distributed between the arms, so excluding them silently favours
+    # whichever arm fails more often. The substitution is applied identically to
+    # both arms, uses the TRAIN mean so no test information leaks, and the rate
+    # is reported as its own metric rather than absorbed into rmse.
+    nonfinite = ~np.isfinite(y_pred)
+    if nonfinite.any():
+        y_pred = np.where(
+            nonfinite, float(np.mean(np.asarray(problem.y_train, dtype=float))), y_pred
+        )
+
     fit = compute_fit_metrics(problem.y_test, y_pred, equation=equation)
-    equivalence = check_equivalence(
-        candidate_equation=equation,
-        ground_truth_formula=problem.ground_truth["formula"],
-        variables=problem.ground_truth["variables"],
-        test_ranges=problem.ground_truth["ranges"],
-        seed=seed,
-    )
+    try:
+        equivalence = check_equivalence(
+            candidate_equation=equation,
+            ground_truth_formula=problem.ground_truth["formula"],
+            variables=problem.ground_truth["variables"],
+            test_ranges=problem.ground_truth["ranges"],
+            seed=seed,
+        )
+        recovered = float(bool(equivalence["symbolic_match"]))
+    # The blanket catch below is deliberate. sympy raises no single documented
+    # exception type for unparseable or pathological input -- TypeError,
+    # AttributeError, RecursionError and its own SympifyError all appear,
+    # depending on the expression -- so enumerating them would silently miss
+    # cases and crash a multi-hour sweep. An equivalence check that failed has
+    # not shown the candidate to be correct, so the conservative reading is
+    # "not recovered", which a crash would prevent us from recording at all.
+    except Exception:  # noqa: BLE001
+        recovered = 0.0
+
     return {
         "rmse": float(fit["rmse"]),
         "mae": float(fit["mae"]),
         "symbolic_complexity": float(fit["symbolic_complexity"]),
-        "exact_recovery": float(bool(equivalence["symbolic_match"])),
+        "exact_recovery": recovered,
+        "nonfinite_fraction": float(nonfinite.mean()),
     }
 
 
