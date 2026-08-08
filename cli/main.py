@@ -14,7 +14,7 @@ from pathlib import Path
 
 import typer
 
-from engine.config import load_baseline_experiment_config, load_run_config
+from engine.config import load_run_config
 from engine.discovery import discover_plugins
 from engine.orchestrator import DiscoveryOrchestrator
 from engine.registry import PluginRegistry
@@ -65,9 +65,14 @@ def benchmark(
     config_path: Path = typer.Argument(..., help="Path to a configs/paper-style YAML file."),
 ) -> None:
     """Validate a paper-style benchmark config and run it via scripts.reproduce_benchmarks."""
-    load_baseline_experiment_config(config_path)  # raises on contract violation
-
+    # Imported here, not at module scope, because both the schema and the runner
+    # belong to the legacy physics_discovery tree rather than to the engine. The
+    # `run` and `list-plugins` commands stay plugin-agnostic; this one does not,
+    # and confining the coupling to the one command that has it keeps that visible.
+    from physics_discovery.experiments.config import load_baseline_experiment_config
     from scripts.reproduce_benchmarks import run as run_benchmark_script
+
+    load_baseline_experiment_config(config_path)  # raises on contract violation
 
     outputs = run_benchmark_script(config_path)
     typer.echo(json.dumps(outputs, indent=2))

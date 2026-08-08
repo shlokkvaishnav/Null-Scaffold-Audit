@@ -1,10 +1,11 @@
 """Dynamic plugin discovery via Python packaging entry points.
 
 This is what makes plugins genuinely pluggable: nothing in `engine/` or
-`cli/` imports a concrete plugin module (like `physics_discovery.plugins.
-feynman`) by name. Instead, any *installed* Python package can register SDE
-plugins by declaring an entry point under the `"sde.plugins"` group in its
-own `pyproject.toml`:
+`cli/` imports a concrete plugin module by name -- including the plugins
+shipped in this repository, which are discovered the same way third-party
+ones are. Any *installed* Python package can register SDE plugins by
+declaring an entry point under the `"sde.plugins"` group in its own
+`pyproject.toml`:
 
     [project.entry-points."sde.plugins"]
     my_domain = "my_package.plugins:register"
