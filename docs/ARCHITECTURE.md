@@ -90,15 +90,17 @@ See `physics_discovery/plugins/feynman.py` for five real implementations
 
 ```python
 registry = PluginRegistry()
-feynman.register(registry)             # or any other module's register(registry)
+feynman.register(registry)  # or any other module's register(registry)
 
 orchestrator = DiscoveryOrchestrator(registry)
-result = orchestrator.run(ExperimentConfig(
-    domain="feynman_physics",
-    algorithm="symbolic_regression",
-    domain_kwargs={"equation_id": "coulomb_force", "n_samples": 200, "seed": 0},
-    algorithm_kwargs={"backend": "gplearn", "generations": 10},
-))
+result = orchestrator.run(
+    ExperimentConfig(
+        domain="feynman_physics",
+        algorithm="symbolic_regression",
+        domain_kwargs={"equation_id": "coulomb_force", "n_samples": 200, "seed": 0},
+        algorithm_kwargs={"backend": "gplearn", "generations": 10},
+    )
+)
 # result: RunResult(domain, algorithm, equation, metrics, constraints)
 ```
 

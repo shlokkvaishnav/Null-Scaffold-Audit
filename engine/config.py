@@ -15,7 +15,7 @@ rather than merged, because they drive different things:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field, model_validator
@@ -32,8 +32,8 @@ class RunConfig(BaseModel):
 
     domain: str
     algorithm: str
-    domain_kwargs: Dict[str, Any] = Field(default_factory=dict)
-    algorithm_kwargs: Dict[str, Any] = Field(default_factory=dict)
+    domain_kwargs: dict[str, Any] = Field(default_factory=dict)
+    algorithm_kwargs: dict[str, Any] = Field(default_factory=dict)
     train_fraction: float = 0.8
     seed: int = 0
 
@@ -57,7 +57,7 @@ class DatasetSplit(BaseModel):
 
 class SeedPolicy(BaseModel):
     deterministic: bool
-    seeds: List[int]
+    seeds: list[int]
 
 
 class Budget(BaseModel):
@@ -67,8 +67,8 @@ class Budget(BaseModel):
 
 
 class Reporting(BaseModel):
-    run_columns: List[str]
-    aggregate: Dict[str, str]
+    run_columns: list[str]
+    aggregate: dict[str, str]
     artifact_format: str
 
 
@@ -84,15 +84,15 @@ class BaselineExperimentConfig(BaseModel):
     experiment_name: str
     dataset_split: DatasetSplit
     seed_policy: SeedPolicy
-    models: List[str]
-    metrics: List[str]
+    models: list[str]
+    metrics: list[str]
     reporting: Reporting
     budget: Budget
-    ablations: List[str] = Field(default_factory=list)
-    significance: Optional[Significance] = None
+    ablations: list[str] = Field(default_factory=list)
+    significance: Significance | None = None
 
     @model_validator(mode="after")
-    def _enforce_shared_contract(self) -> "BaselineExperimentConfig":
+    def _enforce_shared_contract(self) -> BaselineExperimentConfig:
         try:
             validate_baseline_contract(
                 self.model_dump(mode="json"), runner_name=self.experiment_name

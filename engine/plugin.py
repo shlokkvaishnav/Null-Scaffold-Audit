@@ -9,7 +9,7 @@ concrete plugin.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 import numpy as np
 
@@ -21,7 +21,7 @@ class Dataset:
     X: np.ndarray
     y: np.ndarray
     feature_names: list[str]
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @runtime_checkable
@@ -36,15 +36,12 @@ class AlgorithmPlugin(Protocol):
 
     name: str
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "AlgorithmPlugin":
-        ...
+    def fit(self, X: np.ndarray, y: np.ndarray) -> AlgorithmPlugin: ...
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        ...
+    def predict(self, X: np.ndarray) -> np.ndarray: ...
 
     @property
-    def equation(self) -> Optional[str]:
-        ...
+    def equation(self) -> str | None: ...
 
 
 @runtime_checkable
@@ -53,10 +50,9 @@ class DomainPlugin(Protocol):
 
     name: str
 
-    def load_dataset(self, **kwargs: Any) -> Dataset:
-        ...
+    def load_dataset(self, **kwargs: Any) -> Dataset: ...
 
-    def validate(self, equation: Optional[str]) -> Dict[str, Any]:
+    def validate(self, equation: str | None) -> dict[str, Any]:
         """Return constraint-violation info for a candidate equation (empty dict if none/valid)."""
         ...
 
@@ -64,7 +60,7 @@ class DomainPlugin(Protocol):
         self,
         y_true: np.ndarray,
         y_pred: np.ndarray,
-        equation: Optional[str] = None,
-    ) -> Dict[str, float]:
+        equation: str | None = None,
+    ) -> dict[str, float]:
         """Return fit-quality metrics for a candidate's predictions on this domain."""
         ...

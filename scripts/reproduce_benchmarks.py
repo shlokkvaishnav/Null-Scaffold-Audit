@@ -22,7 +22,7 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 import yaml
@@ -39,7 +39,7 @@ from physics_discovery.generators.ensemble import Ensemble
 from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator
 
 
-def _run_variant(variant: str, seed: int, budget: Dict[str, Any]):
+def _run_variant(variant: str, seed: int, budget: dict[str, Any]):
     data = generate_synthetic_regression(seed=seed)
 
     if variant == "pysr_global":
@@ -65,7 +65,11 @@ def _run_variant(variant: str, seed: int, budget: Dict[str, Any]):
         # generator directly as a stand-in for the agent's core hypothesis
         # engine so this script still reports real (non-fake) numbers.
         model = SymbolicHypothesisGenerator(
-            {"backend": "gplearn", "random_state": seed, "generations": int(budget.get("max_iters", 20))}
+            {
+                "backend": "gplearn",
+                "random_state": seed,
+                "generations": int(budget.get("max_iters", 20)),
+            }
         )
         model.fit(data.x_train, data.y_train)
         return model.predict(data.x_test), data.y_test, model.equation
@@ -88,8 +92,8 @@ def run(config_path: Path) -> dict:
     output_dir = Path("results/reproducibility")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    per_run: List[Dict[str, Any]] = []
-    summary: Dict[str, Dict[str, List[float]]] = {}
+    per_run: list[dict[str, Any]] = []
+    summary: dict[str, dict[str, list[float]]] = {}
 
     for model in models:
         summary[model] = {m: [] for m in metrics}
@@ -109,12 +113,15 @@ def run(config_path: Path) -> dict:
             result["wall_time_seconds"] = wall_time
             per_run.append(result)
 
-    aggregate: Dict[str, Dict[str, Dict[str, float]]] = {}
+    aggregate: dict[str, dict[str, dict[str, float]]] = {}
     for model in models:
         aggregate[model] = {}
         for metric, values in summary[model].items():
             mean, ci_lo, ci_hi = confidence_interval(values, confidence_level=0.95)
-            aggregate[model][metric] = {"mean": mean, "ci95": (ci_hi - ci_lo) / 2 if len(values) > 1 else 0.0}
+            aggregate[model][metric] = {
+                "mean": mean,
+                "ci95": (ci_hi - ci_lo) / 2 if len(values) > 1 else 0.0,
+            }
 
     artifact = {
         "experiment": config["experiment_name"],

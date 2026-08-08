@@ -46,3 +46,8 @@ mlruns/
 dist/
 build/
 *.egg-info/
+
+# Coverage artifacts (generated; regenerate with the pytest command in CONTRIBUTING.md)
+.coverage
+.coverage.*
+htmlcov/

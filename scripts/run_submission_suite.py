@@ -13,7 +13,7 @@ import platform
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -24,13 +24,17 @@ import yaml
 from physics_discovery.core.agent import DiscoveryAgent
 from physics_discovery.data.synthetic import SplitData as DatasetSplit
 from physics_discovery.data.synthetic import generate_synthetic_regression
-from physics_discovery.evaluation.metrics import compute_fit_metrics, confidence_interval, paired_significance
+from physics_discovery.evaluation.metrics import (
+    compute_fit_metrics,
+    confidence_interval,
+    paired_significance,
+)
 from physics_discovery.generators.baselines import BaselineModel
 from physics_discovery.generators.ensemble import Ensemble
 from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator
 
 
-def _hardware_metadata() -> Dict[str, Any]:
+def _hardware_metadata() -> dict[str, Any]:
     metadata = {
         "python_version": sys.version.split()[0],
         "platform": platform.platform(),
@@ -43,7 +47,9 @@ def _hardware_metadata() -> Dict[str, Any]:
 
         metadata["torch_version"] = torch.__version__
         metadata["cuda_available"] = bool(torch.cuda.is_available())
-        metadata["cuda_device_count"] = int(torch.cuda.device_count()) if torch.cuda.is_available() else 0
+        metadata["cuda_device_count"] = (
+            int(torch.cuda.device_count()) if torch.cuda.is_available() else 0
+        )
     except Exception:
         metadata["torch_version"] = None
         metadata["cuda_available"] = False
@@ -51,7 +57,7 @@ def _hardware_metadata() -> Dict[str, Any]:
     return metadata
 
 
-def _run_pysr_global(data: DatasetSplit, seed: int) -> Tuple[Any, str]:
+def _run_pysr_global(data: DatasetSplit, seed: int) -> tuple[Any, str]:
     model = SymbolicHypothesisGenerator(
         {
             "backend": "gplearn",
@@ -64,20 +70,22 @@ def _run_pysr_global(data: DatasetSplit, seed: int) -> Tuple[Any, str]:
     return model.predict(data.x_test), model.equation
 
 
-def _run_neural_moe(data: DatasetSplit, seed: int) -> Tuple[Any, str]:
+def _run_neural_moe(data: DatasetSplit, seed: int) -> tuple[Any, str]:
     model = Ensemble({"random_state": seed, "n_estimators": 250, "max_iter": 400})
     model.fit(data.x_train, data.y_train)
     return model.predict(data.x_test), "neural_moe_ensemble"
 
 
-def _run_baseline(data: DatasetSplit, seed: int, model_type: str) -> Tuple[Any, str]:
+def _run_baseline(data: DatasetSplit, seed: int, model_type: str) -> tuple[Any, str]:
     model = BaselineModel({"model_type": model_type, "random_state": seed})
     model.fit(data.x_train, data.y_train)
     return model.predict(data.x_test), model_type
 
 
-def _run_discovery_agent(data: DatasetSplit, seed: int, variant: str, budget: Dict[str, Any]) -> Tuple[Any, str]:
-    agent_cfg: Dict[str, Any] = {
+def _run_discovery_agent(
+    data: DatasetSplit, seed: int, variant: str, budget: dict[str, Any]
+) -> tuple[Any, str]:
+    agent_cfg: dict[str, Any] = {
         "agent": {
             "num_regimes": int(budget.get("regimes", 3)),
             "use_verification": True,
@@ -104,7 +112,9 @@ def _run_discovery_agent(data: DatasetSplit, seed: int, variant: str, budget: Di
         agent.step(obs)
 
     if not agent.memory or not agent.memory.hypotheses:
-        raise RuntimeError(f"Variant '{variant}' produced no hypotheses; implementation wiring appears broken.")
+        raise RuntimeError(
+            f"Variant '{variant}' produced no hypotheses; implementation wiring appears broken."
+        )
 
     best = max(agent.memory.hypotheses, key=lambda h: getattr(h, "score", float("-inf")))
     y_pred = best.evaluate(data.x_test)
@@ -123,7 +133,7 @@ def _runner_for_variant(variant: str):
     raise NotImplementedError(f"Missing implementation wiring for model variant: {variant}")
 
 
-def _write_csv(rows: List[Dict[str, Any]], path: Path) -> None:
+def _write_csv(rows: list[dict[str, Any]], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
         return
@@ -133,7 +143,7 @@ def _write_csv(rows: List[Dict[str, Any]], path: Path) -> None:
         writer.writerows(rows)
 
 
-def run_config(config_path: Path, output_root: Path) -> Dict[str, str]:
+def run_config(config_path: Path, output_root: Path) -> dict[str, str]:
     with config_path.open() as handle:
         config = yaml.safe_load(handle)
 
@@ -155,7 +165,7 @@ def run_config(config_path: Path, output_root: Path) -> Dict[str, str]:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     hardware = _hardware_metadata()
-    per_seed_rows: List[Dict[str, Any]] = []
+    per_seed_rows: list[dict[str, Any]] = []
 
     for variant in variants:
         for seed in seeds:
@@ -185,7 +195,7 @@ def run_config(config_path: Path, output_root: Path) -> Dict[str, str]:
             }
             per_seed_rows.append(row)
 
-    summary_rows: List[Dict[str, Any]] = []
+    summary_rows: list[dict[str, Any]] = []
     for variant in variants:
         subset = [r for r in per_seed_rows if r["model"] == variant]
         for metric in metrics + ["runtime_seconds"]:
@@ -206,7 +216,11 @@ def run_config(config_path: Path, output_root: Path) -> Dict[str, str]:
 
     significance_rows = paired_significance(
         per_seed_rows,
-        metrics=[m for m in metrics if m in {"rmse", "mae", "calibration_error", "symbolic_complexity", "runtime_seconds"}],
+        metrics=[
+            m
+            for m in metrics
+            if m in {"rmse", "mae", "calibration_error", "symbolic_complexity", "runtime_seconds"}
+        ],
         baseline="discovery_agent_full" if "discovery_agent_full" in variants else variants[0],
     )
 
@@ -249,9 +263,15 @@ def run_config(config_path: Path, output_root: Path) -> Dict[str, str]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run benchmark submission suite for all paper configs.")
-    parser.add_argument("--config-glob", default="configs/paper/*.yaml", help="Glob for benchmark config files.")
-    parser.add_argument("--output-root", default="results/submission_suite", help="Directory for run artifacts.")
+    parser = argparse.ArgumentParser(
+        description="Run benchmark submission suite for all paper configs."
+    )
+    parser.add_argument(
+        "--config-glob", default="configs/paper/*.yaml", help="Glob for benchmark config files."
+    )
+    parser.add_argument(
+        "--output-root", default="results/submission_suite", help="Directory for run artifacts."
+    )
     args = parser.parse_args()
 
     config_paths = sorted(Path(".").glob(args.config_glob))

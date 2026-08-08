@@ -1,4 +1,5 @@
 import unittest
+
 import numpy as np
 
 from physics_discovery.core.belief import GeodesicConfidenceUpdater

@@ -23,7 +23,9 @@ try:
         register,
     )
 except ImportError as exc:
-    pytest.skip(f"physics_discovery.plugins.feynman not importable here: {exc}", allow_module_level=True)
+    pytest.skip(
+        f"physics_discovery.plugins.feynman not importable here: {exc}", allow_module_level=True
+    )
 
 EQUATION_ID = "coulomb_force"
 

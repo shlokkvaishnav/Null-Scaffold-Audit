@@ -18,9 +18,9 @@ __all__ = [
     "AlgorithmPlugin",
     "Dataset",
     "DiscoveryOrchestrator",
-    "discover_plugins",
     "DomainPlugin",
     "ExperimentConfig",
     "PluginRegistry",
     "RunResult",
+    "discover_plugins",
 ]

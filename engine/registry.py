@@ -7,7 +7,8 @@ same registration surface later without changing callers.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Dict
+from collections.abc import Callable
+from typing import Any
 
 from engine.plugin import AlgorithmPlugin, DomainPlugin
 
@@ -19,8 +20,8 @@ class PluginRegistry:
     """Holds algorithm and domain plugin factories, keyed by name."""
 
     def __init__(self) -> None:
-        self._algorithms: Dict[str, AlgorithmFactory] = {}
-        self._domains: Dict[str, DomainFactory] = {}
+        self._algorithms: dict[str, AlgorithmFactory] = {}
+        self._domains: dict[str, DomainFactory] = {}
 
     def register_algorithm(self, name: str, factory: AlgorithmFactory) -> None:
         if name in self._algorithms:

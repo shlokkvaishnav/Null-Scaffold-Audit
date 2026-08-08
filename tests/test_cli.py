@@ -35,7 +35,9 @@ try:
     # the same downstream import here rather than at `from cli.main import app`.
     from physics_discovery.plugins import feynman  # noqa: F401
 except ImportError as exc:
-    pytest.skip(f"physics_discovery.plugins.feynman not importable here: {exc}", allow_module_level=True)
+    pytest.skip(
+        f"physics_discovery.plugins.feynman not importable here: {exc}", allow_module_level=True
+    )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 runner = CliRunner()

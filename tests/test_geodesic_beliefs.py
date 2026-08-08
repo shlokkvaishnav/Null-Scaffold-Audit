@@ -1,6 +1,9 @@
-import numpy as np
 import unittest
+
+import numpy as np
+
 from physics_discovery.core.belief import GeodesicConfidenceUpdater
+
 
 class TestGeodesicConfidenceUpdater(unittest.TestCase):
     def test_eta_zero_stationary(self):
@@ -50,5 +53,6 @@ class TestGeodesicConfidenceUpdater(unittest.TestCase):
 
         self.assertAlmostEqual(np.sum(new_pi), 1.0, places=6)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

@@ -15,21 +15,20 @@ An algorithm plugin needs exactly four things:
 
 ```python
 class MyAlgorithm:
-    name = "my_algorithm"                    # unique, used as the registry key
+    name = "my_algorithm"  # unique, used as the registry key
 
-    def __init__(self, **config):            # constructor takes only kwargs
+    def __init__(self, **config):  # constructor takes only kwargs
         ...
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> "MyAlgorithm":
         ...
-        return self                          # must return self
+        return self  # must return self
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        ...
+    def predict(self, X: np.ndarray) -> np.ndarray: ...
 
     @property
     def equation(self) -> str | None:
-        return None                          # None is correct if not symbolic
+        return None  # None is correct if not symbolic
 ```
 
 If you're wrapping an existing fit/predict-style model (most sklearn-shaped

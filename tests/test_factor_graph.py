@@ -1,13 +1,17 @@
-import numpy as np
 import unittest
-from physics_discovery.validation.equation_validity import EquationValidator
+
+import numpy as np
+
 from physics_discovery.core.belief import FactorGraphConfidenceUpdater
+from physics_discovery.validation.equation_validity import EquationValidator
+
 
 # Mock hypothesis class targeting string equations and regime ids
 class MockHypothesis:
     def __init__(self, eq, regime_id):
         self.equation = eq
         self.regime_id = regime_id
+
 
 class TestFactorGraphPropagation(unittest.TestCase):
     def setUp(self):
@@ -77,5 +81,6 @@ class TestFactorGraphPropagation(unittest.TestCase):
         self.assertTrue(new_pi[1] > 0.1)
         self.assertAlmostEqual(np.sum(new_pi), 1.0, places=8)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
