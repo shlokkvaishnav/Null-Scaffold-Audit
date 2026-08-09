@@ -1,0 +1,102 @@
+{
+  "kinetic_energy": {
+    "verdict": "CONTRIBUTES",
+    "restarts_per_seed": 3,
+    "treatment_evaluations": 3000,
+    "control_evaluations": 3000,
+    "identical_representation_rate": 0.0,
+    "degenerate": true,
+    "mean_distinct_ratio": 0.3333333333333333,
+    "treatment_representations": [
+      "mul(sqrt(X0), mul(sqrt(sqrt(X0)), mul(X1, X0)))",
+      "mul(X1, add(sub(mul(X0, X0), mul(mul(X0, X0), 0.583)), X1))",
+      "add(add(mul(X1, X1), mul(X0, X0)), mul(mul(add(mul(X1, X1), div(-0.781, X1)), add(0.739, 0.925)), add(0.739, 0.925)))",
+      "mul(add(X1, add(X1, add(X1, add(X1, X1)))), X1)"
+    ],
+    "control_representations": [
+      "mul(X1, add(sub(mul(X0, X0), mul(mul(X0, X0), 0.583)), X1))",
+      "div(mul(mul(0.556, X1), div(X1, 0.806)), sqrt(0.027))",
+      "add(cos(sqrt(X1)), add(mul(X1, X1), add(cos(sin(sin(sqrt(add(0.589, X1))))), mul(cos(div(div(sqrt(X0), add(X0, -0.569)), X0)), add(cos(sqrt(X1)), add(mul(X1, X1), add(cos(X1), mul(cos(div(div(sqrt(X0), add(X0, -0.569)), X0)), div(add(add(cos(X1), mul(X1, X0)), sqrt(add(X0, -0.782))), 0.227)))))))))",
+      "add(mul(X0, mul(X0, X1)), div(sub(X0, -0.591), mul(X0, mul(X0, X0))))"
+    ],
+    "per_metric": {
+      "rmse": {
+        "verdict": "INCONCLUSIVE",
+        "observed_difference": 71.98896654128058,
+        "ci_low": -178.3492986221017,
+        "ci_high": 335.6636294976626,
+        "margin": 83.99520401675193,
+        "power": 0.0,
+        "n": 4
+      },
+      "symbolic_complexity": {
+        "verdict": "CONTRIBUTES",
+        "observed_difference": 52.5,
+        "ci_low": 5.5,
+        "ci_high": 142.0,
+        "margin": 2.0,
+        "power": 0.0,
+        "n": 4
+      },
+      "exact_recovery": {
+        "verdict": "NULL",
+        "observed_difference": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "margin": 0.1,
+        "power": 1.0,
+        "n": 4
+      }
+    }
+  },
+  "coulomb_force": {
+    "verdict": "HARMFUL",
+    "restarts_per_seed": 3,
+    "treatment_evaluations": 3000,
+    "control_evaluations": 3000,
+    "identical_representation_rate": 0.0,
+    "degenerate": true,
+    "mean_distinct_ratio": 0.3333333333333333,
+    "treatment_representations": [
+      "div(div(add(-0.651, X1), X3), mul(mul(X3, X2), add(0.387, X1)))",
+      "sin(div(sin(sub(div(X1, X2), sqrt(sqrt(cos(sqrt(X3)))))), add(sqrt(cos(sqrt(X3))), add(sqrt(sin(X1)), mul(sqrt(sub(X3, 0.045)), add(add(X1, X0), sub(X3, X1)))))))",
+      "mul(mul(div(0.386, mul(X3, X3)), sin(X2)), sqrt(sin(X2)))",
+      "sub(X1, X1)"
+    ],
+    "control_representations": [
+      "mul(mul(div(0.386, mul(X3, X3)), sin(X2)), sqrt(sin(X2)))",
+      "sub(X0, X0)",
+      "div(mul(sin(X2), sub(X0, X0)), sin(sin(X3)))",
+      "log(div(X3, X3))"
+    ],
+    "per_metric": {
+      "rmse": {
+        "verdict": "CONTRIBUTES",
+        "observed_difference": 0.022660699463709924,
+        "ci_low": 0.009979853933856789,
+        "ci_high": 0.03844733372369318,
+        "margin": 0.004381262751192173,
+        "power": 0.0,
+        "n": 4
+      },
+      "symbolic_complexity": {
+        "verdict": "HARMFUL",
+        "observed_difference": -41.25,
+        "ci_low": -116.5,
+        "ci_high": -2.25,
+        "margin": 2.0,
+        "power": 0.0,
+        "n": 4
+      },
+      "exact_recovery": {
+        "verdict": "NULL",
+        "observed_difference": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "margin": 0.1,
+        "power": 1.0,
+        "n": 4
+      }
+    }
+  }
+}
