@@ -1,7 +1,9 @@
 """Run the null-scaffold audit against a registered pipeline.
 
-    python scripts/run_null_scaffold_audit.py --domain physics --subset smoke --seeds 10
-    python scripts/run_null_scaffold_audit.py --domain synthetic --seeds 10
+    python scripts/run_null_scaffold_audit.py \
+        --domain physics \
+        --scaffold plugins.physics.audit_adapter:DiscoveryAgentScaffold \
+        --subset smoke --seeds 10 --workers 8
 
 Writes JSON and CSV artifacts under `results/null_scaffold_audit/`. Every number
 this project reports about the audit comes from these files (Article 13); none
@@ -10,7 +12,9 @@ is typed into prose by hand.
 This script names no scientific domain. It asks the plugin registry for a
 problem source by name and imports the scaffold from a path given on the command
 line, so auditing a new domain means registering a source in that domain's
-plugin and changing nothing here. That is the property `--domain synthetic`
+plugin and changing nothing here. Both are required rather than defaulted: a
+default naming one domain would contradict the sentence above, and it also makes
+every recorded command self-describing. That is the property `--domain synthetic`
 exists to demonstrate: if the audit only ever ran against the domain it was
 written for, "domain independent" would be an intention rather than a result.
 
@@ -38,6 +42,7 @@ import csv
 import dataclasses
 import importlib
 import json
+import multiprocessing
 import sys
 from pathlib import Path
 from typing import Any
@@ -61,12 +66,6 @@ HIGHER_IS_BETTER = {
     "symbolic_complexity": False,
     "exact_recovery": True,
 }
-
-# The pipeline under audit, as an import path. A default keeps the common
-# invocation short; naming it here rather than deriving it from the domain keeps
-# the scaffold and the problems independently selectable, which is what lets one
-# scaffold be audited on a domain it was not written for.
-DEFAULT_SCAFFOLD = "plugins.physics.audit_adapter:DiscoveryAgentScaffold"
 
 SMOKE_SUBSET_SIZE = 8
 
@@ -137,15 +136,24 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--domain",
-        default="physics",
-        help="Registered audit problem source (see --list-domains).",
+        default=None,
+        help="Registered audit problem source (see --list-domains). Required.",
     )
     parser.add_argument(
         "--list-domains",
         action="store_true",
         help="Print the registered problem sources and exit.",
     )
-    parser.add_argument("--scaffold", default=DEFAULT_SCAFFOLD, help="module:Attribute to audit.")
+    parser.add_argument(
+        "--scaffold", default=None, help="module:Attribute to audit. Required."
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Processes to spread seeds across. Seeds are independent, so this "
+        "changes wall-clock only -- never a verdict.",
+    )
     parser.add_argument("--subset", choices=["smoke", "all"], default="smoke")
     parser.add_argument("--problems", nargs="*", default=None, help="Explicit problem ids.")
     parser.add_argument("--seeds", type=int, default=10)
@@ -161,6 +169,12 @@ def main() -> int:
     if args.list_domains:
         print(f"[audit] registered problem sources: {registry.list_problem_sources()}")
         return 0
+
+    if not args.domain or not args.scaffold:
+        parser.error(
+            "--domain and --scaffold are both required. "
+            f"Registered domains: {registry.list_problem_sources()}"
+        )
 
     try:
         source = registry.build_problem_source(args.domain)
@@ -198,6 +212,7 @@ def main() -> int:
         "population_size": args.population_size,
         "generations": args.generations,
         "n_samples": args.n_samples,
+        "workers": args.workers,
         "evaluations_per_fit": args.population_size * args.generations,
         "margins": {
             "rmse": f"{RMSE_MARGIN_FRACTION} * std(y_test)",
@@ -206,7 +221,17 @@ def main() -> int:
         },
     }
 
-    print(f"[audit] domain={args.domain} scaffold={args.scaffold} problems={len(problem_ids)}")
+    # Seeds are independent by construction, and both Pool.map and the builtin
+    # preserve input order, so this changes wall-clock and nothing else. It has
+    # to be processes rather than threads: the adapter counts real fits by
+    # patching a class attribute, which is process-wide state.
+    pool = multiprocessing.Pool(args.workers) if args.workers > 1 else None
+    map_fn = pool.map if pool is not None else map
+
+    print(
+        f"[audit] domain={args.domain} scaffold={args.scaffold} "
+        f"problems={len(problem_ids)} workers={args.workers}"
+    )
 
     for problem_id in problem_ids:
         problem = source.build_problem(problem_id, n_samples=args.n_samples, seed=0)
@@ -218,6 +243,7 @@ def main() -> int:
                 seeds,
                 margins=margins_for(problem),
                 higher_is_better=HIGHER_IS_BETTER,
+                map_fn=map_fn,
             )
         except NotSeparableError as exc:
             print(f"[audit] {problem_id}: NOT_SEPARABLE ({exc})", flush=True)
@@ -281,6 +307,10 @@ def main() -> int:
         write_artifacts(args.out, config, reports, rows)
 
     write_artifacts(args.out, config, reports, rows)
+
+    if pool is not None:
+        pool.close()
+        pool.join()
 
     verdict_counts: dict[str, int] = {}
     for report_row in reports:

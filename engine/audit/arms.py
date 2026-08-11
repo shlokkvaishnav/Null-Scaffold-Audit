@@ -190,7 +190,7 @@ def run_arms(
 
     base = scaffold.unwrap()  # raises NotSeparableError if there is no inner primitive
 
-    treatment = list(map_fn(lambda s: scaffold.run(problem, s), seeds))
+    treatment = list(map_fn(_RunTreatment(scaffold, problem), seeds))
 
     # The control's budget is read from what the treatment actually spent, not
     # from what it was configured to spend. A wrapper that exits early has its
@@ -200,18 +200,7 @@ def run_arms(
     per_seed_evaluations = treatment_evaluations // len(seeds)
     restarts = _budget_matched_restarts(per_seed_evaluations, base.restart_cost)
 
-    def control_for(seed: int) -> SearchOutcome:
-        outcomes = [base.search(problem, seed * _SEED_STRIDE + r) for r in range(restarts)]
-        best = base.select(outcomes)
-        # Report the whole arm's spend, not just the winning restart's: the
-        # restarts that lost were still paid for.
-        return SearchOutcome(
-            metrics=best.metrics,
-            evaluations_used=sum(o.evaluations_used for o in outcomes),
-            representation=best.representation,
-        )
-
-    control = list(map_fn(control_for, seeds))
+    control = list(map_fn(_RunControl(base, problem, restarts), seeds))
 
     return ArmOutcomes(
         treatment=treatment,
@@ -221,6 +210,50 @@ def run_arms(
         treatment_evaluations=treatment_evaluations,
         control_evaluations=sum(o.evaluations_used for o in control),
     )
+
+
+@dataclass(frozen=True)
+class _RunTreatment:
+    """One treatment-arm run, as a picklable callable.
+
+    `map_fn` is this module's parallelism seam, and every obvious parallel
+    implementation of it -- `multiprocessing.Pool.map`, `ProcessPoolExecutor.map`
+    -- pickles the callable it is handed. A lambda or a nested function cannot be
+    pickled, so passing one here made the seam decorative: it worked with the
+    default `map` and failed with every process pool. These small classes are
+    what actually open it.
+
+    Threads are not an option regardless: the adapter counts real fits by
+    patching a class attribute, which is process-wide.
+    """
+
+    scaffold: Any
+    problem: Any
+
+    def __call__(self, seed: int) -> SearchOutcome:
+        return self.scaffold.run(self.problem, seed)
+
+
+@dataclass(frozen=True)
+class _RunControl:
+    """One control-arm run: `restarts` independent searches, then the pipeline's own pick."""
+
+    base: Any
+    problem: Any
+    restarts: int
+
+    def __call__(self, seed: int) -> SearchOutcome:
+        outcomes = [
+            self.base.search(self.problem, seed * _SEED_STRIDE + r) for r in range(self.restarts)
+        ]
+        best = self.base.select(outcomes)
+        # Report the whole arm's spend, not just the winning restart's: the
+        # restarts that lost were still paid for.
+        return SearchOutcome(
+            metrics=best.metrics,
+            evaluations_used=sum(o.evaluations_used for o in outcomes),
+            representation=best.representation,
+        )
 
 
 def _overall(per_metric: Mapping[str, MetricVerdict]) -> Verdict:
