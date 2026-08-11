@@ -288,3 +288,45 @@ def test_main_reports_suppressions_on_an_otherwise_clean_tree(
     write(tmp_path, "mod.py", "import plugins  # di: allow -- tracked by ADR-0001\n")
     assert checker.main(["--path", str(tmp_path)]) == 0
     assert "tracked by ADR-0001" in capsys.readouterr().out
+
+
+# --------------------------------------------------------------------------
+# The gate itself, run against the real tree
+# --------------------------------------------------------------------------
+#
+# Everything above tests the checker against fixtures. None of it tested the
+# repository, so Article 5 -- "the project's central architectural claim" --
+# held only while someone remembered to run the tool by hand. These close that
+# gap: a change smuggling a domain name into the core now fails the suite
+# rather than waiting to be noticed.
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+GATED_PACKAGES = ["engine", "algorithms"]
+
+
+@pytest.mark.parametrize("package", GATED_PACKAGES)
+def test_the_real_package_is_domain_independent(package: str) -> None:
+    """`validators/` is deliberately absent from this list.
+
+    Constraint rules cannot be domain independent and should not pretend to be:
+    "no logarithm of a negative" is a fact about expressions, but "no negative
+    mass" is a fact about a field. Gating validators/ would either fail
+    permanently or force the rules into a vocabulary that cannot express them.
+    See validators/__init__.py.
+    """
+    violations, _ = checker.check_tree(REPO_ROOT / package)
+    assert not violations, "\n".join(v.render(REPO_ROOT) for v in violations)
+
+
+@pytest.mark.parametrize("package", GATED_PACKAGES)
+def test_the_real_package_carries_no_unexplained_suppressions(package: str) -> None:
+    """A suppression is allowed, but only with a stated reason.
+
+    The escape hatch requires one already; this checks that none has been added
+    to the core with an empty or placeholder justification, which is how an
+    exception list starts becoming a loophole.
+    """
+    _, suppressions = checker.check_tree(REPO_ROOT / package)
+    for record in suppressions:
+        assert len(record.reason.strip()) > 10, f"{record.path}:{record.line} -- thin reason"

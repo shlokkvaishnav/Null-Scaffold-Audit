@@ -5,7 +5,7 @@ Follow it when adding a new algorithm, a new scientific domain, or both.
 
 ## Before you start: read the reference implementation
 
-`physics_discovery/plugins/feynman.py` is a complete, working example of
+`plugins/physics/plugin.py` is a complete, working example of
 every pattern below. When in doubt, match what it does rather than inventing
 a new pattern.
 
@@ -33,7 +33,7 @@ class MyAlgorithm:
 
 If you're wrapping an existing fit/predict-style model (most sklearn-shaped
 APIs), the adapter is usually 15-20 lines — see `GBMBaselineAlgorithm` and
-`NeuralEnsembleAlgorithm` in `physics_discovery/plugins/feynman.py` for the
+`NeuralEnsembleAlgorithm` in `plugins/physics/plugin.py` for the
 "no equation" case, and `SymbolicRegressionAlgorithm` for the "has an
 equation" case.
 
@@ -93,12 +93,12 @@ registered exactly the same way, in *this* repo's `pyproject.toml`:
 
 ```toml
 [project.entry-points."sde.plugins"]
-feynman_physics = "physics_discovery.plugins.feynman:register"
-synthetic_regression = "physics_discovery.plugins.synthetic:register"
+feynman_physics = "plugins.physics.plugin:register"
+synthetic_regression = "plugins.synthetic.plugin:register"
 ```
 
 They are not special-cased anywhere in `engine/` or `cli/` — if you deleted
-those two lines, `physics_discovery`'s plugins would simply stop being
+those two lines, the bundled plugins would simply stop being
 discovered, exactly like removing anyone else's entry point would. See
 `engine/discovery.py` for the loader itself: it loads every entry point in
 the `"sde.plugins"` group, calls `register(registry)` on each, and warns
@@ -137,11 +137,11 @@ module, so guard the real downstream import, not a proxy for it.
 
 ## What the second plugin already validated
 
-`physics_discovery/plugins/synthetic.py` (`SyntheticRegressionDomainPlugin`)
+`plugins/synthetic/plugin.py` (`SyntheticRegressionDomainPlugin`)
 is the second plugin the interfaces were checked against, per the principle
 below — a domain with no `equation_id`, no known ground-truth formula, and
 different `domain_kwargs` entirely, run through the *same* algorithm plugins
-`physics_discovery/plugins/feynman.py` registers. It required **no changes**
+`plugins/physics/plugin.py` registers. It required **no changes**
 to `Dataset`, `AlgorithmPlugin`, or `DomainPlugin` — `metadata` being a plain
 `dict` and `validate`/`score` not assuming a ground-truth comparison was
 already enough. See `tests/test_synthetic_plugin.py`.
@@ -155,7 +155,7 @@ plugin," not "proven forever."
 ## Why a second (and third) plugin matters
 
 The interfaces in `engine/plugin.py` were designed against exactly one real
-implementation (physics_discovery) and validated against a second
+implementation (plugins/physics) and validated against a second
 (`synthetic_regression`, above). A contract shaped by too few examples is a
 guess dressed up as a decision. **Before treating these interfaces as fully
 stable**, keep stress-testing with plugins that are meaningfully different
