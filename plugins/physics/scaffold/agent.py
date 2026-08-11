@@ -78,6 +78,12 @@ class DiscoveryAgent:
             self.perception = PerceptionModule(self.config)
 
         self.observation = self.perception.encode(data)
+        # Stamp which pass this is. Without it the reasoner cannot tell one
+        # iteration from another, and a deterministic search handed identical
+        # inputs returns an identical answer -- exactly what the audit's
+        # degeneracy check was reporting. `encode` builds a fresh dict, so the
+        # caller's data is not mutated.
+        self.observation["iteration"] = self.iteration
         return self.observation
 
     def retrieve(self) -> tuple:

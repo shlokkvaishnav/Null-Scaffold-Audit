@@ -8,6 +8,35 @@ Supports two modes:
 
 import itertools
 
+# Large co-prime strides so that (iteration, regime) pairs cannot collide onto
+# the same seed for any small configuration -- iteration 2 of regime 0 must not
+# repeat the search that iteration 0 of regime 2 already ran.
+_ITERATION_STRIDE = 7919
+_REGIME_STRIDE = 104729
+_SEED_MODULUS = 2**31 - 1
+
+
+def _search_seed(base_seed: int, iteration: int, regime_id: int) -> int:
+    """Derive a distinct-but-reproducible search seed for one (iteration, regime).
+
+    The loop is supposed to explore. Handing the same seed to a deterministic
+    search on every iteration means it cannot: the second and third calls
+    recompute the first one's answer, at full cost. This spreads the configured
+    seed across iterations so successive proposals differ, while keeping the
+    whole run a pure function of `base_seed` -- a reproducible experiment, not a
+    randomised one.
+
+    Note what this does NOT do: it makes iterations *different*, not
+    *informed*. Nothing here carries iteration k's outcome into iteration k+1;
+    `priors` is still passed to the reasoner and ignored. Whether the loop
+    should learn from its own history is a design question, and the audit will
+    now measure the difference between "three varied restarts" and "a loop"
+    rather than being unable to tell them apart.
+    """
+    return (
+        int(base_seed) + iteration * _ITERATION_STRIDE + regime_id * _REGIME_STRIDE
+    ) % _SEED_MODULUS
+
 
 class DeterministicReasoner:
     """
@@ -65,18 +94,28 @@ class GplearnReasoner:
         try:
             from algorithms.symbolic import SymbolicHypothesisGenerator
 
+            iteration = observation.get("iteration", 0) if isinstance(observation, dict) else 0
+            agent_config = self.config.get("agent", {})
             gplearn_config = {
                 "backend": "gplearn",
-                **{k: v for k, v in self.config.get("agent", {}).items() if k in {
-                    "population_size", "generations", "stopping_criteria", "random_state",
+                **{k: v for k, v in agent_config.items() if k in {
+                    "population_size", "generations", "stopping_criteria",
                 }},
+                # NOT the configured random_state verbatim. Passing that made
+                # every iteration an identical call -- same X, same y, same
+                # seed, same hyperparameters, and gplearn is deterministic. All
+                # three iterations produced one distinct proposal, which is why
+                # the audit's degeneracy ratio was exactly 1/3 on every problem,
+                # at every budget, in both domains: arithmetic, not a tendency.
+                "random_state": _search_seed(
+                    agent_config.get("random_state", 0), iteration, regime_id
+                ),
             }
             model = SymbolicHypothesisGenerator(gplearn_config)
             model.fit(X, y)
             equation_str = model.equation
 
             from engine.expressions.hypothesis import Hypothesis
-            iteration = observation.get("iteration", 0) if isinstance(observation, dict) else 0
             return Hypothesis(equation=equation_str, regime_id=regime_id, iteration=iteration)
         # Blanket by necessity: a gplearn fit over caller-supplied data raises
         # anything from ValueError on degenerate input to arbitrary numpy
