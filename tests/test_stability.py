@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from physics_discovery.validation.dynamical_stability import LyapunovScreener
+from validators.dynamical_stability import LyapunovScreener
 
 
 class MockStableHypothesis:

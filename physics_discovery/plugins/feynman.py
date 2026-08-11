@@ -25,7 +25,7 @@ from engine.plugin import Dataset
 from engine.registry import PluginRegistry
 from physics_discovery.core.agent import DiscoveryAgent
 from physics_discovery.data.feynman_loader import generate_feynman_dataset
-from physics_discovery.validation.equation_validity import EquationValidator
+from validators.equation_validity import EquationValidator
 
 
 class SymbolicRegressionAlgorithm:

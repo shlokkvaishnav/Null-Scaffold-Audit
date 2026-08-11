@@ -31,7 +31,7 @@ from engine.evaluation.metrics import compute_fit_metrics
 from engine.expressions.hypothesis import Hypothesis
 from engine.scoring import HypothesisScorer
 from physics_discovery.core.agent import DiscoveryAgent
-from physics_discovery.validation.equation_validity import EquationValidator
+from validators.equation_validity import EquationValidator
 
 # gplearn defaults as configured by SymbolicHypothesisGenerator._build_model.
 DEFAULT_POPULATION_SIZE = 500

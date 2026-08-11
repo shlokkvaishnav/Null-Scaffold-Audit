@@ -20,7 +20,7 @@ from engine.evaluation.metrics import compute_fit_metrics
 from engine.plugin import Dataset
 from engine.registry import PluginRegistry
 from physics_discovery.data.synthetic import generate_synthetic_regression
-from physics_discovery.validation.equation_validity import EquationValidator
+from validators.equation_validity import EquationValidator
 
 
 class SyntheticRegressionDomainPlugin:

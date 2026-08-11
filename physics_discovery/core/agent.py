@@ -6,7 +6,8 @@ Manages the Perception -> Retrieval -> Reasoning -> Verification -> Learning loo
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any
 
-from ..validation.equation_validity import EquationValidator
+from validators.equation_validity import EquationValidator
+
 from .loop_control import ConvergenceController
 
 if TYPE_CHECKING:

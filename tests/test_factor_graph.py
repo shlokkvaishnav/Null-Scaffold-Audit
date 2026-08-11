@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from physics_discovery.core.belief import FactorGraphConfidenceUpdater
-from physics_discovery.validation.equation_validity import EquationValidator
+from validators.equation_validity import EquationValidator
 
 
 # Mock hypothesis class targeting string equations and regime ids
