@@ -75,6 +75,7 @@ class DiscoveryAgent:
         """
         if self.perception is None:
             from .perception import PerceptionModule
+
             self.perception = PerceptionModule(self.config)
 
         self.observation = self.perception.encode(data)
@@ -95,6 +96,7 @@ class DiscoveryAgent:
         """
         if self.retrieval_module is None:
             from .retrieval import PriorLibrary
+
             self.retrieval_module = PriorLibrary(self.config)
 
         self.priors = self.retrieval_module.retrieve_priors()
@@ -111,15 +113,14 @@ class DiscoveryAgent:
         """
         if self.reasoning_module is None:
             from .generator import HypothesisGenerator
+
             self.reasoning_module = HypothesisGenerator(self.config)
 
         self.proposed_hypotheses = []
 
         for k in range(self._num_regimes):
             h = self.reasoning_module.propose_hypothesis(
-                observation=self.observation,
-                regime_id=k,
-                priors=self.priors
+                observation=self.observation, regime_id=k, priors=self.priors
             )
             if h is not None:
                 self.proposed_hypotheses.append(h)
@@ -135,11 +136,13 @@ class DiscoveryAgent:
         """
         if self.verification_module is None:
             from engine.scoring import HypothesisScorer
+
             self.verification_module = HypothesisScorer(self.config, validator=EquationValidator())
 
         # Initialize archive if needed (for rejection logging)
         if self.memory is None:
             from .archive import HypothesisArchive
+
             self.memory = HypothesisArchive()
 
         self.verified_hypotheses = []
@@ -169,11 +172,13 @@ class DiscoveryAgent:
         # Initialize archive if needed
         if self.memory is None:
             from .archive import HypothesisArchive
+
             self.memory = HypothesisArchive()
 
         # Initialize confidence tracker if needed
         if self.belief is None:
             from .belief import ConfidenceTracker
+
             self.belief = ConfidenceTracker(num_regimes=self._num_regimes)
 
         # Update beliefs based on hypothesis scores
@@ -225,7 +230,10 @@ class DiscoveryAgent:
             # Still score them for belief updates
             if self.verification_module is None:
                 from engine.scoring import HypothesisScorer
-                self.verification_module = HypothesisScorer(self.config, validator=EquationValidator())
+
+                self.verification_module = HypothesisScorer(
+                    self.config, validator=EquationValidator()
+                )
             for h in self.verified_hypotheses:
                 self.verification_module.score_hypothesis(h, self.observation)
 
@@ -236,10 +244,12 @@ class DiscoveryAgent:
             # Initialize belief without updating
             if self.belief is None:
                 from .belief import ConfidenceTracker
+
                 self.belief = ConfidenceTracker(num_regimes=self._num_regimes)
             # Store hypotheses without belief updates
             if self.memory is None:
                 from .archive import HypothesisArchive
+
                 self.memory = HypothesisArchive()
             for h in self.verified_hypotheses:
                 self.memory.store(h)
@@ -260,7 +270,7 @@ class DiscoveryAgent:
         prev_hypotheses = None
 
         for i in range(max_iters):
-            print(f"\n--- Agent Iteration {i+1}/{max_iters} ---")
+            print(f"\n--- Agent Iteration {i + 1}/{max_iters} ---")
 
             # Get next data batch
             try:
@@ -282,7 +292,9 @@ class DiscoveryAgent:
             )
 
             # Check convergence
-            if self._loop_control.check_convergence(pi, prev_pi, current_eqs, prev_hypotheses, tol, i):
+            if self._loop_control.check_convergence(
+                pi, prev_pi, current_eqs, prev_hypotheses, tol, i
+            ):
                 break
 
             prev_pi = pi.copy() if pi is not None else None
@@ -313,7 +325,7 @@ class DiscoveryAgent:
             "num_hypotheses": len(self.memory.hypotheses) if self.memory else 0,
             "num_rejections": self.memory.get_rejection_count() if self.memory else 0,
             "num_pruned": self.memory.get_pruned_count() if self.memory else 0,
-            "top_equations": top_eqs
+            "top_equations": top_eqs,
         }
 
     def reset(self) -> None:

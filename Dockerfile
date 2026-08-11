@@ -8,8 +8,10 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./
-COPY physics_discovery ./physics_discovery
 COPY engine ./engine
+COPY algorithms ./algorithms
+COPY validators ./validators
+COPY plugins ./plugins
 COPY cli ./cli
 RUN pip install --no-cache-dir --prefix=/install ".[dev,gbm]"
 
@@ -21,8 +23,10 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /install /usr/local
-COPY physics_discovery ./physics_discovery
 COPY engine ./engine
+COPY algorithms ./algorithms
+COPY validators ./validators
+COPY plugins ./plugins
 COPY cli ./cli
 COPY scripts ./scripts
 COPY configs ./configs

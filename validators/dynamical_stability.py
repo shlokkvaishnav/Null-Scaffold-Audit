@@ -9,6 +9,7 @@ class LyapunovScreener:
     Evaluates the approximate Jacobian matrix using empirical finite-differences
     to calculate dynamical stability penalties Omega_stab(f_k).
     """
+
     def __init__(self, epsilon: float = 1e-4, delta: float = 1.0):
         """
         Args:

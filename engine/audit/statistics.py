@@ -202,7 +202,9 @@ def _claim_p_value(differences: np.ndarray, margin: float, verdict: Verdict) -> 
 
     if verdict is Verdict.NULL:
         # H0 is non-equivalence on each side; the TOST p is the weaker rejection.
-        p_above_lower = 1.0 - float(stats.t.cdf((mean + margin) / standard_error, degrees_of_freedom))
+        p_above_lower = 1.0 - float(
+            stats.t.cdf((mean + margin) / standard_error, degrees_of_freedom)
+        )
         p_below_upper = float(stats.t.cdf((mean - margin) / standard_error, degrees_of_freedom))
         return float(max(p_above_lower, p_below_upper))
 

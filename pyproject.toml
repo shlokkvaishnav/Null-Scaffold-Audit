@@ -59,8 +59,15 @@ target-version = "py311"
 # stays in the gate, so the domain-independence refactor cannot move unlinted
 # code into the core. The exclusion list has shrunk to nothing but generated
 # output, which is where it was always supposed to end up.
+#
+# `docs/` is excluded from the formatter, not from review. The RFCs and
+# engineering standards are authored specifications, and the Python samples
+# inside them are illustrations chosen by their author -- reflowing those to
+# satisfy a formatter would edit someone's argument to suit a tool. The code
+# they describe is formatted; the description of it is not.
 extend-exclude = [
     "results",
+    "docs",
 ]
 
 [tool.ruff.lint]

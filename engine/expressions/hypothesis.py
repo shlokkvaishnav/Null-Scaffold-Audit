@@ -87,10 +87,11 @@ class Hypothesis:
         self.violation_log = verifier.check(self) or {}
 
         # Check if any violations exceed threshold
-        self.valid = not any(
-            v.get("violation_rate", 0) > 0.1
-            for v in self.violation_log.values()
-        ) if self.violation_log else True
+        self.valid = (
+            not any(v.get("violation_rate", 0) > 0.1 for v in self.violation_log.values())
+            if self.violation_log
+            else True
+        )
 
         return self.valid
 
@@ -99,7 +100,7 @@ class Hypothesis:
         return {
             "likelihood": self.likelihood,
             "complexity": self.complexity,
-            "total_score": self.score
+            "total_score": self.score,
         }
 
     def __repr__(self) -> str:
@@ -118,9 +119,14 @@ class Hypothesis:
     def __hash__(self) -> int:
         return hash((self.equation, self.regime_id))
 
-    def compute_composite_score(self, y_true: np.ndarray, y_pred: np.ndarray,
-                                screener: Any, x: np.ndarray,
-                                lambdas: dict[str, float]) -> float:
+    def compute_composite_score(
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        screener: Any,
+        x: np.ndarray,
+        lambdas: dict[str, float],
+    ) -> float:
         """
         Compute total evaluation score accounting for accuracy, validity,
         parsimony, and dynamic Lyapunov stability.
@@ -135,15 +141,19 @@ class Hypothesis:
         y_pred_flat = np.asarray(y_pred).ravel()
 
         # 1. Mean Squared Error (Accuracy fit)
-        self.mse = float(np.mean((y_true_flat - y_pred_flat)**2))
+        self.mse = float(np.mean((y_true_flat - y_pred_flat) ** 2))
 
         # 2. Hard validity violations
         self.violations_penalty = 0.0
-        if hasattr(self, 'violation_log') and self.violation_log:
-            self.violations_penalty = sum(v.get("violation_rate", 0) for v in self.violation_log.values())
+        if hasattr(self, "violation_log") and self.violation_log:
+            self.violations_penalty = sum(
+                v.get("violation_rate", 0) for v in self.violation_log.values()
+            )
 
         # 3. Complexity (Parsimony proxy)
-        self.complexity = float(self.complexity if self.complexity is not None else len(self.equation))
+        self.complexity = float(
+            self.complexity if self.complexity is not None else len(self.equation)
+        )
 
         # 4. Lyapunov Stability (Dynamical Stability Screening)
         self.stability_penalty = screener.compute_stability_penalty(self, x) if screener else 0.0
@@ -154,5 +164,10 @@ class Hypothesis:
         l_s = lambdas.get("s", 1.0)
 
         # Final penalty subtraction
-        self.score = -self.mse - (l_v * self.violations_penalty) - (l_c * self.complexity) - (l_s * self.stability_penalty)
+        self.score = (
+            -self.mse
+            - (l_v * self.violations_penalty)
+            - (l_c * self.complexity)
+            - (l_s * self.stability_penalty)
+        )
         return self.score

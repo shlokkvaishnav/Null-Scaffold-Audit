@@ -18,7 +18,9 @@ try:
     from plugins.physics import plugin as feynman
     from plugins.synthetic import plugin as synthetic
 except ImportError as exc:
-    pytest.skip(f"plugins.physics/plugins.synthetic not importable here: {exc}", allow_module_level=True)
+    pytest.skip(
+        f"plugins.physics/plugins.synthetic not importable here: {exc}", allow_module_level=True
+    )
 
 
 @pytest.fixture

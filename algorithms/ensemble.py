@@ -44,5 +44,7 @@ class Ensemble:
         if not self.models:
             raise RuntimeError("Ensemble must be fit before predict.")
         X = np.asarray(X)
-        preds = np.stack([np.asarray(model.predict(X), dtype=float) for model in self.models], axis=0)
+        preds = np.stack(
+            [np.asarray(model.predict(X), dtype=float) for model in self.models], axis=0
+        )
         return preds.mean(axis=0)

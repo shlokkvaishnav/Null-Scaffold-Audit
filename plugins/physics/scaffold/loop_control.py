@@ -7,7 +7,6 @@ implementation: the convergence-check and progress-reporting logic that used
 to live inline inside the agent's `run_loop` method.
 """
 
-
 import numpy as np
 
 
@@ -45,7 +44,9 @@ class ConvergenceController:
             print("  [+] Beliefs converged")
 
             if prev_hypotheses is not None and set(current_eqs) == set(prev_hypotheses):
-                print(f"\n[CONVERGED] Belief + hypothesis set stabilized at iteration {iteration + 1}")
+                print(
+                    f"\n[CONVERGED] Belief + hypothesis set stabilized at iteration {iteration + 1}"
+                )
                 return True
 
         return False

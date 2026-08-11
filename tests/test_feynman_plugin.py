@@ -18,9 +18,7 @@ from engine.registry import PluginRegistry
 try:
     from plugins.physics.plugin import FeynmanDomainPlugin, register
 except ImportError as exc:
-    pytest.skip(
-        f"plugins.physics.plugin not importable here: {exc}", allow_module_level=True
-    )
+    pytest.skip(f"plugins.physics.plugin not importable here: {exc}", allow_module_level=True)
 
 EQUATION_ID = "coulomb_force"
 

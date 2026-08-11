@@ -68,29 +68,32 @@ class EquationValidator:
 
     def _check_division_by_zero(self, equation: str) -> dict | None:
         """Check for potential division by zero."""
-        if re.search(r'/\s*0(?!\d)', equation):
-            return {"division_by_zero": {
-                "violation_rate": 1.0,
-                "details": "Explicit division by zero detected"
-            }}
+        if re.search(r"/\s*0(?!\d)", equation):
+            return {
+                "division_by_zero": {
+                    "violation_rate": 1.0,
+                    "details": "Explicit division by zero detected",
+                }
+            }
         return None
 
     def _check_negative_log(self, equation: str) -> dict | None:
         """Check for log of a negative literal."""
-        if re.search(r'log\s*\(\s*-', equation):
-            return {"negative_log": {
-                "violation_rate": 1.0,
-                "details": "Log of negative value detected"
-            }}
+        if re.search(r"log\s*\(\s*-", equation):
+            return {
+                "negative_log": {"violation_rate": 1.0, "details": "Log of negative value detected"}
+            }
         return None
 
     def _check_imaginary_sqrt(self, equation: str) -> dict | None:
         """Check for sqrt of a negative literal."""
-        if re.search(r'sqrt\s*\(\s*-', equation):
-            return {"imaginary_sqrt": {
-                "violation_rate": 1.0,
-                "details": "Square root of negative value detected"
-            }}
+        if re.search(r"sqrt\s*\(\s*-", equation):
+            return {
+                "imaginary_sqrt": {
+                    "violation_rate": 1.0,
+                    "details": "Square root of negative value detected",
+                }
+            }
         return None
 
     def add_custom_constraint(self, name: str, check_fn) -> None:

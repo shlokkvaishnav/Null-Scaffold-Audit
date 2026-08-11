@@ -5,6 +5,7 @@ class PerceptionModule:
     """
     Grounding: converts raw input data into agent observations.
     """
+
     def __init__(self, config=None):
         self.config = config or {}
 
@@ -25,12 +26,8 @@ class PerceptionModule:
             return {
                 "features": raw_data.get("features", np.array([])),
                 "targets": raw_data.get("targets", np.array([])),
-                "meta": raw_data.get("metadata", {})
+                "meta": raw_data.get("metadata", {}),
             }
         else:
             # Handle numpy arrays or other formats
-            return {
-                "features": raw_data,
-                "targets": None,
-                "meta": {}
-            }
+            return {"features": raw_data, "targets": None, "meta": {}}

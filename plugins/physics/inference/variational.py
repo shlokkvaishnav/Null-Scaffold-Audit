@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -12,6 +11,7 @@ class JointELBO(nn.Module):
 
     L = E_q[log p(y|x,z,h)] - KL[q(z) || p(z_t|z_{t-1})] - sum_k KL[q_k(h) || p_k(h)]
     """
+
     def __init__(self, num_regimes: int, transition_prior: float = 0.9):
         """
         Args:
@@ -23,7 +23,9 @@ class JointELBO(nn.Module):
 
         # Markov transition matrix A_{j,k} representing p(z_t=k | z_{t-1}=j)
         # Initialized heavily on the diagonal to reflect temporal persistence
-        init_A = torch.ones(num_regimes, num_regimes) * ((1.0 - transition_prior) / max(1, num_regimes - 1))
+        init_A = torch.ones(num_regimes, num_regimes) * (
+            (1.0 - transition_prior) / max(1, num_regimes - 1)
+        )
         init_A.fill_diagonal_(transition_prior)
 
         # Stored dynamically as unconstrained logits for gradient descent
@@ -33,9 +35,13 @@ class JointELBO(nn.Module):
         """Returns the normalized transition probability matrix A"""
         return F.softmax(self.transition_logits, dim=1)
 
-    def forward(self, log_likelihoods: torch.Tensor, gate_probs: torch.Tensor,
-                regime_priors: torch.Tensor | None = None,
-                equation_beliefs: dict[int, dict[str, float]] | None = None) -> dict[str, torch.Tensor]:
+    def forward(
+        self,
+        log_likelihoods: torch.Tensor,
+        gate_probs: torch.Tensor,
+        regime_priors: torch.Tensor | None = None,
+        equation_beliefs: dict[int, dict[str, float]] | None = None,
+    ) -> dict[str, torch.Tensor]:
         """
         Calculate ELBO over sequenced batches.
 

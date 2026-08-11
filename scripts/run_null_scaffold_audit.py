@@ -144,9 +144,7 @@ def main() -> int:
         action="store_true",
         help="Print the registered problem sources and exit.",
     )
-    parser.add_argument(
-        "--scaffold", default=None, help="module:Attribute to audit. Required."
-    )
+    parser.add_argument("--scaffold", default=None, help="module:Attribute to audit. Required.")
     parser.add_argument(
         "--workers",
         type=int,

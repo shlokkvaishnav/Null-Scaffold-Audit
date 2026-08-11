@@ -105,8 +105,12 @@ def run_benchmark(
     results: list[dict[str, Any]] = []
 
     runners = {
-        "symbolic_regression": lambda x_tr, y_tr, x_te: _run_symbolic(x_tr, y_tr, x_te, backend, seed),
-        "discovery_agent": lambda x_tr, y_tr, x_te: _run_discovery_agent(x_tr, y_tr, x_te, backend, seed),
+        "symbolic_regression": lambda x_tr, y_tr, x_te: _run_symbolic(
+            x_tr, y_tr, x_te, backend, seed
+        ),
+        "discovery_agent": lambda x_tr, y_tr, x_te: _run_discovery_agent(
+            x_tr, y_tr, x_te, backend, seed
+        ),
         "gbm_baseline": lambda x_tr, y_tr, x_te: _run_gbm_baseline(x_tr, y_tr, x_te, seed),
     }
 

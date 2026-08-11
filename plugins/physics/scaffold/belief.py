@@ -58,7 +58,9 @@ class ConfidenceTracker:
             pi = (1 - self.REGULARIZATION_STRENGTH) * pi + self.REGULARIZATION_STRENGTH * uniform
 
         self.pi = pi
-        self.history.append({"scores": scores.copy(), "beliefs": self.pi.copy(), "entropy": entropy})
+        self.history.append(
+            {"scores": scores.copy(), "beliefs": self.pi.copy(), "entropy": entropy}
+        )
         return self.pi
 
     def _compute_entropy(self, distribution: np.ndarray) -> float:
@@ -222,7 +224,9 @@ class GeodesicConfidenceUpdater:
         safe_pi_t = np.maximum(self.pi, self.EPSILON)
         safe_pi_target = np.maximum(pi_target, self.EPSILON)
 
-        unnormalized_new_pi = np.power(safe_pi_t, 1.0 - self.eta) * np.power(safe_pi_target, self.eta)
+        unnormalized_new_pi = np.power(safe_pi_t, 1.0 - self.eta) * np.power(
+            safe_pi_target, self.eta
+        )
         self.pi = unnormalized_new_pi / (np.sum(unnormalized_new_pi) + self.EPSILON)
 
         self.history.append(

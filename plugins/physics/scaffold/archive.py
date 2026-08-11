@@ -4,7 +4,6 @@ Strategic curation of hypotheses with selective forgetting.
 """
 
 
-
 class HypothesisArchive:
     """
     Stores long-term regime transitions and valid hypotheses.
@@ -52,12 +51,12 @@ class HypothesisArchive:
             return []
 
         if regime_id is not None:
-            return [h for h in self.hypotheses
-                    if h.regime_id == regime_id and getattr(h, 'valid', True)]
+            return [
+                h for h in self.hypotheses if h.regime_id == regime_id and getattr(h, "valid", True)
+            ]
 
         if query:
-            return [h for h in self.hypotheses
-                    if getattr(h, 'valid', True)]
+            return [h for h in self.hypotheses if getattr(h, "valid", True)]
 
         return self.hypotheses.copy()
 
@@ -78,33 +77,34 @@ class HypothesisArchive:
         kept = []
 
         # Get unique regime IDs
-        regime_ids = {h.regime_id for h in self.hypotheses if hasattr(h, 'regime_id')}
+        regime_ids = {h.regime_id for h in self.hypotheses if hasattr(h, "regime_id")}
 
         for k in regime_ids:
             # Get valid hypotheses for this regime
-            candidates = [h for h in self.hypotheses
-                         if getattr(h, 'regime_id', None) == k
-                         and getattr(h, 'valid', True)]
+            candidates = [
+                h
+                for h in self.hypotheses
+                if getattr(h, "regime_id", None) == k and getattr(h, "valid", True)
+            ]
 
             # Sort by score (descending), handle None scores
-            candidates.sort(
-                key=lambda h: getattr(h, 'score', None) or float('-inf'),
-                reverse=True
-            )
+            candidates.sort(key=lambda h: getattr(h, "score", None) or float("-inf"), reverse=True)
 
             # Keep top K
-            top_k = candidates[:self.max_hypotheses_per_regime]
-            pruned = candidates[self.max_hypotheses_per_regime:]
+            top_k = candidates[: self.max_hypotheses_per_regime]
+            pruned = candidates[self.max_hypotheses_per_regime :]
 
             kept.extend(top_k)
 
             # Log pruned hypotheses
             for h in pruned:
-                self.pruned_log.append({
-                    "hypothesis": h,
-                    "score": getattr(h, 'score', None),
-                    "iteration": current_iteration
-                })
+                self.pruned_log.append(
+                    {
+                        "hypothesis": h,
+                        "score": getattr(h, "score", None),
+                        "iteration": current_iteration,
+                    }
+                )
 
         # Invalid hypotheses are NOT kept. A list of them was being built here
         # under a comment saying they were retained for analysis, but it was
@@ -122,10 +122,9 @@ class HypothesisArchive:
         Args:
             hypothesis: Rejected hypothesis
         """
-        self.rejection_log.append({
-            "hypothesis": hypothesis,
-            "violations": getattr(hypothesis, 'violation_log', {})
-        })
+        self.rejection_log.append(
+            {"hypothesis": hypothesis, "violations": getattr(hypothesis, "violation_log", {})}
+        )
 
     def get_rejection_count(self) -> int:
         """Get total number of rejections."""
@@ -144,9 +143,9 @@ class HypothesisArchive:
         """
         return [
             {
-                "regime": getattr(entry["hypothesis"], 'regime_id', None),
-                "equation": getattr(entry["hypothesis"], 'equation', None),
-                "violations": entry.get("violations", {})
+                "regime": getattr(entry["hypothesis"], "regime_id", None),
+                "equation": getattr(entry["hypothesis"], "equation", None),
+                "violations": entry.get("violations", {}),
             }
             for entry in self.rejection_log
         ]

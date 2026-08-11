@@ -191,9 +191,9 @@ def test_statistics_are_unchanged(
     for metric, expected in before["per_metric"].items():
         actual = now["per_metric"][metric]
         for field in ("observed_difference", "ci_low", "ci_high", "margin", "power"):
-            assert actual[field] == pytest.approx(
-                expected[field], abs=TOLERANCE
-            ), f"{equation_id}.{metric}.{field} moved"
+            assert actual[field] == pytest.approx(expected[field], abs=TOLERANCE), (
+                f"{equation_id}.{metric}.{field} moved"
+            )
         assert actual["n"] == expected["n"]
 
 
@@ -213,9 +213,7 @@ def test_degeneracy_is_unchanged(
 ) -> None:
     now, before = observed[equation_id], recorded[equation_id]
     assert now["degenerate"] == before["degenerate"]
-    assert now["mean_distinct_ratio"] == pytest.approx(
-        before["mean_distinct_ratio"], abs=TOLERANCE
-    )
+    assert now["mean_distinct_ratio"] == pytest.approx(before["mean_distinct_ratio"], abs=TOLERANCE)
     assert now["identical_representation_rate"] == pytest.approx(
         before["identical_representation_rate"], abs=TOLERANCE
     )

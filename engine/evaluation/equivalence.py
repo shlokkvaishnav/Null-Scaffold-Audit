@@ -157,8 +157,12 @@ def _numeric_equivalence(
         X = np.column_stack(columns)
 
         with np.errstate(all="ignore"):
-            candidate_vals = np.asarray(candidate_fn(*[X[:, i] for i in range(len(variables))]), dtype=float)
-            truth_vals = np.asarray(truth_fn(*[X[:, i] for i in range(len(variables))]), dtype=float)
+            candidate_vals = np.asarray(
+                candidate_fn(*[X[:, i] for i in range(len(variables))]), dtype=float
+            )
+            truth_vals = np.asarray(
+                truth_fn(*[X[:, i] for i in range(len(variables))]), dtype=float
+            )
 
         if candidate_vals.shape == ():
             candidate_vals = np.full(n_check_points, float(candidate_vals))
@@ -182,9 +186,9 @@ def _numeric_equivalence(
         # equivalent pair must satisfy one of them -- SRBench's rule *is* that
         # the difference or the ratio is a constant.
         difference = candidate_vals - truth_vals
-        difference_constant = bool(np.std(difference) <= _CONSTANCY_TOLERANCE * max(
-            float(np.std(truth_vals)), 1.0
-        ))
+        difference_constant = bool(
+            np.std(difference) <= _CONSTANCY_TOLERANCE * max(float(np.std(truth_vals)), 1.0)
+        )
 
         with np.errstate(all="ignore"):
             ratio = candidate_vals / truth_vals

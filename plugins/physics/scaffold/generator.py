@@ -43,6 +43,7 @@ class DeterministicReasoner:
     Simple symbolic generator to validate agent + ablation behavior.
     NOT used for final scientific results.
     """
+
     def __init__(self):
         self.templates = [
             "x0",
@@ -65,6 +66,7 @@ class GplearnReasoner:
     no Julia runtime, so this is what the agent uses out-of-the-box in
     Docker/CI, with PySR available as an opt-in upgrade).
     """
+
     def __init__(self, config):
         self.config = config or {}
 
@@ -98,9 +100,16 @@ class GplearnReasoner:
             agent_config = self.config.get("agent", {})
             gplearn_config = {
                 "backend": "gplearn",
-                **{k: v for k, v in agent_config.items() if k in {
-                    "population_size", "generations", "stopping_criteria",
-                }},
+                **{
+                    k: v
+                    for k, v in agent_config.items()
+                    if k
+                    in {
+                        "population_size",
+                        "generations",
+                        "stopping_criteria",
+                    }
+                },
                 # NOT the configured random_state verbatim. Passing that made
                 # every iteration an identical call -- same X, same y, same
                 # seed, same hyperparameters, and gplearn is deterministic. All
@@ -116,6 +125,7 @@ class GplearnReasoner:
             equation_str = model.equation
 
             from engine.expressions.hypothesis import Hypothesis
+
             return Hypothesis(equation=equation_str, regime_id=regime_id, iteration=iteration)
         # Blanket by necessity: a gplearn fit over caller-supplied data raises
         # anything from ValueError on degenerate input to arbitrary numpy
@@ -130,8 +140,10 @@ class PySRReasoner:
     """
     Real symbolic regression using PySR (for final results).
     """
+
     def __init__(self, config):
         from pysr import PySRRegressor
+
         self.model = PySRRegressor(
             niterations=20,
             populations=10,
@@ -141,7 +153,7 @@ class PySRReasoner:
             unary_operators=["exp", "log"],
             elementwise_loss="loss(x, y) = (x - y)^2",  # Updated parameter name
             verbosity=0,
-            progress=False
+            progress=False,
         )
 
     def propose_hypothesis(self, observation, regime_id, priors=None):
@@ -172,7 +184,7 @@ class PySRReasoner:
             self.model.fit(X, y)
 
             # Get equations from PySR
-            if hasattr(self.model, 'equations_'):
+            if hasattr(self.model, "equations_"):
                 eqs = self.model.equations_
                 if len(eqs) > 0:
                     # Get best equation (last row typically best)
@@ -185,6 +197,7 @@ class PySRReasoner:
 
             # Create hypothesis
             from engine.expressions.hypothesis import Hypothesis
+
             iteration = observation.get("iteration", 0) if isinstance(observation, dict) else 0
             h = Hypothesis(equation=equation_str, regime_id=regime_id, iteration=iteration)
 
@@ -200,6 +213,7 @@ class HypothesisGenerator:
     """
     Core symbolic hypothesis-generation engine with switchable backends.
     """
+
     def __init__(self, config=None):
         self.config = config or {}
         # "gplearn" is the default: real symbolic regression, pure Python, no
