@@ -36,6 +36,12 @@ import sympy
 
 from engine.expressions.expression_eval import GPLEARN_FUNCTIONS as _GPLEARN_FUNCTIONS
 
+# How flat a sampled difference or ratio must be to count as "possibly
+# constant", relative to the target's own spread. Deliberately loose: this only
+# decides whether to pay for the exact symbolic test, and being too strict here
+# would discard real rediscoveries, whereas being too loose only costs time.
+_CONSTANCY_TOLERANCE = 1e-4
+
 
 def _remap_generic_variable_names(expr_str: str, variables: list[str]) -> str:
     """Rewrite generic x0, x1, ... variable names to the ground-truth's variable names.
@@ -170,12 +176,47 @@ def _numeric_equivalence(
         rel_error = np.abs(candidate_vals - truth_vals) / (np.abs(truth_vals) + atol)
         max_rel_error = float(np.max(rel_error)) if rel_error.size else float("inf")
 
-        return {"numeric_match": match, "max_relative_error": max_rel_error}
+        # Numeric evidence for the two things the symbolic check will ask, used
+        # to decide whether paying for it is worth it. Both are vectorised over
+        # points already sampled, so they are effectively free, and a genuinely
+        # equivalent pair must satisfy one of them -- SRBench's rule *is* that
+        # the difference or the ratio is a constant.
+        difference = candidate_vals - truth_vals
+        difference_constant = bool(np.std(difference) <= _CONSTANCY_TOLERANCE * max(
+            float(np.std(truth_vals)), 1.0
+        ))
+
+        with np.errstate(all="ignore"):
+            ratio = candidate_vals / truth_vals
+        finite_ratio = ratio[np.isfinite(ratio)]
+        ratio_constant = bool(
+            finite_ratio.size >= 2
+            and np.std(finite_ratio)
+            <= _CONSTANCY_TOLERANCE * max(abs(float(np.mean(finite_ratio))), 1.0)
+        )
+
+        return {
+            "numeric_match": match,
+            "max_relative_error": max_rel_error,
+            "evaluated": True,
+            "difference_constant": difference_constant,
+            "ratio_constant": ratio_constant,
+        }
     # Same reasoning as the symbolic path: evaluating two arbitrary expressions
     # over sampled ranges can fail in numpy or in sympy, and a check that could
     # not run is reported as "no match" rather than crashing a sweep.
     except Exception:  # noqa: BLE001
-        return {"numeric_match": False, "max_relative_error": float("inf")}
+        # `evaluated: False` matters: it means the gate below has no evidence,
+        # so the symbolic check runs anyway. Treating "could not evaluate" as
+        # "not equivalent" would let a parse failure silently suppress a real
+        # rediscovery.
+        return {
+            "numeric_match": False,
+            "max_relative_error": float("inf"),
+            "evaluated": False,
+            "difference_constant": False,
+            "ratio_constant": False,
+        }
 
 
 def check_equivalence(
@@ -209,9 +250,6 @@ def check_equivalence(
         Dict with keys: symbolic_match (bool), numeric_match (bool),
         max_relative_error (float).
     """
-    symbolic_match, strict_match = _symbolic_equivalence(
-        candidate_equation, ground_truth_formula, variables
-    )
     numeric_result = _numeric_equivalence(
         candidate_equation,
         ground_truth_formula,
@@ -222,6 +260,29 @@ def check_equivalence(
         rtol,
         atol,
     )
+
+    # Cheap test gates the expensive one. sympy.simplify costs ~0.7s per
+    # candidate and accounted for 60% of an audit's runtime -- more than the
+    # symbolic regression it was auditing -- while the numeric check is
+    # vectorised numpy over points already sampled.
+    #
+    # This cannot suppress a real rediscovery. SRBench's rule is that the
+    # difference or the ratio is a constant, so any equivalent pair is constant
+    # in one of them numerically too. Only candidates that are constant in
+    # neither are dropped, and those cannot pass the symbolic test either. When
+    # numeric evaluation fails outright there is no evidence, so the symbolic
+    # check still runs.
+    worth_simplifying = (
+        not numeric_result["evaluated"]
+        or numeric_result["difference_constant"]
+        or numeric_result["ratio_constant"]
+    )
+    if worth_simplifying:
+        symbolic_match, strict_match = _symbolic_equivalence(
+            candidate_equation, ground_truth_formula, variables
+        )
+    else:
+        symbolic_match, strict_match = False, False
 
     return {
         "symbolic_match": symbolic_match,
