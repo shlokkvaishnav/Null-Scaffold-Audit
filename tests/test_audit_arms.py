@@ -210,7 +210,7 @@ def test_clearly_better_scaffold_contributes() -> None:
 
 
 def test_report_carries_its_limitations() -> None:
-    """A report claiming no limitations is treated as incomplete (Article 8)."""
+    """A report claiming no limitations is treated as incomplete."""
     base = FakeBase(restart_cost=100)
     report = audit(FakeScaffold(base, fits=2), problem=None, seeds=list(range(10)), margins=MARGINS)
     assert report.limitations

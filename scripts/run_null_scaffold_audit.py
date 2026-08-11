@@ -6,7 +6,7 @@
         --subset smoke --seeds 10 --workers 8
 
 Writes JSON and CSV artifacts under `results/null_scaffold_audit/`. Every number
-this project reports about the audit comes from these files (Article 13); none
+this project reports about the audit comes from these files; none
 is typed into prose by hand.
 
 This script names no scientific domain. It asks the plugin registry for a

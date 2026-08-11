@@ -1,4 +1,4 @@
-"""Enforce Constitution Article 5: the core engine is domain independent.
+"""Enforce domain independence: the core engine contains no scientific content.
 
 The engine may not import from a plugin, branch on a plugin's identity, or
 contain the name of a scientific field anywhere in its source. That rule is
@@ -36,7 +36,7 @@ from pathlib import Path
 
 # Packages that sit on the plugin side of the contract. The engine defines the
 # interfaces these implement; importing them inverts the dependency direction
-# and breaks Constitution Article 9.
+# and inverts the dependency direction.
 FORBIDDEN_IMPORT_ROOTS: frozenset[str] = frozenset(
     {
         "plugins",
@@ -245,7 +245,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if violations:
         print(
-            f"Constitution Article 5 violated: {len(violations)} finding(s) in {target}",
+            f"Domain independence violated: {len(violations)} finding(s) in {target}",
             file=sys.stderr,
         )
         for violation in violations:
@@ -258,7 +258,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    print(f"{target}: domain independent (Constitution Article 5 upheld)")
+    print(f"{target}: domain independent")
     return 0
 
 

@@ -7,4 +7,4 @@
 
 **Does not contain:** Domain knowledge. How you search is orthogonal to what you are searching for.
 
-**Governing rule:** Constitution Article 6. Any algorithm must be removable without the engine noticing. If the engine needs to know which algorithm is running, the interface is wrong.
+**Governing rule:** Any algorithm must be removable without the engine noticing. If the engine needs to know which algorithm is running, the interface is wrong.

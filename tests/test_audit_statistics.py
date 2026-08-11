@@ -1,4 +1,4 @@
-"""Tests for the equivalence statistics (ENG-0001 section 6).
+"""Tests for the equivalence statistics.
 
 The module under test decides whether a wrapper contributed anything. Its
 dangerous failure is not crashing -- it is returning a confident, plausible,
@@ -247,7 +247,7 @@ def test_zero_variance_constant_offset_beyond_margin() -> None:
 def test_known_ground_truth_recovery(effect: float, expected: Verdict) -> None:
     """Constructed cases where the correct verdict is known in advance.
 
-    ADR-0001's first revisit criterion requires exactly this: the audit must be
+    The audit's first revisit criterion requires exactly this: the audit must be
     shown to return the right answer on a contributing, a null, and a harmful
     wrapper before it can be considered for a blocking gate.
     """

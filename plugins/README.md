@@ -7,4 +7,4 @@
 
 **Does not contain:** Anything the engine depends on. Dependencies flow one way: plugins know the contract, the engine does not know plugins.
 
-**Governing rule:** Adding a domain requires no change to `engine/`. When it does, the interface is wrong and the interface gets fixed — the special case is not added (Constitution Article 15).
+**Governing rule:** Adding a domain requires no change to `engine/`. When it does, the interface is wrong and the interface gets fixed — the special case is not added.

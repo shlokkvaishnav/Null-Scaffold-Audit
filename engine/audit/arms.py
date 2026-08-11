@@ -16,7 +16,7 @@ is the failure mode RFC-0001 section 6 (Alternative B) rejects.
 
 Nothing here inspects what a candidate *is*. Outcomes are floats and an opaque
 representation string, so this module holds no subject-matter knowledge
-(Article 5).
+-- it holds no subject-matter knowledge.
 """
 
 from __future__ import annotations

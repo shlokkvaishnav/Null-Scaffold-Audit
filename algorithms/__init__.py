@@ -1,6 +1,6 @@
 """Search algorithms, behind the engine's `AlgorithmPlugin` contract.
 
-These sit outside `engine/` on purpose. Article 6 says the engine never depends
+These sit outside `engine/` on purpose. The engine must never depend
 on a specific algorithm, library or backend, and every module here imports one:
 gplearn, scikit-learn, and optionally xgboost or lightgbm. Putting them in the
 core would make the core depend on them by definition, which is why

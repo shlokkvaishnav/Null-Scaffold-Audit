@@ -7,4 +7,4 @@
 
 **Does not contain:** Any scientific concept whatsoever. No units, no physical constants, no domain names, no import from `plugins/`, no branch on which plugin is loaded.
 
-**Governing rule:** Constitution Article 5. This is the project's central architectural claim — violating it does not degrade the architecture, it refutes it. Enforced in CI by `tools/check_domain_independence.py`, not by convention.
+**Governing rule:** the engine is domain independent. This is the project's central architectural claim — violating it does not degrade the architecture, it refutes it. Enforced in CI by `tools/check_domain_independence.py`, not by convention.

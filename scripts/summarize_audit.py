@@ -5,7 +5,7 @@
 Reads every `budget_*/audit.json` under the results directory and writes
 `summary.md` and `summary.csv` beside them. Nothing here recomputes a verdict --
 it only arranges what the sweeps recorded, so the summary cannot disagree with
-its sources (Article 13).
+its sources.
 
 RFC-0001 section 4.1 makes nullity indexed by budget: a wrapper may be null at
 one budget and contribute at another, and a verdict reported without its budget

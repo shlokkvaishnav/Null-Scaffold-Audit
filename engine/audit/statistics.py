@@ -1,4 +1,4 @@
-"""Equivalence statistics for the scaffold-contribution audit (ENG-0001).
+"""Equivalence statistics for the scaffold-contribution audit.
 
 The question this module answers is not "did the two arms differ?" but "were
 they the same, within a margin agreed in advance?" Those require different

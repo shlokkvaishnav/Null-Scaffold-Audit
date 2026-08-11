@@ -7,4 +7,4 @@
 
 **Does not contain:** Tests that assert an implementation detail rather than a behavior.
 
-**Governing rule:** Constitution Article 7. A feature is complete only when it has tests, documentation, benchmarks where applicable, and review. Partial completion is not a state this project recognizes.
+**Governing rule:** A feature is complete only when it has tests, documentation, benchmarks where applicable, and review. Partial completion is not a state this project recognizes.

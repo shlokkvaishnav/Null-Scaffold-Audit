@@ -1,9 +1,9 @@
-"""Verdict records for the scaffold-contribution audit (ENG-0001).
+"""Verdict records for the scaffold-contribution audit.
 
 The enumeration is closed. Verdicts are published beside the numbers they
 qualify and are compared across methods and across time, so a new member is a
 change to a published data schema rather than a convenience -- it is added by
-amending ADR-0001, not by editing this file.
+a recorded decision, not by editing this file.
 
 The distinction that carries the weight is between ``NULL`` and
 ``INCONCLUSIVE``. ``NULL`` asserts that the wrapper contributed nothing within

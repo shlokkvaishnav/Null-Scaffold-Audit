@@ -7,9 +7,9 @@ opaque registry keys, and the kwargs are passed through unread.
 
 A paper-benchmark config schema used to live here too. It was moved out to the
 plugin package that owns that protocol, because it fixed one plugin's seed
-list, metric set, and iteration budget -- things the engine may not know
-(Article 5). See the commit that removed it for the destination; naming the
-package here would reintroduce the violation the move was made to fix.
+list, metric set, and iteration budget -- things the engine may not know. See
+the commit that removed it for the destination; naming the package here would
+reintroduce the violation the move was made to fix.
 """
 
 from __future__ import annotations

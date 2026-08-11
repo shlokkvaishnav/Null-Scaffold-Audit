@@ -7,4 +7,4 @@
 
 **Does not contain:** Business logic. The CLI is a thin adapter over the engine; anything worth testing belongs somewhere it can be tested without a subprocess.
 
-**Governing rule:** Every documented claim must be regenerable by a command (Constitution Article 13). This package is where those commands are defined.
+**Governing rule:** Every documented claim must be regenerable by a command. This package is where those commands are defined.

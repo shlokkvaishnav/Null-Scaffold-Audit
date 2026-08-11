@@ -88,11 +88,11 @@ jobs:
           --cov=tools --cov=engine/audit
           --cov-report=term-missing --cov-fail-under=95
 
-  # Constitution Article 5. This is the project's central architectural claim,
+  # Domain independence. This is the project's central architectural claim,
   # and the only reason it is a claim rather than a hope is that this job fails
   # the build when it stops being true.
   domain-independence:
-    name: Engine is domain independent (Article 5)
+    name: Engine is domain independent
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

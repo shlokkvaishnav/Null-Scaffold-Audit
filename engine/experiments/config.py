@@ -1,7 +1,7 @@
 """Pydantic schema over the `configs/paper/*.yaml` benchmark-config shape.
 
-This lived in `engine/config.py` until it was found to violate Constitution
-Article 5: it encodes *this plugin's* experiment protocol -- a fixed seed list,
+This lived in `engine/config.py` until it was found to break domain
+independence: it encodes *this plugin's* experiment protocol -- a fixed seed list,
 a fixed metric set, a fixed iteration budget -- and it imported
 `engine.experiments.contract` to enforce it. An engine that ships a
 schema for one plugin's experiment protocol is not domain independent, whatever
@@ -9,7 +9,7 @@ the schema is named.
 
 The fix is removal rather than indirection. Injecting the contract as a callable
 would have satisfied the import checker while leaving the engine holding a type
-whose every field exists to mirror one plugin's YAML. See Article 15: when the
+whose every field exists to mirror one plugin's YAML. The rule it broke: when the
 core seems to need a special case, the special case does not belong in the core.
 
 The model adds static validation on top of the same contract that

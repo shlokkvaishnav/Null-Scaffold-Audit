@@ -3,7 +3,7 @@ benchmark-config shape, validated against the shared baseline contract.
 
 The two are tested together because the same CLI loads both, but they live in
 different packages on purpose: the baseline shape encodes one plugin's
-experiment protocol and so may not sit in the engine (Article 5)."""
+experiment protocol and so may not sit in the engine and so is domain-specific."""
 
 from __future__ import annotations
 

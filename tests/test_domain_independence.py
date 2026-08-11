@@ -1,6 +1,6 @@
-"""Tests for the Article 5 enforcement check.
+"""Tests for the domain-independence enforcement check.
 
-The checker is the mechanism that turns Constitution Article 5 from a
+The checker is the mechanism that turns domain independence from a
 convention into a guarantee, so its own failure modes matter more than most.
 Two are tested with particular care:
 
@@ -196,11 +196,11 @@ def test_domain_neutral_source_is_clean(tmp_path: Path) -> None:
 
 
 def test_pragma_suppresses_a_forbidden_import(tmp_path: Path) -> None:
-    source = "import plugins  # domain-independence: allow -- tracked by ADR-0001\n"
+    source = "import plugins  # domain-independence: allow -- tracked in the design notes\n"
     path = write(tmp_path, "mod.py", source)
     violations, suppressions = checker.check_file(path)
     assert violations == []
-    assert [s.reason for s in suppressions] == ["tracked by ADR-0001"]
+    assert [s.reason for s in suppressions] == ["tracked in the design notes"]
 
 
 def test_pragma_suppresses_domain_vocabulary(tmp_path: Path) -> None:
@@ -285,12 +285,12 @@ def test_main_reports_suppressions_on_an_otherwise_clean_tree(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Suppressions stay visible, so they can be audited instead of accumulating."""
-    write(tmp_path, "mod.py", "import plugins  # di: allow -- tracked by ADR-0001\n")
+    write(tmp_path, "mod.py", "import plugins  # di: allow -- tracked in the design notes\n")
     assert checker.main(["--path", str(tmp_path)]) == 0
-    assert "tracked by ADR-0001" in capsys.readouterr().out
+    assert "tracked in the design notes" in capsys.readouterr().out
 
 
-# Article 5 is enforced against the real tree by the `domain-independence` job
+# Domain independence is enforced against the real tree by the `domain-independence` job
 # in .github/workflows/ci.yml, not from here. It is an architectural gate over
 # the whole repository rather than a property of a unit under test, and running
 # it from pytest would have made the suite's result depend on the layout of
