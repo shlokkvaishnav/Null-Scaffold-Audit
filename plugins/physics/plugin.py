@@ -7,7 +7,7 @@ does not reimplement any of it. The adapters exist so the orchestrator can
 drive this pipeline the same way it would drive any future plugin; the
 underlying classes (`SymbolicHypothesisGenerator`, `BaselineModel`,
 `Ensemble`, `DiscoveryAgent`) are unchanged and still importable/usable
-directly (e.g. by `physics_discovery.evaluation.benchmark_runner`, which
+directly (e.g. by `plugins.physics.benchmark_runner`, which
 predates this plugin layer and is untouched by it).
 """
 
@@ -23,8 +23,8 @@ from algorithms.symbolic import SymbolicHypothesisGenerator
 from engine.evaluation.metrics import compute_fit_metrics
 from engine.plugin import Dataset
 from engine.registry import PluginRegistry
-from physics_discovery.core.agent import DiscoveryAgent
-from physics_discovery.data.feynman_loader import generate_feynman_dataset
+from plugins.physics.feynman_loader import generate_feynman_dataset
+from plugins.physics.scaffold.agent import DiscoveryAgent
 from validators.equation_validity import EquationValidator
 
 
@@ -92,7 +92,7 @@ class NeuralEnsembleAlgorithm:
 class DiscoveryAgentAlgorithm:
     """AlgorithmPlugin adapter around the full DiscoveryAgent loop.
 
-    Mirrors physics_discovery.evaluation.benchmark_runner._run_discovery_agent:
+    Mirrors plugins.physics.benchmark_runner._run_discovery_agent:
     num_regimes=1 because a Feynman equation is one global closed form, not a
     regime-switching system.
     """

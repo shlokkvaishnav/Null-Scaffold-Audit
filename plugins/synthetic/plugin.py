@@ -5,7 +5,7 @@ Step 1 against something meaningfully different from the Feynman/physics
 domain: no `equation_id` kwarg, no known ground-truth formula in metadata,
 and a domain that doesn't assume every dataset comes with an answer to check
 against. Deliberately reuses the existing algorithm plugins registered by
-`physics_discovery.plugins.feynman` rather than adding new ones -- the point
+`plugins.physics.plugin` rather than adding new ones -- the point
 of this plugin is to validate DomainPlugin generality, not add more
 algorithms.
 """
@@ -19,7 +19,7 @@ import numpy as np
 from engine.evaluation.metrics import compute_fit_metrics
 from engine.plugin import Dataset
 from engine.registry import PluginRegistry
-from physics_discovery.data.synthetic import generate_synthetic_regression
+from plugins.synthetic.data import generate_synthetic_regression
 from validators.equation_validity import EquationValidator
 
 
@@ -83,6 +83,6 @@ class SyntheticRegressionDomainPlugin:
 
 def register(registry: PluginRegistry) -> None:
     """Register this module's domain plugin. Reuses algorithms already
-    registered elsewhere (e.g. by physics_discovery.plugins.feynman.register)
+    registered elsewhere (e.g. by plugins.physics.plugin.register)
     rather than re-registering them here."""
     registry.register_domain(SyntheticRegressionDomainPlugin.name, SyntheticRegressionDomainPlugin)

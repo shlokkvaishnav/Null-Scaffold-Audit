@@ -29,7 +29,7 @@ def _default_registry() -> PluginRegistry:
     domain or algorithm without touching this file: install a package that
     declares an entry point in the "sde.plugins" group (see
     docs/PLUGIN_GUIDE.md) and it is picked up automatically. This repo's own
-    plugins (physics_discovery.plugins.feynman / .synthetic) are registered
+    plugins (plugins.physics.plugin / .synthetic) are registered
     the same way, via entry points in this repo's own pyproject.toml -- not
     special-cased here.
     """
@@ -73,7 +73,7 @@ def run(config_path: Path = _RUN_CONFIG_ARGUMENT) -> None:
 def benchmark(config_path: Path = _BENCHMARK_CONFIG_ARGUMENT) -> None:
     """Validate a paper-style benchmark config and run it via scripts.reproduce_benchmarks."""
     # Imported here, not at module scope, because both the schema and the runner
-    # belong to the legacy physics_discovery tree rather than to the engine. The
+    # belong to a domain plugin rather than to the engine. The
     # `run` and `list-plugins` commands stay plugin-agnostic; this one does not,
     # and confining the coupling to the one command that has it keeps that visible.
     from engine.experiments.config import load_baseline_experiment_config

@@ -53,7 +53,7 @@ def kinds(violations: list) -> list[str]:
 # --------------------------------------------------------------------------
 
 
-# A package name may trip both rules at once -- ``physics_discovery`` is both a
+# A package name can trip both rules at once -- a root that is also a domain
 # forbidden root and a domain word -- so these assert on membership rather than
 # on the exact finding list.
 @pytest.mark.parametrize("root", sorted(checker.FORBIDDEN_IMPORT_ROOTS))

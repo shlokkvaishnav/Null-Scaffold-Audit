@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
-from physics_discovery.api.schemas import JobRequest, JobResult, JobStatus
-from physics_discovery.api.worker import DATASETS, JOBS, create_job, run_discovery_job
+from plugins.physics.api.schemas import JobRequest, JobResult, JobStatus
+from plugins.physics.api.worker import DATASETS, JOBS, create_job, run_discovery_job
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 

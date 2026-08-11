@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from physics_discovery.core.belief import FactorGraphConfidenceUpdater
+from plugins.physics.scaffold.belief import FactorGraphConfidenceUpdater
 from validators.equation_validity import EquationValidator
 
 

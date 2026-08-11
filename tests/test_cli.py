@@ -2,7 +2,7 @@
 
 _default_registry() now discovers plugins via the "sde.plugins" entry-point
 group (engine.discovery.discover_plugins) instead of importing
-physics_discovery by name -- see docs/PLUGIN_GUIDE.md. Entry points are
+a plugin by name -- see docs/PLUGIN_GUIDE.md. Entry points are
 packaging metadata: they only exist once this repo is actually installed
 (`pip install -e .`, as CI and the Docker build both do), not from a bare
 source checkout. Skip this whole module when that isn't the case here,
@@ -33,10 +33,10 @@ from cli.main import app
 try:
     # cli.main discovers plugins lazily inside _default_registry(), so probe
     # the same downstream import here rather than at `from cli.main import app`.
-    from physics_discovery.plugins import feynman  # noqa: F401
+    from plugins.physics import plugin  # noqa: F401
 except ImportError as exc:
     pytest.skip(
-        f"physics_discovery.plugins.feynman not importable here: {exc}", allow_module_level=True
+        f"plugins.physics.plugin not importable here: {exc}", allow_module_level=True
     )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]

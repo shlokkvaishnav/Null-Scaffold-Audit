@@ -1,4 +1,4 @@
-"""Orchestrator wiring tests using fake plugins -- no physics_discovery/ML deps.
+"""Orchestrator wiring tests using fake plugins -- no real plugin or ML deps.
 
 These exist to prove the engine seams (Dataset/AlgorithmPlugin/DomainPlugin/
 PluginRegistry/DiscoveryOrchestrator) work generically, independent of any

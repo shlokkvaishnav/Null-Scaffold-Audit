@@ -1,14 +1,14 @@
 """FastAPI application entrypoint for the equation-discovery service.
 
 Run locally with:
-    uvicorn physics_discovery.api.main:app --reload
+    uvicorn plugins.physics.api.main:app --reload
 """
 
 from __future__ import annotations
 
 from fastapi import FastAPI
 
-from physics_discovery.api.routes import benchmark, datasets, jobs
+from plugins.physics.api.routes import benchmark, datasets, jobs
 
 app = FastAPI(
     title="Equation Discovery Agent",

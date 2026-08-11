@@ -18,7 +18,7 @@ class PerceptionModule:
         Returns:
             dict: Grounded observation with processed features/targets
         """
-        # For now, simple passthrough. A real data pipeline (physics_discovery/data/)
+        # For now, simple passthrough. A real data pipeline
         # is built in a later phase and can plug in here.
 
         if isinstance(raw_data, dict):

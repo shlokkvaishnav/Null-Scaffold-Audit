@@ -18,10 +18,10 @@ from pathlib import Path
 import numpy as np
 import yaml
 
-# Add physics_discovery to path
+# Add the repository root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from physics_discovery.core.agent import DiscoveryAgent
+from plugins.physics.scaffold.agent import DiscoveryAgent
 
 
 def load_config(config_path):

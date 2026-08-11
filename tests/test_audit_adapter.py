@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from physics_discovery.audit.agent_adapter import (
+from plugins.physics.audit_adapter import (
     RediscoveryProblem,
     _outcome_metrics,
     score_like_the_pipeline,

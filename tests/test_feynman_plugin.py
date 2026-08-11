@@ -1,4 +1,4 @@
-"""Integration tests for physics_discovery.plugins.feynman: the first real
+"""Integration tests for plugins.physics.plugin: the first real
 plugin behind the engine.plugin interfaces, driven through the orchestrator.
 
 The plugin transitively imports several compiled sklearn extensions
@@ -16,10 +16,10 @@ from engine.orchestrator import DiscoveryOrchestrator, ExperimentConfig
 from engine.registry import PluginRegistry
 
 try:
-    from physics_discovery.plugins.feynman import FeynmanDomainPlugin, register
+    from plugins.physics.plugin import FeynmanDomainPlugin, register
 except ImportError as exc:
     pytest.skip(
-        f"physics_discovery.plugins.feynman not importable here: {exc}", allow_module_level=True
+        f"plugins.physics.plugin not importable here: {exc}", allow_module_level=True
     )
 
 EQUATION_ID = "coulomb_force"

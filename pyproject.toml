@@ -32,8 +32,8 @@ sde = "cli.main:app"
 # engine/discovery.py and docs/PLUGIN_GUIDE.md. This repo's own plugins are
 # registered the same way, not special-cased anywhere in engine/ or cli/.
 [project.entry-points."sde.plugins"]
-feynman_physics = "physics_discovery.plugins.feynman:register"
-synthetic_regression = "physics_discovery.plugins.synthetic:register"
+feynman_physics = "plugins.physics.plugin:register"
+synthetic_regression = "plugins.synthetic.plugin:register"
 
 [project.optional-dependencies]
 pysr = ["pysr"]
@@ -42,7 +42,7 @@ gbm = ["xgboost", "lightgbm"]
 dev = ["pytest", "pytest-cov", "ruff", "mypy", "black", "jupyterlab", "matplotlib", "httpx"]
 
 [tool.setuptools.packages.find]
-include = ["physics_discovery*", "engine*", "cli*", "algorithms*", "validators*"]
+include = ["engine*", "cli*", "algorithms*", "validators*", "plugins*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

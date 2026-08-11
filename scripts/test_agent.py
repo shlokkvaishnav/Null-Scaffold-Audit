@@ -5,8 +5,8 @@ Simple test script for the equation-discovery agent (no Hydra to avoid Python 3.
 import numpy as np
 from omegaconf import OmegaConf
 
-from physics_discovery.core.agent import DiscoveryAgent
-from physics_discovery.core.archive import HypothesisArchive
+from plugins.physics.scaffold.agent import DiscoveryAgent
+from plugins.physics.scaffold.archive import HypothesisArchive
 
 
 def main():

@@ -3,7 +3,7 @@
 Reads a config from configs/paper/*.yaml, validates it against the shared
 experiment contract, and runs REAL model fitting/evaluation across the
 configured seeds and model variants on a synthetic regression dataset
-(physics_discovery.data.synthetic.generate_synthetic_regression). This
+(plugins.synthetic.data.generate_synthetic_regression). This
 replaces the previous hash-seeded fake-metric placeholder with actual
 computation: baselines (linear/RF/xgboost/lightgbm) via
 algorithms.baselines.BaselineModel, a neural+tree
@@ -12,7 +12,7 @@ regressor via algorithms.symbolic.SymbolicHypothesisGenerator.
 
 For a full Feynman-equation rediscovery run (rather than the synthetic
 regression dataset used here for fast, config-driven reproducibility), use
-`python -m physics_discovery.evaluation.benchmark_runner` instead.
+`python -m plugins.physics.benchmark_runner` instead.
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ from algorithms.ensemble import Ensemble
 from algorithms.symbolic import SymbolicHypothesisGenerator
 from engine.evaluation.metrics import compute_fit_metrics, confidence_interval
 from engine.experiments.contract import validate_baseline_contract
-from physics_discovery.data.synthetic import generate_synthetic_regression
+from plugins.synthetic.data import generate_synthetic_regression
 
 
 def _run_variant(variant: str, seed: int, budget: dict[str, Any]):

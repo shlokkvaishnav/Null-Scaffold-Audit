@@ -52,7 +52,7 @@ from run_null_scaffold_audit import (
 )
 
 from engine.audit import audit
-from physics_discovery.audit.agent_adapter import DiscoveryAgentScaffold
+from plugins.physics.audit_adapter import DiscoveryAgentScaffold
 
 FIXTURE = Path(__file__).parent / "fixtures" / "audit_behaviour_lock.json"
 

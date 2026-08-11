@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from physics_discovery.core.belief import GeodesicConfidenceUpdater
+from plugins.physics.scaffold.belief import GeodesicConfidenceUpdater
 
 
 class TestGeodesicConfidenceUpdater(unittest.TestCase):

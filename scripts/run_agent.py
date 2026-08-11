@@ -1,6 +1,6 @@
 import hydra
 
-from physics_discovery.core.agent import DiscoveryAgent
+from plugins.physics.scaffold.agent import DiscoveryAgent
 
 
 @hydra.main(config_path="../configs", config_name="agent")

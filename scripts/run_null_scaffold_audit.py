@@ -40,11 +40,11 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from engine.audit import NotSeparableError, Verdict, audit
-from physics_discovery.audit.agent_adapter import (
+from plugins.physics.audit_adapter import (
     DiscoveryAgentScaffold,
     RediscoveryProblem,
 )
-from physics_discovery.data.feynman_loader import (
+from plugins.physics.feynman_loader import (
     generate_feynman_dataset,
     list_feynman_equations,
 )

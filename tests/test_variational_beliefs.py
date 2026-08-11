@@ -5,8 +5,8 @@ torch = pytest.importorskip(
 )
 import unittest
 
-from physics_discovery.core.belief import EquationConfidenceTracker
-from physics_discovery.inference.variational import JointELBO
+from plugins.physics.inference.variational import JointELBO
+from plugins.physics.scaffold.belief import EquationConfidenceTracker
 
 
 # Mock Hypothesis class for testing EquationBeliefState

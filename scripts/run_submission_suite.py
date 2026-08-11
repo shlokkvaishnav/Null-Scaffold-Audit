@@ -29,9 +29,9 @@ from engine.evaluation.metrics import (
     confidence_interval,
     paired_significance,
 )
-from physics_discovery.core.agent import DiscoveryAgent
-from physics_discovery.data.synthetic import SplitData as DatasetSplit
-from physics_discovery.data.synthetic import generate_synthetic_regression
+from plugins.physics.scaffold.agent import DiscoveryAgent
+from plugins.synthetic.data import SplitData as DatasetSplit
+from plugins.synthetic.data import generate_synthetic_regression
 
 
 def _hardware_metadata() -> dict[str, Any]:

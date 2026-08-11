@@ -7,7 +7,7 @@ import unittest
 
 from torch import nn
 
-from physics_discovery.inference.trainer import DiscoveryTrainer
+from plugins.physics.inference.trainer import DiscoveryTrainer
 
 
 # Mock SD-MoSE JointELBO Module

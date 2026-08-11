@@ -6,8 +6,8 @@ ground-truth equation (fit metrics + symbolic/numeric equivalence), and
 writes JSON+CSV result artifacts.
 
 Usage:
-    python -m physics_discovery.evaluation.benchmark_runner --subset smoke
-    python -m physics_discovery.evaluation.benchmark_runner --subset all --backend gplearn
+    python -m plugins.physics.benchmark_runner --subset smoke
+    python -m plugins.physics.benchmark_runner --subset all --backend gplearn
 
 Three models are compared per equation:
 - "symbolic_regression": the raw symbolic-regression generator, called directly.
@@ -32,8 +32,8 @@ from algorithms.baselines import BaselineModel
 from algorithms.symbolic import SymbolicHypothesisGenerator
 from engine.evaluation.equivalence import check_equivalence
 from engine.evaluation.metrics import compute_fit_metrics
-from physics_discovery.core.agent import DiscoveryAgent
-from physics_discovery.data.feynman_loader import generate_feynman_dataset, list_feynman_equations
+from plugins.physics.feynman_loader import generate_feynman_dataset, list_feynman_equations
+from plugins.physics.scaffold.agent import DiscoveryAgent
 
 SMOKE_SUBSET_SIZE = 8
 

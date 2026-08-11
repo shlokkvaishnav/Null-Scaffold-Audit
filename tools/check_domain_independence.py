@@ -45,7 +45,6 @@ FORBIDDEN_IMPORT_ROOTS: frozenset[str] = frozenset(
         "validators",
         "reports",
         "visualization",
-        "physics_discovery",  # legacy tree, pending migration
     }
 )
 

@@ -15,7 +15,7 @@ from typing import Any
 import numpy as np
 
 from engine.evaluation.metrics import compute_fit_metrics
-from physics_discovery.core.agent import DiscoveryAgent
+from plugins.physics.scaffold.agent import DiscoveryAgent
 
 # dataset_id -> (X, y, feature_names)
 DATASETS: dict[str, tuple[np.ndarray, np.ndarray, list[str]]] = {}

@@ -30,7 +30,7 @@ from engine.evaluation.equivalence import check_equivalence
 from engine.evaluation.metrics import compute_fit_metrics
 from engine.expressions.hypothesis import Hypothesis
 from engine.scoring import HypothesisScorer
-from physics_discovery.core.agent import DiscoveryAgent
+from plugins.physics.scaffold.agent import DiscoveryAgent
 from validators.equation_validity import EquationValidator
 
 # gplearn defaults as configured by SymbolicHypothesisGenerator._build_model.
