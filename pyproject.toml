@@ -42,7 +42,7 @@ gbm = ["xgboost", "lightgbm"]
 dev = ["pytest", "pytest-cov", "ruff", "mypy", "black", "jupyterlab", "matplotlib", "httpx"]
 
 [tool.setuptools.packages.find]
-include = ["physics_discovery*", "engine*", "cli*"]
+include = ["physics_discovery*", "engine*", "cli*", "algorithms*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -21,6 +21,9 @@ if str(ROOT) not in sys.path:
 
 import yaml
 
+from algorithms.baselines import BaselineModel
+from algorithms.ensemble import Ensemble
+from algorithms.symbolic import SymbolicHypothesisGenerator
 from engine.evaluation.metrics import (
     compute_fit_metrics,
     confidence_interval,
@@ -29,9 +32,6 @@ from engine.evaluation.metrics import (
 from physics_discovery.core.agent import DiscoveryAgent
 from physics_discovery.data.synthetic import SplitData as DatasetSplit
 from physics_discovery.data.synthetic import generate_synthetic_regression
-from physics_discovery.generators.baselines import BaselineModel
-from physics_discovery.generators.ensemble import Ensemble
-from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator
 
 
 def _hardware_metadata() -> dict[str, Any]:

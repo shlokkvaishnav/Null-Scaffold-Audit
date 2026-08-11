@@ -24,13 +24,13 @@ from typing import Any
 
 import numpy as np
 
+from algorithms.symbolic import SymbolicHypothesisGenerator
 from engine.audit import SearchOutcome
 from engine.evaluation.equivalence import check_equivalence
 from engine.evaluation.metrics import compute_fit_metrics
 from engine.expressions.hypothesis import Hypothesis
 from engine.scoring import HypothesisScorer
 from physics_discovery.core.agent import DiscoveryAgent
-from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator
 from physics_discovery.validation.equation_validity import EquationValidator
 
 # gplearn defaults as configured by SymbolicHypothesisGenerator._build_model.
