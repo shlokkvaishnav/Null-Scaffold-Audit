@@ -47,7 +47,7 @@ for _path in (REPO_ROOT, REPO_ROOT / "scripts"):
 
 from run_null_scaffold_audit import (
     HIGHER_IS_BETTER,
-    build_problem,
+    default_registry,
     margins_for,
 )
 
@@ -63,6 +63,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "audit_behaviour_lock.json"
 # population 10x smaller than a real sweep: the lock has to run on every test
 # invocation, so it buys determinism at the smallest budget that still exercises
 # both arms, the selection rule, the degeneracy check and the statistics.
+PROBLEM_SOURCE = "physics"
 EQUATIONS = ("kinetic_energy", "coulomb_force")
 SEEDS = 4
 N_SAMPLES = 200
@@ -86,9 +87,15 @@ def run_locked_audit() -> dict[str, Any]:
         generations=GENERATIONS,
     )
 
+    # Resolved through the registry, exactly as the runner does. The lock is
+    # on the audit's output, not on any particular way of reaching it -- but
+    # the data must be identical, so this asserts the source by name rather
+    # than accepting whichever one happens to be registered first.
+    source = default_registry().build_problem_source(PROBLEM_SOURCE)
+
     snapshot: dict[str, Any] = {}
     for equation_id in EQUATIONS:
-        problem = build_problem(equation_id, N_SAMPLES, seed=0)
+        problem = source.build_problem(equation_id, n_samples=N_SAMPLES, seed=0)
         report = audit(
             scaffold,
             problem,

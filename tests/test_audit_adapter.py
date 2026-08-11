@@ -10,18 +10,18 @@ from __future__ import annotations
 
 import numpy as np
 
+from engine.audit import AuditProblem
 from plugins.physics.audit_adapter import (
-    RediscoveryProblem,
     _outcome_metrics,
     score_like_the_pipeline,
 )
 
 
-def make_problem() -> RediscoveryProblem:
+def make_problem() -> AuditProblem:
     rng = np.random.default_rng(0)
     x = rng.uniform(1.0, 5.0, size=(40, 2))
     y = x[:, 0] * x[:, 1]
-    return RediscoveryProblem(
+    return AuditProblem(
         equation_id="synthetic_product",
         x_train=x[:32],
         y_train=y[:32],

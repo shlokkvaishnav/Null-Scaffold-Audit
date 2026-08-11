@@ -16,6 +16,7 @@ from typing import Any
 
 import numpy as np
 
+from engine.audit.problem import AuditProblem
 from engine.evaluation.metrics import compute_fit_metrics
 from engine.plugin import Dataset
 from engine.registry import PluginRegistry
@@ -81,8 +82,65 @@ class SyntheticRegressionDomainPlugin:
         return compute_fit_metrics(y_true, y_pred, equation=equation)
 
 
+class SyntheticProblemSource:
+    """Makes this domain auditable, which is the point of it existing.
+
+    The audit was written against one domain. Until it runs against a second
+    one sharing no loader, no constraint set and no ground truth with the
+    first, "the audit is domain independent" is a claim about intent rather
+    than a checked property. This is that second domain.
+
+    There is exactly one problem here: the generator's own target. Its ground
+    truth is the formula from `data.py`, transcribed -- if that generator
+    changes, this must change with it, and the recovery metric will say so by
+    reporting nothing recovered.
+    """
+
+    name = "synthetic"
+
+    TRAIN_FRACTION = 0.8
+    N_FEATURES = 6
+    # Features are standard normal, so +/-4 sigma covers the sampled support
+    # with room to spare. The equivalence check samples inside these ranges.
+    _RANGE = (-4.0, 4.0)
+
+    def list_problems(self) -> list[str]:
+        return ["synthetic_regression"]
+
+    def build_problem(self, problem_id: str, *, n_samples: int, seed: int) -> AuditProblem:
+        if problem_id not in self.list_problems():
+            raise KeyError(f"{self.name} has no problem {problem_id!r}; try {self.list_problems()}")
+
+        # train_fraction=1.0 so the split below is the only one applied, keeping
+        # this identical in shape to every other problem source.
+        data = generate_synthetic_regression(
+            seed=seed,
+            n_samples=n_samples,
+            n_features=self.N_FEATURES,
+            train_fraction=1.0,
+        )
+        split = int(self.TRAIN_FRACTION * len(data.y_train))
+        variables = [f"x{i}" for i in range(self.N_FEATURES)]
+        return AuditProblem(
+            equation_id=problem_id,
+            x_train=data.x_train[:split],
+            y_train=data.y_train[:split],
+            x_test=data.x_train[split:],
+            y_test=data.y_train[split:],
+            ground_truth={
+                # The noise-free target. Additive noise is not part of the law
+                # being recovered, and including it would make exact recovery
+                # unachievable by construction.
+                "formula": "1.5*x0 - 0.8*x1 + 0.5*x2*x3 + sin(x4)",
+                "variables": variables,
+                "ranges": {name: self._RANGE for name in variables},
+            },
+        )
+
+
 def register(registry: PluginRegistry) -> None:
     """Register this module's domain plugin. Reuses algorithms already
     registered elsewhere (e.g. by plugins.physics.plugin.register)
     rather than re-registering them here."""
     registry.register_domain(SyntheticRegressionDomainPlugin.name, SyntheticRegressionDomainPlugin)
+    registry.register_problem_source(SyntheticProblemSource.name, SyntheticProblemSource)

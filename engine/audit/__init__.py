@@ -19,11 +19,14 @@ from engine.audit.arms import (
     run_arms,
 )
 from engine.audit.degeneracy import DegeneracyReport, assess_degeneracy
+from engine.audit.problem import AuditProblem, AuditProblemSource
 from engine.audit.statistics import equivalence_verdict
 from engine.audit.verdict import MetricVerdict, Verdict
 
 __all__ = [
     "ArmOutcomes",
+    "AuditProblem",
+    "AuditProblemSource",
     "AuditReport",
     "BaseSearcher",
     "Budget",

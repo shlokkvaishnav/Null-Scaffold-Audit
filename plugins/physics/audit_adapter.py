@@ -25,7 +25,7 @@ from typing import Any
 import numpy as np
 
 from algorithms.symbolic import SymbolicHypothesisGenerator
-from engine.audit import SearchOutcome
+from engine.audit import AuditProblem, SearchOutcome
 from engine.evaluation.equivalence import check_equivalence
 from engine.evaluation.metrics import compute_fit_metrics
 from engine.expressions.hypothesis import Hypothesis
@@ -36,18 +36,6 @@ from validators.equation_validity import EquationValidator
 # gplearn defaults as configured by SymbolicHypothesisGenerator._build_model.
 DEFAULT_POPULATION_SIZE = 500
 DEFAULT_GENERATIONS = 20
-
-
-@dataclass(frozen=True)
-class RediscoveryProblem:
-    """One benchmark instance, already split. Opaque to the engine."""
-
-    equation_id: str
-    x_train: np.ndarray
-    y_train: np.ndarray
-    x_test: np.ndarray
-    y_test: np.ndarray
-    ground_truth: dict[str, Any]
 
 
 @contextmanager
@@ -100,7 +88,7 @@ def score_like_the_pipeline(equation: str, observation: dict[str, Any]) -> float
     return float(score) if score is not None else float("-inf")
 
 
-def _outcome_metrics(problem: RediscoveryProblem, equation: str, seed: int) -> dict[str, float]:
+def _outcome_metrics(problem: AuditProblem, equation: str, seed: int) -> dict[str, float]:
     """Test-set metrics for a candidate, plus the ground-truth recovery flag.
 
     Predictions come from re-evaluating the *equation string*, for both arms.
@@ -176,7 +164,7 @@ class SymbolicRestartSearcher:
     def restart_cost(self) -> int:
         return self.population_size * self.generations
 
-    def search(self, problem: RediscoveryProblem, seed: int) -> SearchOutcome:
+    def search(self, problem: AuditProblem, seed: int) -> SearchOutcome:
         model = SymbolicHypothesisGenerator(
             {
                 "backend": self.backend,
@@ -226,7 +214,7 @@ class DiscoveryAgentScaffold:
             generations=self.generations,
         )
 
-    def run(self, problem: RediscoveryProblem, seed: int) -> SearchOutcome:
+    def run(self, problem: AuditProblem, seed: int) -> SearchOutcome:
         # Mirrors benchmark_runner._run_discovery_agent so the audit measures the
         # pipeline as benchmarked, not a variant configured for the occasion.
         config = {

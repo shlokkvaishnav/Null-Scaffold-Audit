@@ -1,10 +1,18 @@
-"""Run the null-scaffold audit against the DiscoveryAgent pipeline.
+"""Run the null-scaffold audit against a registered pipeline.
 
-    python scripts/run_null_scaffold_audit.py --subset smoke --seeds 10
+    python scripts/run_null_scaffold_audit.py --domain physics --subset smoke --seeds 10
+    python scripts/run_null_scaffold_audit.py --domain synthetic --seeds 10
 
 Writes JSON and CSV artifacts under `results/null_scaffold_audit/`. Every number
 this project reports about the audit comes from these files (Article 13); none
 is typed into prose by hand.
+
+This script names no scientific domain. It asks the plugin registry for a
+problem source by name and imports the scaffold from a path given on the command
+line, so auditing a new domain means registering a source in that domain's
+plugin and changing nothing here. That is the property `--domain synthetic`
+exists to demonstrate: if the audit only ever ran against the domain it was
+written for, "domain independent" would be an intention rather than a result.
 
 PRE-REGISTERED MARGINS
 ----------------------
@@ -17,10 +25,10 @@ moves to fit its results is not an audit.
 - `exact_recovery`:       0.10 (10 percentage points).
 
 The rmse margin is scaled by the problem rather than fixed absolutely because
-the benchmark's targets span many orders of magnitude, so a single absolute
-number would be vacuous on one equation and unattainable on another. It is
-scaled by the *target*, not by either arm's error, so it remains a property of
-the problem and cannot be influenced by the results.
+benchmark targets span many orders of magnitude, so a single absolute number
+would be vacuous on one problem and unattainable on another. It is scaled by the
+*target*, not by either arm's error, so it remains a property of the problem and
+cannot be influenced by the results.
 """
 
 from __future__ import annotations
@@ -28,6 +36,7 @@ from __future__ import annotations
 import argparse
 import csv
 import dataclasses
+import importlib
 import json
 import sys
 from pathlib import Path
@@ -39,15 +48,9 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from engine.audit import NotSeparableError, Verdict, audit
-from plugins.physics.audit_adapter import (
-    DiscoveryAgentScaffold,
-    RediscoveryProblem,
-)
-from plugins.physics.feynman_loader import (
-    generate_feynman_dataset,
-    list_feynman_equations,
-)
+from engine.audit import AuditProblem, NotSeparableError, Scaffold, Verdict, audit
+from engine.discovery import discover_plugins
+from engine.registry import PluginRegistry
 
 RMSE_MARGIN_FRACTION = 0.05
 COMPLEXITY_MARGIN = 2.0
@@ -59,21 +62,41 @@ HIGHER_IS_BETTER = {
     "exact_recovery": True,
 }
 
+# The pipeline under audit, as an import path. A default keeps the common
+# invocation short; naming it here rather than deriving it from the domain keeps
+# the scaffold and the problems independently selectable, which is what lets one
+# scaffold be audited on a domain it was not written for.
+DEFAULT_SCAFFOLD = "plugins.physics.audit_adapter:DiscoveryAgentScaffold"
 
-def build_problem(equation_id: str, n_samples: int, seed: int) -> RediscoveryProblem:
-    X, y, ground_truth = generate_feynman_dataset(equation_id, n_samples=n_samples, seed=seed)
-    split = int(0.8 * len(y))
-    return RediscoveryProblem(
-        equation_id=equation_id,
-        x_train=X[:split],
-        y_train=y[:split],
-        x_test=X[split:],
-        y_test=y[split:],
-        ground_truth=ground_truth,
-    )
+SMOKE_SUBSET_SIZE = 8
 
 
-def margins_for(problem: RediscoveryProblem) -> dict[str, float]:
+def default_registry() -> PluginRegistry:
+    """Every plugin advertised through the `sde.plugins` entry-point group."""
+    registry = PluginRegistry()
+    discover_plugins(registry)
+    return registry
+
+
+def load_scaffold(path: str, **kwargs: Any) -> Scaffold:
+    """Import and construct a scaffold from a ``module:attribute`` path.
+
+    Resolved at run time rather than imported at module scope so this script
+    stays importable -- and testable -- without any particular plugin's
+    dependencies installed.
+    """
+    module_name, _, attribute = path.partition(":")
+    if not module_name or not attribute:
+        raise ValueError(f"--scaffold must look like 'module:Attribute', got {path!r}")
+    module = importlib.import_module(module_name)
+    try:
+        factory = getattr(module, attribute)
+    except AttributeError as exc:
+        raise ValueError(f"{module_name} has no attribute {attribute!r}") from exc
+    return factory(**kwargs)
+
+
+def margins_for(problem: AuditProblem) -> dict[str, float]:
     target_spread = float(np.std(np.asarray(problem.y_test, dtype=float)))
     return {
         # A degenerate target (zero spread) would make the margin zero, which the
@@ -112,8 +135,19 @@ def write_artifacts(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--domain",
+        default="physics",
+        help="Registered audit problem source (see --list-domains).",
+    )
+    parser.add_argument(
+        "--list-domains",
+        action="store_true",
+        help="Print the registered problem sources and exit.",
+    )
+    parser.add_argument("--scaffold", default=DEFAULT_SCAFFOLD, help="module:Attribute to audit.")
     parser.add_argument("--subset", choices=["smoke", "all"], default="smoke")
-    parser.add_argument("--equations", nargs="*", default=None, help="Explicit equation ids.")
+    parser.add_argument("--problems", nargs="*", default=None, help="Explicit problem ids.")
     parser.add_argument("--seeds", type=int, default=10)
     parser.add_argument("--n-samples", type=int, default=500)
     parser.add_argument("--max-iters", type=int, default=3)
@@ -122,14 +156,33 @@ def main() -> int:
     parser.add_argument("--out", type=Path, default=REPO_ROOT / "results" / "null_scaffold_audit")
     args = parser.parse_args()
 
-    if args.equations:
-        equation_ids = list(args.equations)
+    registry = default_registry()
+
+    if args.list_domains:
+        print(f"[audit] registered problem sources: {registry.list_problem_sources()}")
+        return 0
+
+    try:
+        source = registry.build_problem_source(args.domain)
+    except KeyError as exc:
+        print(f"[audit] {exc}", file=sys.stderr)
+        return 2
+
+    available = list(source.list_problems())
+    if args.problems:
+        unknown = [p for p in args.problems if p not in available]
+        if unknown:
+            print(f"[audit] {args.domain} has no problem(s) {unknown}", file=sys.stderr)
+            return 2
+        problem_ids = list(args.problems)
+    elif args.subset == "smoke":
+        problem_ids = available[:SMOKE_SUBSET_SIZE]
     else:
-        entries = list_feynman_equations()
-        equation_ids = [e["id"] for e in (entries[:8] if args.subset == "smoke" else entries)]
+        problem_ids = available
 
     seeds = list(range(args.seeds))
-    scaffold = DiscoveryAgentScaffold(
+    scaffold = load_scaffold(
+        args.scaffold,
         max_iters=args.max_iters,
         population_size=args.population_size,
         generations=args.generations,
@@ -138,6 +191,8 @@ def main() -> int:
     rows: list[dict[str, Any]] = []
     reports: list[dict[str, Any]] = []
     config: dict[str, Any] = {
+        "domain": args.domain,
+        "scaffold": args.scaffold,
         "seeds": len(seeds),
         "max_iters": args.max_iters,
         "population_size": args.population_size,
@@ -151,9 +206,11 @@ def main() -> int:
         },
     }
 
-    for equation_id in equation_ids:
-        problem = build_problem(equation_id, args.n_samples, seed=0)
-        print(f"[audit] {equation_id}: {len(seeds)} seeds", flush=True)
+    print(f"[audit] domain={args.domain} scaffold={args.scaffold} problems={len(problem_ids)}")
+
+    for problem_id in problem_ids:
+        problem = source.build_problem(problem_id, n_samples=args.n_samples, seed=0)
+        print(f"[audit] {problem_id}: {len(seeds)} seeds", flush=True)
         try:
             report = audit(
                 scaffold,
@@ -163,9 +220,9 @@ def main() -> int:
                 higher_is_better=HIGHER_IS_BETTER,
             )
         except NotSeparableError as exc:
-            print(f"[audit] {equation_id}: NOT_SEPARABLE ({exc})", flush=True)
+            print(f"[audit] {problem_id}: NOT_SEPARABLE ({exc})", flush=True)
             rows.append(
-                {"equation_id": equation_id, "metric": "-", "verdict": Verdict.NOT_SEPARABLE.value}
+                {"equation_id": problem_id, "metric": "-", "verdict": Verdict.NOT_SEPARABLE.value}
             )
             continue
 
@@ -188,7 +245,8 @@ def main() -> int:
             )
             rows.append(
                 {
-                    "equation_id": equation_id,
+                    "domain": args.domain,
+                    "equation_id": problem_id,
                     "metric": metric,
                     "verdict": verdict.verdict.value,
                     "observed_difference": verdict.observed_difference,
@@ -203,7 +261,8 @@ def main() -> int:
 
         reports.append(
             {
-                "equation_id": equation_id,
+                "domain": args.domain,
+                "equation_id": problem_id,
                 "scaffold": report.scaffold,
                 "verdict": report.verdict.value,
                 "identical_representation_rate": arms.identical_representation_rate,

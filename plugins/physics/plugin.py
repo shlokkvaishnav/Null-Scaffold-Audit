@@ -20,10 +20,11 @@ import numpy as np
 from algorithms.baselines import BaselineModel
 from algorithms.ensemble import Ensemble
 from algorithms.symbolic import SymbolicHypothesisGenerator
+from engine.audit.problem import AuditProblem
 from engine.evaluation.metrics import compute_fit_metrics
 from engine.plugin import Dataset
 from engine.registry import PluginRegistry
-from plugins.physics.feynman_loader import generate_feynman_dataset
+from plugins.physics.feynman_loader import generate_feynman_dataset, list_feynman_equations
 from plugins.physics.scaffold.agent import DiscoveryAgent
 from validators.equation_validity import EquationValidator
 
@@ -200,9 +201,38 @@ class FeynmanDomainPlugin:
         return compute_fit_metrics(y_true, y_pred, equation=equation)
 
 
+class FeynmanProblemSource:
+    """Makes this domain auditable: the benchmark equations, as audit problems.
+
+    The 80/20 split is fixed here rather than configured, because both audit
+    arms must see identical data and a split that varied per run would make the
+    comparison meaningless without failing.
+    """
+
+    name = "physics"
+
+    TRAIN_FRACTION = 0.8
+
+    def list_problems(self) -> list[str]:
+        return [entry["id"] for entry in list_feynman_equations()]
+
+    def build_problem(self, problem_id: str, *, n_samples: int, seed: int) -> AuditProblem:
+        X, y, ground_truth = generate_feynman_dataset(problem_id, n_samples=n_samples, seed=seed)
+        split = int(self.TRAIN_FRACTION * len(y))
+        return AuditProblem(
+            equation_id=problem_id,
+            x_train=X[:split],
+            y_train=y[:split],
+            x_test=X[split:],
+            y_test=y[split:],
+            ground_truth=ground_truth,
+        )
+
+
 def register(registry: PluginRegistry) -> None:
     """Register every plugin this module provides into the given registry."""
     registry.register_domain(FeynmanDomainPlugin.name, FeynmanDomainPlugin)
+    registry.register_problem_source(FeynmanProblemSource.name, FeynmanProblemSource)
     registry.register_algorithm(SymbolicRegressionAlgorithm.name, SymbolicRegressionAlgorithm)
     registry.register_algorithm(GBMBaselineAlgorithm.name, GBMBaselineAlgorithm)
     registry.register_algorithm(NeuralEnsembleAlgorithm.name, NeuralEnsembleAlgorithm)
