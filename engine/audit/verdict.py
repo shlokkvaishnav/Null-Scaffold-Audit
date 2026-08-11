@@ -71,3 +71,28 @@ class MetricVerdict:
 
     n: int
     higher_is_better: bool
+
+    p_value: float | None = None
+    """Evidence for the claim this verdict makes, before correction.
+
+    For ``NULL`` this is the TOST p-value -- the larger of the two one-sided
+    tests against the margin. For ``CONTRIBUTES`` and ``HARMFUL`` it is the
+    one-sided test against the margin in the claimed direction.
+    ``INCONCLUSIVE`` makes no claim, so it has none.
+    """
+
+    adjusted_p_value: float | None = None
+    """``p_value`` after correcting across the metrics audited together.
+
+    RFC-0001 section 4.2 requires this. Three metrics tested at 0.05 each is not
+    a 0.05 procedure, and the audit exists to refuse exactly that kind of
+    quietly-inflated confidence.
+    """
+
+    correction: str | None = None
+    """Which correction produced ``adjusted_p_value``, named in the record.
+
+    The RFC's wording is that the correction is "stated in the report rather
+    than left implicit", so it travels with the number rather than living in
+    prose someone has to go and find.
+    """

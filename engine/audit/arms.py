@@ -21,6 +21,7 @@ representation string, so this module holds no subject-matter knowledge
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
@@ -256,6 +257,55 @@ class _RunControl:
         )
 
 
+def _holm_correct(
+    per_metric: Mapping[str, MetricVerdict], alpha: float
+) -> dict[str, MetricVerdict]:
+    """Correct across the metrics audited together (RFC-0001 section 4.2).
+
+    Three metrics each tested at 0.05 is not a 0.05 procedure. Left uncorrected,
+    the chance of at least one spurious claim grows with the number of metrics,
+    and this audit exists to refuse exactly that sort of quietly-inflated
+    confidence -- it would be incoherent to police the control arm's budget and
+    then not police our own error rate.
+
+    Holm rather than Bonferroni because Holm is uniformly more powerful and
+    controls the same family-wise rate: claims are sorted by strength and the
+    k-th is tested against ``alpha / (m - k)``, stepping down until one fails.
+
+    Only verdicts that actually claim something enter the family. An
+    ``INCONCLUSIVE`` asserts nothing, so counting it would inflate ``m`` and
+    penalise the real claims for company they never kept.
+
+    A claim that does not survive becomes ``INCONCLUSIVE``: the evidence did not
+    hold up once the family was accounted for, which is precisely "could not
+    tell" rather than "no effect". Its uncorrected p-value is retained so the
+    downgrade is auditable rather than silent.
+    """
+    claims = sorted(
+        ((name, v) for name, v in per_metric.items() if v.p_value is not None),
+        key=lambda item: item[1].p_value or 0.0,
+    )
+
+    corrected = dict(per_metric)
+    running_max = 0.0
+    family_size = len(claims)
+
+    for index, (name, verdict) in enumerate(claims):
+        raw = verdict.p_value or 0.0
+        # Step-down: enforce monotonic non-decreasing adjusted p-values, so a
+        # weak early claim cannot let a stronger later one through.
+        running_max = max(running_max, min(1.0, (family_size - index) * raw))
+        survives = running_max <= alpha
+        corrected[name] = dataclasses.replace(
+            verdict,
+            verdict=verdict.verdict if survives else Verdict.INCONCLUSIVE,
+            adjusted_p_value=running_max,
+            correction=f"holm(family={family_size}, alpha={alpha:g})",
+        )
+
+    return corrected
+
+
 def _overall(per_metric: Mapping[str, MetricVerdict]) -> Verdict:
     """Collapse per-metric verdicts into one.
 
@@ -323,12 +373,18 @@ def audit(
             confidence=confidence,
         )
 
+    per_metric = _holm_correct(per_metric, alpha=(1.0 - confidence) / 2.0)
+
     limitations = [
         (
-            "Per-metric verdicts are uncorrected for multiplicity. RFC-0001 section 4.2 "
-            "specifies a Holm correction across metrics; it is not implemented, so the "
-            "family-wise error rate exceeds the stated per-metric level when more than "
-            "one metric is audited."
+            "Per-metric verdicts are Holm-corrected across the metrics audited "
+            "together, and the correction is recorded on each verdict; a claim that "
+            "did not survive reads INCONCLUSIVE with its uncorrected p-value retained. "
+            "The correction's p-values are parametric (TOST or one-sided t) while the "
+            "intervals that set the verdicts are BCa bootstrap, and on heavy-tailed "
+            "metrics the two can disagree -- so this bounds the family-wise error rate "
+            "approximately rather than exactly. The mismatch can only withdraw claims, "
+            "never add them, so it errs toward reporting less than was found."
         ),
         (
             "The identical-representation rate compares strings literally, not "

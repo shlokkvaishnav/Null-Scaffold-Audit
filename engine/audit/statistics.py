@@ -105,6 +105,56 @@ def _interval(
     return float(result.confidence_interval.low), float(result.confidence_interval.high)
 
 
+def _claim_p_value(differences: np.ndarray, margin: float, verdict: Verdict) -> float | None:
+    """Evidence for the claim this verdict makes, so it can be corrected.
+
+    Each verdict asserts something different, so each needs its own test rather
+    than one p-value pressed into three roles:
+
+    - ``NULL`` claims equivalence, so the test is TOST: two one-sided tests
+      against the margin, and the claim is only as strong as its weaker side.
+    - ``CONTRIBUTES`` and ``HARMFUL`` claim a difference beyond the margin, so
+      the test is one-sided in the direction claimed.
+    - ``INCONCLUSIVE`` claims nothing, so there is nothing to correct. Returning
+      None here rather than 1.0 keeps it out of the correction's family instead
+      of padding that family with a claim nobody made.
+
+    Parametric where the intervals are bootstrap, deliberately. The interval
+    decides the verdict; this only ranks the claims against each other so Holm
+    has an ordering. Inverting a BCa interval to get an exact p would cost a
+    bootstrap per candidate level for no change in that ordering.
+    """
+    n = len(differences)
+    spread = float(np.std(differences, ddof=1))
+    mean = float(np.mean(differences))
+
+    if verdict is Verdict.INCONCLUSIVE:
+        return None
+
+    if spread == 0.0:
+        # Every observation agrees. The claim is certain or impossible; there is
+        # no sampling variability left for a p-value to describe.
+        if verdict is Verdict.NULL:
+            return 0.0 if abs(mean) < margin else 1.0
+        if verdict is Verdict.CONTRIBUTES:
+            return 0.0 if mean > margin else 1.0
+        return 0.0 if mean < -margin else 1.0
+
+    standard_error = spread / math.sqrt(n)
+    degrees_of_freedom = n - 1
+
+    if verdict is Verdict.NULL:
+        # H0 is non-equivalence on each side; the TOST p is the weaker rejection.
+        p_above_lower = 1.0 - float(stats.t.cdf((mean + margin) / standard_error, degrees_of_freedom))
+        p_below_upper = float(stats.t.cdf((mean - margin) / standard_error, degrees_of_freedom))
+        return float(max(p_above_lower, p_below_upper))
+
+    if verdict is Verdict.CONTRIBUTES:
+        return 1.0 - float(stats.t.cdf((mean - margin) / standard_error, degrees_of_freedom))
+
+    return float(stats.t.cdf((mean + margin) / standard_error, degrees_of_freedom))
+
+
 def _resolve(ci_low: float, ci_high: float, margin: float) -> Verdict:
     """Map an interval onto a verdict.
 
@@ -184,4 +234,5 @@ def equivalence_verdict(
         power=_tost_power(margin, spread, n, alpha),
         n=n,
         higher_is_better=higher_is_better,
+        p_value=_claim_p_value(differences, margin, verdict),
     )

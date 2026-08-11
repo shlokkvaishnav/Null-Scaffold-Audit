@@ -127,6 +127,13 @@ def run_locked_audit() -> dict[str, Any]:
                     "margin": verdict.margin,
                     "power": verdict.power,
                     "n": verdict.n,
+                    # The multiplicity correction is part of the claim, so it is
+                    # locked with it. Without these, a change to the correction
+                    # could silently promote or demote a verdict and the lock
+                    # would notice only if the enum happened to move.
+                    "p_value": verdict.p_value,
+                    "adjusted_p_value": verdict.adjusted_p_value,
+                    "correction": verdict.correction,
                 }
                 for metric, verdict in report.per_metric.items()
             },
