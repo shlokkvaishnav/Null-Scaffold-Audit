@@ -16,6 +16,7 @@ from engine.audit.arms import (
     Scaffold,
     SearchOutcome,
     audit,
+    paired_seed,
     run_arms,
 )
 from engine.audit.degeneracy import DegeneracyReport, assess_degeneracy
@@ -39,5 +40,6 @@ __all__ = [
     "assess_degeneracy",
     "audit",
     "equivalence_verdict",
+    "paired_seed",
     "run_arms",
 ]

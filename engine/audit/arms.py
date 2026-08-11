@@ -176,6 +176,7 @@ def run_arms(
     seeds: Sequence[int],
     *,
     map_fn: Callable[[Callable[[int], Any], Iterable[int]], Iterable[Any]] = map,
+    common_random_numbers: bool = False,
 ) -> ArmOutcomes:
     """Run both arms over ``seeds``, matching the control's budget to the treatment's.
 
@@ -201,7 +202,7 @@ def run_arms(
     per_seed_evaluations = treatment_evaluations // len(seeds)
     restarts = _budget_matched_restarts(per_seed_evaluations, base.restart_cost)
 
-    control = list(map_fn(_RunControl(base, problem, restarts), seeds))
+    control = list(map_fn(_RunControl(base, problem, restarts, common_random_numbers), seeds))
 
     return ArmOutcomes(
         treatment=treatment,
@@ -235,6 +236,26 @@ class _RunTreatment:
         return self.scaffold.run(self.problem, seed)
 
 
+_PAIRING_STRIDE = 7919
+_SEED_MODULUS = 2**31 - 1
+
+
+def paired_seed(base_seed: int, index: int) -> int:
+    """The seed both arms use for their `index`-th search under common random numbers.
+
+    Variance reduction only works if the arms share randomness, and they can
+    only share it if they agree how to derive it -- which neither can do alone:
+    the engine cannot see how a scaffold seeds its internals, and a plugin
+    cannot see how the control arm seeds its restarts. So the convention lives
+    here, and a plugin that wants pairing derives its per-iteration seeds from
+    this function.
+
+    This is not domain knowledge. It is arithmetic on integers, and the engine
+    still learns nothing about what is being searched.
+    """
+    return (int(base_seed) + index * _PAIRING_STRIDE) % _SEED_MODULUS
+
+
 @dataclass(frozen=True)
 class _RunControl:
     """One control-arm run: `restarts` independent searches, then the pipeline's own pick."""
@@ -242,10 +263,16 @@ class _RunControl:
     base: Any
     problem: Any
     restarts: int
+    common_random_numbers: bool = False
+
+    def _seed_for(self, seed: int, restart: int) -> int:
+        if self.common_random_numbers:
+            return paired_seed(seed, restart)
+        return seed * _SEED_STRIDE + restart
 
     def __call__(self, seed: int) -> SearchOutcome:
         outcomes = [
-            self.base.search(self.problem, seed * _SEED_STRIDE + r) for r in range(self.restarts)
+            self.base.search(self.problem, self._seed_for(seed, r)) for r in range(self.restarts)
         ]
         best = self.base.select(outcomes)
         # Report the whole arm's spend, not just the winning restart's: the
@@ -382,6 +409,7 @@ def audit(
     higher_is_better: Mapping[str, bool] | None = None,
     confidence: float = 0.90,
     map_fn: Callable[[Callable[[int], Any], Iterable[int]], Iterable[Any]] = map,
+    common_random_numbers: bool = False,
 ) -> AuditReport:
     """Run the audit and return a verdict per metric plus an overall verdict.
 
@@ -394,7 +422,9 @@ def audit(
         raise ValueError("margins are required: an audit with no pre-registered margin is not one")
 
     orientation = dict(higher_is_better or {})
-    arms = run_arms(scaffold, problem, seeds, map_fn=map_fn)
+    arms = run_arms(
+        scaffold, problem, seeds, map_fn=map_fn, common_random_numbers=common_random_numbers
+    )
 
     per_metric: dict[str, MetricVerdict] = {}
     for metric, margin in margins.items():

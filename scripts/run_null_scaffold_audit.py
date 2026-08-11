@@ -152,6 +152,14 @@ def main() -> int:
         help="Processes to spread seeds across. Seeds are independent, so this "
         "changes wall-clock only -- never a verdict.",
     )
+    parser.add_argument(
+        "--common-random-numbers",
+        action="store_true",
+        help="Pair the arms on identical random streams. Reduces the variance of "
+        "the paired difference, and narrows the question: both arms then run the "
+        "same searches, so the comparison isolates what the wrapper does with "
+        "them rather than which regions it happens to explore.",
+    )
     parser.add_argument("--subset", choices=["smoke", "all"], default="smoke")
     parser.add_argument("--problems", nargs="*", default=None, help="Explicit problem ids.")
     parser.add_argument("--seeds", type=int, default=10)
@@ -211,6 +219,7 @@ def main() -> int:
         "generations": args.generations,
         "n_samples": args.n_samples,
         "workers": args.workers,
+        "common_random_numbers": args.common_random_numbers,
         "evaluations_per_fit": args.population_size * args.generations,
         "margins": {
             "rmse": f"{RMSE_MARGIN_FRACTION} * std(y_test)",
@@ -242,6 +251,7 @@ def main() -> int:
                 margins=margins_for(problem),
                 higher_is_better=HIGHER_IS_BETTER,
                 map_fn=map_fn,
+                common_random_numbers=args.common_random_numbers,
             )
         except NotSeparableError as exc:
             print(f"[audit] {problem_id}: NOT_SEPARABLE ({exc})", flush=True)

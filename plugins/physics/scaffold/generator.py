@@ -8,10 +8,13 @@ Supports two modes:
 
 import itertools
 
-# Large co-prime strides so that (iteration, regime) pairs cannot collide onto
-# the same seed for any small configuration -- iteration 2 of regime 0 must not
-# repeat the search that iteration 0 of regime 2 already ran.
-_ITERATION_STRIDE = 7919
+from engine.audit import paired_seed
+
+# The per-iteration component comes from engine.audit.paired_seed, which is the
+# convention the control arm uses for its restarts. Sharing it is what lets the
+# audit run under common random numbers: iteration k and restart k then draw
+# the same stream, and the paired difference isolates the scaffold instead of
+# also carrying the noise of two unrelated draws.
 _REGIME_STRIDE = 104729
 _SEED_MODULUS = 2**31 - 1
 
@@ -33,9 +36,7 @@ def _search_seed(base_seed: int, iteration: int, regime_id: int) -> int:
     now measure the difference between "three varied restarts" and "a loop"
     rather than being unable to tell them apart.
     """
-    return (
-        int(base_seed) + iteration * _ITERATION_STRIDE + regime_id * _REGIME_STRIDE
-    ) % _SEED_MODULUS
+    return (paired_seed(base_seed, iteration) + regime_id * _REGIME_STRIDE) % _SEED_MODULUS
 
 
 class DeterministicReasoner:
