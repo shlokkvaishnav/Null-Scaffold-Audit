@@ -31,6 +31,11 @@ COPY cli ./cli
 COPY scripts ./scripts
 COPY configs ./configs
 COPY tests ./tests
+# tests/test_domain_independence.py loads the checker from its path rather than
+# importing it -- tools/ is not a package -- so the image needs it or that whole
+# module fails to collect, taking 41 tests with it silently enough to look like
+# a smaller suite rather than a broken one.
+COPY tools ./tools
 
 ENV SYMBOLIC_BACKEND=gplearn \
     PYTHONUNBUFFERED=1 \
