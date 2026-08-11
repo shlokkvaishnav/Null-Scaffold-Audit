@@ -19,9 +19,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 try:
-    from physics_discovery.api.main import app
+    from plugins.physics.api.main import app
 except ImportError as exc:
-    pytest.skip(f"physics_discovery.api.main not importable here: {exc}", allow_module_level=True)
+    pytest.skip(f"plugins.physics.api.main not importable here: {exc}", allow_module_level=True)
 
 
 def _make_synthetic_csv_bytes(seed: int = 0, n_rows: int = 50) -> bytes:

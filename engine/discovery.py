@@ -1,10 +1,11 @@
 """Dynamic plugin discovery via Python packaging entry points.
 
 This is what makes plugins genuinely pluggable: nothing in `engine/` or
-`cli/` imports a concrete plugin module (like `physics_discovery.plugins.
-feynman`) by name. Instead, any *installed* Python package can register SDE
-plugins by declaring an entry point under the `"sde.plugins"` group in its
-own `pyproject.toml`:
+`cli/` imports a concrete plugin module by name -- including the plugins
+shipped in this repository, which are discovered the same way third-party
+ones are. Any *installed* Python package can register SDE plugins by
+declaring an entry point under the `"sde.plugins"` group in its own
+`pyproject.toml`:
 
     [project.entry-points."sde.plugins"]
     my_domain = "my_package.plugins:register"
@@ -29,14 +30,13 @@ from __future__ import annotations
 
 import warnings
 from importlib.metadata import entry_points
-from typing import List
 
 from engine.registry import PluginRegistry
 
 ENTRY_POINT_GROUP = "sde.plugins"
 
 
-def discover_plugins(registry: PluginRegistry, group: str = ENTRY_POINT_GROUP) -> List[str]:
+def discover_plugins(registry: PluginRegistry, group: str = ENTRY_POINT_GROUP) -> list[str]:
     """Load and call register(registry) for every installed entry point in `group`.
 
     Returns the names of the entry points that loaded successfully, in
@@ -44,7 +44,7 @@ def discover_plugins(registry: PluginRegistry, group: str = ENTRY_POINT_GROUP) -
     register() call that raises) is skipped with a warning rather than
     aborting discovery of every other installed plugin.
     """
-    loaded: List[str] = []
+    loaded: list[str] = []
     for ep in entry_points(group=group):
         try:
             register_fn = ep.load()

@@ -1,7 +1,7 @@
-"""Integration tests for physics_discovery.plugins.synthetic: the second
+"""Integration tests for plugins.synthetic.plugin: the second
 domain plugin, used to stress-test DomainPlugin generality (no equation_id,
 no known ground truth) against the algorithm plugins registered by
-physics_discovery.plugins.feynman.
+plugins.physics.plugin.
 
 Same environment caveat as tests/test_feynman_plugin.py: skipped if a
 transitively-imported compiled sklearn extension is blocked here.
@@ -15,9 +15,12 @@ from engine.orchestrator import DiscoveryOrchestrator, ExperimentConfig
 from engine.registry import PluginRegistry
 
 try:
-    from physics_discovery.plugins import feynman, synthetic
+    from plugins.physics import plugin as feynman
+    from plugins.synthetic import plugin as synthetic
 except ImportError as exc:
-    pytest.skip(f"physics_discovery.plugins not importable here: {exc}", allow_module_level=True)
+    pytest.skip(
+        f"plugins.physics/plugins.synthetic not importable here: {exc}", allow_module_level=True
+    )
 
 
 @pytest.fixture

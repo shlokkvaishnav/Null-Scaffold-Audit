@@ -9,7 +9,7 @@ plugin. The engine never knows what a "physics equation" or a "climate
 variable" is; it only knows the shapes of `Dataset`, `AlgorithmPlugin`, and
 `DomainPlugin`.
 
-**`physics_discovery`** is the first plugin: an agentic equation-discovery
+**`plugins/physics/`** is the first plugin: an agentic equation-discovery
 system (symbolic regression + a hypothesize→verify→learn loop) benchmarked
 against 36 AI-Feynman physics equations. It used to be the entire project
 (under the name `sdmose`, then `equation_discovery`). It is now one
@@ -19,9 +19,9 @@ just no longer assumed to be the only domain the project will ever support.
 If you're adding a second domain (chemistry, biology, a different physics
 benchmark) or a second algorithm (PySR as its own plugin, a Bayesian search
 method), you write it against the interfaces described here, not against
-`physics_discovery` internals.
+`plugins/physics/` internals.
 
-## The three packages
+## The packages
 
 ```
 engine/             <- the platform. Domain-agnostic. Never imports a plugin.
@@ -29,26 +29,34 @@ engine/             <- the platform. Domain-agnostic. Never imports a plugin.
   registry.py         PluginRegistry: name -> factory lookup
   discovery.py         discover_plugins: finds installed "sde.plugins" entry points, calls each one's register()
   orchestrator.py     ExperimentConfig, RunResult, DiscoveryOrchestrator
-  config.py           pydantic schemas for YAML configs (RunConfig, BaselineExperimentConfig)
+  config.py           pydantic schemas for YAML configs (RunConfig)
+  audit/              null-scaffold audit: arms, statistics, degeneracy, AuditProblem
+  expressions/        Hypothesis, safe evaluation of candidate equation strings
+  evaluation/         fit metrics, SRBench-rule symbolic/numeric equivalence
+  scoring.py          HypothesisScorer: ranks by fit + violations + complexity
+  experiments/        the shared baseline experiment contract (see below)
 
 cli/                <- the one CLI entry point over the engine (`sde ...`)
   main.py             list-plugins / run / benchmark commands
 
-physics_discovery/  <- the first plugin (physics/Feynman equation discovery)
-  core/               DiscoveryAgent loop: perception, retrieval, belief, generator, scorer, archive
-  generators/         SymbolicHypothesisGenerator, BaselineModel, Ensemble, SymbolicGate
-  data/                feynman_loader, tabular CSV loader, synthetic regression data
-  evaluation/          fit metrics, significance tests, symbolic/numeric equivalence checks
-  validation/          EquationValidator, LyapunovStabilityScreener
-  experiments/         the shared baseline experiment contract (see below)
-  api/                 the FastAPI service (unrelated to engine/ — a separate way to drive physics_discovery directly)
-  plugins/feynman.py    the adapter layer: wraps everything above as an AlgorithmPlugin/DomainPlugin
-  plugins/synthetic.py  a second DomainPlugin (no ground truth), reusing feynman.py's algorithms
+algorithms/         <- search algorithms behind AlgorithmPlugin (gplearn, sklearn)
+  symbolic.py, ensemble.py, baselines.py
+
+validators/         <- constraint rules behind ConstraintValidator
+  equation_validity.py, dynamical_stability.py
+
+plugins/            <- domain plugins; the engine may not import from here
+  physics/            plugin.py (entry point), feynman_loader.py, feynman_equations.json
+    scaffold/         DiscoveryAgent loop: perception, retrieval, belief, generator, archive
+    audit_adapter.py  exposes that loop to engine.audit
+    inference/        variational EM apparatus (needs torch)
+    api/              the FastAPI service (a separate way to drive the loop)
+  synthetic/          plugin.py, data.py — a second domain with a known formula
 ```
 
-**Dependency direction is one-way**: `physics_discovery/plugins/feynman.py`
+**Dependency direction is one-way**: `plugins/physics/plugin.py`
 imports from `engine/`. Nothing in `engine/` or `cli/` imports from
-`physics_discovery/`, or any other plugin package, **at all** — not even by
+`plugins/`, or any other plugin package, **at all** — not even by
 name. Plugins are found dynamically at runtime via `engine/discovery.py`
 (Python packaging entry points, see below), not hardcoded into `cli/main.py`
 or anywhere else. This is what makes the engine usable for a domain nobody
@@ -82,7 +90,7 @@ class DomainPlugin(Protocol):
 
 These are `typing.Protocol` classes (structural typing) — a plugin doesn't
 need to inherit from anything, it just needs matching methods/attributes.
-See `physics_discovery/plugins/feynman.py` for five real implementations
+See `plugins/physics/plugin.py` for five real implementations
 (`SymbolicRegressionAlgorithm`, `GBMBaselineAlgorithm`,
 `NeuralEnsembleAlgorithm`, `DiscoveryAgentAlgorithm`, `FeynmanDomainPlugin`).
 
@@ -90,15 +98,17 @@ See `physics_discovery/plugins/feynman.py` for five real implementations
 
 ```python
 registry = PluginRegistry()
-feynman.register(registry)             # or any other module's register(registry)
+feynman.register(registry)  # or any other module's register(registry)
 
 orchestrator = DiscoveryOrchestrator(registry)
-result = orchestrator.run(ExperimentConfig(
-    domain="feynman_physics",
-    algorithm="symbolic_regression",
-    domain_kwargs={"equation_id": "coulomb_force", "n_samples": 200, "seed": 0},
-    algorithm_kwargs={"backend": "gplearn", "generations": 10},
-))
+result = orchestrator.run(
+    ExperimentConfig(
+        domain="feynman_physics",
+        algorithm="symbolic_regression",
+        domain_kwargs={"equation_id": "coulomb_force", "n_samples": 200, "seed": 0},
+        algorithm_kwargs={"backend": "gplearn", "generations": 10},
+    )
+)
 # result: RunResult(domain, algorithm, equation, metrics, constraints)
 ```
 
@@ -121,7 +131,7 @@ engine changes.
   `configs/paper/*.yaml` shape: a multi-model, multi-seed comparison with
   ablations and paired-significance testing, used for the actual paper
   benchmark tables (`scripts/reproduce_benchmarks.py`,
-  `physics_discovery/experiments/contract.py`). `sde benchmark <path>`
+  `engine/experiments/contract.py`). `sde benchmark <path>`
   validates against `BaselineExperimentConfig` (which re-checks the same
   shared contract `validate_baseline_contract` already enforces) and then
   runs `scripts/reproduce_benchmarks.run(...)`.
@@ -129,7 +139,7 @@ engine changes.
 These are deliberately *not* unified into one schema: they drive different
 things (a single plugin run vs. a full paper-reproducibility comparison), and
 forcing one shape onto both would make the paper pipeline's contract
-(`physics_discovery/experiments/contract.py`) harder to reason about, not
+(`engine/experiments/contract.py`) harder to reason about, not
 easier.
 
 ## The CLI (`cli/main.py`)
@@ -142,7 +152,7 @@ sde benchmark configs/paper/benchmark_minimal.yaml # paper-style comparison
 
 `_default_registry()` in `cli/main.py` builds an empty `PluginRegistry` and
 calls `engine.discovery.discover_plugins(registry)` — it does not import
-`physics_discovery` (or anything else) by name. Discovery works via Python
+a plugin (or anything else) by name. Discovery works via Python
 packaging entry points: any installed package that declares one under the
 `"sde.plugins"` group gets its `register(registry)` called automatically.
 This repo's own two plugins are registered the same way, via entry points in
@@ -150,8 +160,8 @@ This repo's own two plugins are registered the same way, via entry points in
 
 ```toml
 [project.entry-points."sde.plugins"]
-feynman_physics = "physics_discovery.plugins.feynman:register"
-synthetic_regression = "physics_discovery.plugins.synthetic:register"
+feynman_physics = "plugins.physics.plugin:register"
+synthetic_regression = "plugins.synthetic.plugin:register"
 ```
 
 Adding a plugin from a separate package requires **no change to this repo**:

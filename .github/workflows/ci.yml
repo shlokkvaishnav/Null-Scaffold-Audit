@@ -1,3 +1,14 @@
+# Milestone 0 gates (BOOTSTRAP.md section 18, item 6).
+#
+# Every job here exists to move a rule from convention into enforcement. A rule
+# that depends on reviewer attention is a rule that erodes, so nothing in this
+# file is advisory: there are no `continue-on-error` escapes, and no job reports
+# success on a check it did not actually run.
+#
+# The environment is resolved from the committed uv.lock rather than from a
+# fresh dependency resolution, so a CI run a year from now installs the same
+# packages as one today (BOOTSTRAP.md section 11.1).
+
 name: CI
 
 on:
@@ -5,45 +16,107 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.12.1"
+
 jobs:
-  lint:
+  # A lock file that has drifted from pyproject.toml is not a lock file. This
+  # runs first and cheaply, because every other job's environment depends on it
+  # being trustworthy.
+  lockfile:
+    name: Lock file is current
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.11"
-      - run: pip install ruff
-      - run: ruff check .
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: uv.lock matches pyproject.toml
+        run: uv lock --check
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - run: uv sync --frozen --extra dev
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
 
   typecheck:
+    name: Type check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.11"
-      - run: pip install mypy
-      - run: pip install -e ".[dev,gbm]"
-      - run: mypy physics_discovery engine
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - run: uv sync --frozen --extra dev --extra gbm
+      - run: uv run mypy engine algorithms validators plugins cli tools
 
   test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - run: uv sync --frozen --extra dev --extra gbm
+      # The coverage floor covers the code written against an RFC, not the
+      # tree awaiting migration. It widens as each subsystem is rebuilt; a
+      # floor averaged over code that is being replaced measures nothing
+      # (BOOTSTRAP.md section 11).
+      #
+      # Coverage targets are given as paths, not module names: --cov=engine.audit
+      # imports the package for source discovery and collides with numpy's
+      # extension modules ("cannot load module more than once per process").
+      - name: Test suite with coverage floor
+        run: >
+          uv run pytest tests/ -v
+          --cov=tools --cov=engine/audit
+          --cov-report=term-missing --cov-fail-under=95
+
+  # Constitution Article 5. This is the project's central architectural claim,
+  # and the only reason it is a claim rather than a hope is that this job fails
+  # the build when it stops being true.
+  domain-independence:
+    name: Engine is domain independent (Article 5)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-      - run: pip install -e ".[dev,gbm]"
-      - run: pytest tests/ -v
+          python-version-file: .python-version
+      - name: Check engine/ for scientific content
+        run: python tools/check_domain_independence.py --path engine
+      # algorithms/ is gated too: a search algorithm naming a domain has
+      # stopped being reusable across them. validators/ deliberately is not,
+      # and cannot be -- constraint rules encode domain knowledge by
+      # definition. See validators/__init__.py.
+      - name: Check algorithms/ for scientific content
+        run: python tools/check_domain_independence.py --path algorithms
 
   smoke-benchmark:
+    name: Smoke benchmark
     runs-on: ubuntu-latest
     needs: test
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.11"
-      - run: pip install -e ".[dev,gbm]"
-      - run: python -m physics_discovery.evaluation.benchmark_runner --subset smoke --backend gplearn
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - run: uv sync --frozen --extra dev --extra gbm
+      - run: uv run python -m plugins.physics.benchmark_runner --subset smoke --backend gplearn

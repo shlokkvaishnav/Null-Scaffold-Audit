@@ -1,5 +1,9 @@
-"""Tests for engine.config: pydantic schemas over RunConfig and the paper
-benchmark-config shape, validated against the shared baseline contract."""
+"""Tests for the two config schemas: engine.config (RunConfig) and the paper
+benchmark-config shape, validated against the shared baseline contract.
+
+The two are tested together because the same CLI loads both, but they live in
+different packages on purpose: the baseline shape encodes one plugin's
+experiment protocol and so may not sit in the engine (Article 5)."""
 
 from __future__ import annotations
 
@@ -8,7 +12,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from engine.config import load_baseline_experiment_config, load_run_config
+from engine.config import load_run_config
+from engine.experiments.config import load_baseline_experiment_config
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 

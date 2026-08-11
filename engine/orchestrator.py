@@ -9,7 +9,7 @@ a given ExperimentConfig.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any
 
 import numpy as np
 
@@ -23,8 +23,8 @@ class ExperimentConfig:
 
     domain: str
     algorithm: str
-    domain_kwargs: Dict[str, Any] = field(default_factory=dict)
-    algorithm_kwargs: Dict[str, Any] = field(default_factory=dict)
+    domain_kwargs: dict[str, Any] = field(default_factory=dict)
+    algorithm_kwargs: dict[str, Any] = field(default_factory=dict)
     train_fraction: float = 0.8
     seed: int = 0
 
@@ -35,9 +35,9 @@ class RunResult:
 
     domain: str
     algorithm: str
-    equation: Optional[str]
-    metrics: Dict[str, float]
-    constraints: Dict[str, Any]
+    equation: str | None
+    metrics: dict[str, float]
+    constraints: dict[str, Any]
 
 
 def _train_test_split(dataset: Dataset, train_fraction: float):

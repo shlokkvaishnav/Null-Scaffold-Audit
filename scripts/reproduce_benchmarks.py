@@ -3,16 +3,16 @@
 Reads a config from configs/paper/*.yaml, validates it against the shared
 experiment contract, and runs REAL model fitting/evaluation across the
 configured seeds and model variants on a synthetic regression dataset
-(physics_discovery.data.synthetic.generate_synthetic_regression). This
+(plugins.synthetic.data.generate_synthetic_regression). This
 replaces the previous hash-seeded fake-metric placeholder with actual
 computation: baselines (linear/RF/xgboost/lightgbm) via
-physics_discovery.generators.baselines.BaselineModel, a neural+tree
-ensemble via physics_discovery.generators.ensemble.Ensemble, and a symbolic
-regressor via physics_discovery.generators.symbolic.SymbolicHypothesisGenerator.
+algorithms.baselines.BaselineModel, a neural+tree
+ensemble via algorithms.ensemble.Ensemble, and a symbolic
+regressor via algorithms.symbolic.SymbolicHypothesisGenerator.
 
 For a full Feynman-equation rediscovery run (rather than the synthetic
 regression dataset used here for fast, config-driven reproducibility), use
-`python -m physics_discovery.evaluation.benchmark_runner` instead.
+`python -m plugins.physics.benchmark_runner` instead.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 import yaml
@@ -31,15 +31,15 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from physics_discovery.data.synthetic import generate_synthetic_regression
-from physics_discovery.evaluation.metrics import compute_fit_metrics, confidence_interval
-from physics_discovery.experiments.contract import validate_baseline_contract
-from physics_discovery.generators.baselines import BaselineModel
-from physics_discovery.generators.ensemble import Ensemble
-from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator
+from algorithms.baselines import BaselineModel
+from algorithms.ensemble import Ensemble
+from algorithms.symbolic import SymbolicHypothesisGenerator
+from engine.evaluation.metrics import compute_fit_metrics, confidence_interval
+from engine.experiments.contract import validate_baseline_contract
+from plugins.synthetic.data import generate_synthetic_regression
 
 
-def _run_variant(variant: str, seed: int, budget: Dict[str, Any]):
+def _run_variant(variant: str, seed: int, budget: dict[str, Any]):
     data = generate_synthetic_regression(seed=seed)
 
     if variant == "pysr_global":
@@ -47,15 +47,17 @@ def _run_variant(variant: str, seed: int, budget: Dict[str, Any]):
         model.fit(data.x_train, data.y_train)
         return model.predict(data.x_test), data.y_test, model.equation
 
+    # Each branch binds its own name. Reusing `model` across three unrelated
+    # model classes made the variable's type depend on which branch ran.
     if variant == "neural_moe":
-        model = Ensemble({"random_state": seed})
-        model.fit(data.x_train, data.y_train)
-        return model.predict(data.x_test), data.y_test, "neural_moe_ensemble"
+        ensemble = Ensemble({"random_state": seed})
+        ensemble.fit(data.x_train, data.y_train)
+        return ensemble.predict(data.x_test), data.y_test, "neural_moe_ensemble"
 
     if variant in {"lightgbm", "xgboost"}:
-        model = BaselineModel({"model_type": variant, "random_state": seed})
-        model.fit(data.x_train, data.y_train)
-        return model.predict(data.x_test), data.y_test, variant
+        baseline = BaselineModel({"model_type": variant, "random_state": seed})
+        baseline.fit(data.x_train, data.y_train)
+        return baseline.predict(data.x_test), data.y_test, variant
 
     if variant == "discovery_agent_full" or variant.startswith("no_"):
         # The discovery-agent variants require the DiscoveryAgent's
@@ -65,7 +67,11 @@ def _run_variant(variant: str, seed: int, budget: Dict[str, Any]):
         # generator directly as a stand-in for the agent's core hypothesis
         # engine so this script still reports real (non-fake) numbers.
         model = SymbolicHypothesisGenerator(
-            {"backend": "gplearn", "random_state": seed, "generations": int(budget.get("max_iters", 20))}
+            {
+                "backend": "gplearn",
+                "random_state": seed,
+                "generations": int(budget.get("max_iters", 20)),
+            }
         )
         model.fit(data.x_train, data.y_train)
         return model.predict(data.x_test), data.y_test, model.equation
@@ -88,8 +94,8 @@ def run(config_path: Path) -> dict:
     output_dir = Path("results/reproducibility")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    per_run: List[Dict[str, Any]] = []
-    summary: Dict[str, Dict[str, List[float]]] = {}
+    per_run: list[dict[str, Any]] = []
+    summary: dict[str, dict[str, list[float]]] = {}
 
     for model in models:
         summary[model] = {m: [] for m in metrics}
@@ -109,12 +115,15 @@ def run(config_path: Path) -> dict:
             result["wall_time_seconds"] = wall_time
             per_run.append(result)
 
-    aggregate: Dict[str, Dict[str, Dict[str, float]]] = {}
+    aggregate: dict[str, dict[str, dict[str, float]]] = {}
     for model in models:
         aggregate[model] = {}
         for metric, values in summary[model].items():
             mean, ci_lo, ci_hi = confidence_interval(values, confidence_level=0.95)
-            aggregate[model][metric] = {"mean": mean, "ci95": (ci_hi - ci_lo) / 2 if len(values) > 1 else 0.0}
+            aggregate[model][metric] = {
+                "mean": mean,
+                "ci95": (ci_hi - ci_lo) / 2 if len(values) > 1 else 0.0,
+            }
 
     artifact = {
         "experiment": config["experiment_name"],

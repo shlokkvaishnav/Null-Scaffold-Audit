@@ -10,7 +10,7 @@ hardcoded into the engine or CLI — anyone can add a plugin for their own
 domain by installing a package that declares one, with no change to this
 repo. See [docs/PLUGIN_GUIDE.md](docs/PLUGIN_GUIDE.md).
 
-**`physics_discovery/`** is the first plugin: an agentic system that
+**`plugins/physics/`** is the first plugin: an agentic system that
 automates the scientist's hypothesize → test → refine loop for closed-form
 equation discovery, using symbolic regression as the hypothesis-generation
 engine. Given any tabular dataset (features → target), it proposes candidate
@@ -33,7 +33,7 @@ docker compose up --build
 
 No local Python install, no host `pip install` — everything (symbolic
 regression backend, ML baselines, API server, CLI) runs inside the
-container. The physics_discovery API is then available at
+container. The physics plugin's API is then available at
 `http://localhost:8000` (interactive docs at `/docs`).
 
 ```bash
@@ -53,9 +53,9 @@ sde run configs/run/coulomb_symbolic.yaml           # run one domain+algorithm p
 sde benchmark configs/paper/benchmark_minimal.yaml  # validated paper-style multi-model comparison
 ```
 
-## physics_discovery API
+## The physics plugin API
 
-The FastAPI service is a separate, direct way to drive the physics_discovery
+The FastAPI service is a separate, direct way to drive the physics plugin's
 plugin (upload a CSV, get back a discovered equation) — independent of the
 engine/CLI path above.
 
@@ -73,7 +73,7 @@ engine/CLI path above.
 ```
 engine/             the platform: plugin contract, registry, orchestrator, config schemas
 cli/                 the `sde` command-line entry point
-physics_discovery/  the first plugin: physics/Feynman equation-discovery agent + FastAPI service
+plugins/physics/    the first domain plugin: the DiscoveryAgent loop, Feynman data, FastAPI service
 configs/            run/ (single orchestrator runs) and paper/ (benchmark comparison tables)
 scripts/             standalone entry points (reproduce_benchmarks, run_ablations, ...)
 tests/               pytest suite

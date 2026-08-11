@@ -1,4 +1,4 @@
-"""Orchestrator wiring tests using fake plugins -- no physics_discovery/ML deps.
+"""Orchestrator wiring tests using fake plugins -- no real plugin or ML deps.
 
 These exist to prove the engine seams (Dataset/AlgorithmPlugin/DomainPlugin/
 PluginRegistry/DiscoveryOrchestrator) work generically, independent of any
@@ -7,7 +7,7 @@ concrete science implementation.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import numpy as np
 import pytest
@@ -25,7 +25,7 @@ class _LinearAlgorithm:
     def __init__(self, **_: Any) -> None:
         self._mean = 0.0
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "_LinearAlgorithm":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> _LinearAlgorithm:
         self._mean = float(np.mean(y))
         return self
 
@@ -33,7 +33,7 @@ class _LinearAlgorithm:
         return np.full(len(X), self._mean)
 
     @property
-    def equation(self) -> Optional[str]:
+    def equation(self) -> str | None:
         return f"y = {self._mean}"
 
 
@@ -42,14 +42,14 @@ class _NoEquationAlgorithm:
 
     name = "black_box"
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "_NoEquationAlgorithm":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> _NoEquationAlgorithm:
         return self
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         return np.zeros(len(X))
 
     @property
-    def equation(self) -> Optional[str]:
+    def equation(self) -> str | None:
         return None
 
 
@@ -64,7 +64,7 @@ class _FakeDomain:
         y = np.full(n, 3.0)
         return Dataset(X=X, y=y, feature_names=["x0"], metadata={"source": "fake"})
 
-    def validate(self, equation: Optional[str]) -> Dict[str, Any]:
+    def validate(self, equation: str | None) -> dict[str, Any]:
         if equation and "bad" in equation:
             return {"bad_equation": {"violation_rate": 1.0}}
         return {}
@@ -73,8 +73,8 @@ class _FakeDomain:
         self,
         y_true: np.ndarray,
         y_pred: np.ndarray,
-        equation: Optional[str] = None,
-    ) -> Dict[str, float]:
+        equation: str | None = None,
+    ) -> dict[str, float]:
         rmse = float(np.sqrt(np.mean((y_true - y_pred) ** 2)))
         return {"rmse": rmse, "has_equation": float(equation is not None)}
 
