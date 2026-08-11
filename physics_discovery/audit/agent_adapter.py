@@ -25,12 +25,13 @@ from typing import Any
 import numpy as np
 
 from engine.audit import SearchOutcome
+from engine.evaluation.equivalence import check_equivalence
+from engine.evaluation.metrics import compute_fit_metrics
+from engine.expressions.hypothesis import Hypothesis
+from engine.scoring import HypothesisScorer
 from physics_discovery.core.agent import DiscoveryAgent
-from physics_discovery.core.hypothesis import Hypothesis
-from physics_discovery.core.scorer import HypothesisScorer
-from physics_discovery.evaluation.metrics import compute_fit_metrics
-from physics_discovery.evaluation.rediscovery import check_equivalence
 from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator
+from physics_discovery.validation.equation_validity import EquationValidator
 
 # gplearn defaults as configured by SymbolicHypothesisGenerator._build_model.
 DEFAULT_POPULATION_SIZE = 500
@@ -92,7 +93,7 @@ def score_like_the_pipeline(equation: str, observation: dict[str, Any]) -> float
     score against the observation.
     """
     hypothesis = Hypothesis(equation=equation, regime_id=0, iteration=0)
-    scorer = HypothesisScorer({})
+    scorer = HypothesisScorer({}, validator=EquationValidator())
     hypothesis.verify(scorer)
     scorer.score_hypothesis(hypothesis, observation)
     score = getattr(hypothesis, "score", None)

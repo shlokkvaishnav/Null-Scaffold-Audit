@@ -1,7 +1,7 @@
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
-from physics_discovery.experiments.contract import validate_baseline_contract
+from engine.experiments.contract import validate_baseline_contract
 
 
 @hydra.main(config_path="../configs/paper", config_name="benchmark_full", version_base=None)

@@ -13,7 +13,7 @@ import pytest
 from pydantic import ValidationError
 
 from engine.config import load_run_config
-from physics_discovery.experiments.config import load_baseline_experiment_config
+from engine.experiments.config import load_baseline_experiment_config
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 

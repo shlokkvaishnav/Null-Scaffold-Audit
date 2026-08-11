@@ -17,11 +17,11 @@ from typing import Any
 
 import numpy as np
 
+from engine.evaluation.metrics import compute_fit_metrics
 from engine.plugin import Dataset
 from engine.registry import PluginRegistry
 from physics_discovery.core.agent import DiscoveryAgent
 from physics_discovery.data.feynman_loader import generate_feynman_dataset
-from physics_discovery.evaluation.metrics import compute_fit_metrics
 from physics_discovery.generators.baselines import BaselineModel
 from physics_discovery.generators.ensemble import Ensemble
 from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator

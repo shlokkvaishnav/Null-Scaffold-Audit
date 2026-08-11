@@ -21,14 +21,14 @@ if str(ROOT) not in sys.path:
 
 import yaml
 
-from physics_discovery.core.agent import DiscoveryAgent
-from physics_discovery.data.synthetic import SplitData as DatasetSplit
-from physics_discovery.data.synthetic import generate_synthetic_regression
-from physics_discovery.evaluation.metrics import (
+from engine.evaluation.metrics import (
     compute_fit_metrics,
     confidence_interval,
     paired_significance,
 )
+from physics_discovery.core.agent import DiscoveryAgent
+from physics_discovery.data.synthetic import SplitData as DatasetSplit
+from physics_discovery.data.synthetic import generate_synthetic_regression
 from physics_discovery.generators.baselines import BaselineModel
 from physics_discovery.generators.ensemble import Ensemble
 from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator

@@ -76,7 +76,7 @@ def benchmark(config_path: Path = _BENCHMARK_CONFIG_ARGUMENT) -> None:
     # belong to the legacy physics_discovery tree rather than to the engine. The
     # `run` and `list-plugins` commands stay plugin-agnostic; this one does not,
     # and confining the coupling to the one command that has it keeps that visible.
-    from physics_discovery.experiments.config import load_baseline_experiment_config
+    from engine.experiments.config import load_baseline_experiment_config
     from scripts.reproduce_benchmarks import run as run_benchmark_script
 
     load_baseline_experiment_config(config_path)  # raises on contract violation

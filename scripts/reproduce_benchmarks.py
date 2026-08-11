@@ -31,9 +31,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from engine.evaluation.metrics import compute_fit_metrics, confidence_interval
+from engine.experiments.contract import validate_baseline_contract
 from physics_discovery.data.synthetic import generate_synthetic_regression
-from physics_discovery.evaluation.metrics import compute_fit_metrics, confidence_interval
-from physics_discovery.experiments.contract import validate_baseline_contract
 from physics_discovery.generators.baselines import BaselineModel
 from physics_discovery.generators.ensemble import Ensemble
 from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator

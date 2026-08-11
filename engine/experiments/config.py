@@ -3,7 +3,7 @@
 This lived in `engine/config.py` until it was found to violate Constitution
 Article 5: it encodes *this plugin's* experiment protocol -- a fixed seed list,
 a fixed metric set, a fixed iteration budget -- and it imported
-`physics_discovery.experiments.contract` to enforce it. An engine that ships a
+`engine.experiments.contract` to enforce it. An engine that ships a
 schema for one plugin's experiment protocol is not domain independent, whatever
 the schema is named.
 
@@ -23,7 +23,7 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, Field, model_validator
 
-from physics_discovery.experiments.contract import (
+from engine.experiments.contract import (
     ExperimentContractError,
     validate_baseline_contract,
 )
@@ -60,7 +60,7 @@ class Significance(BaseModel):
 
 class BaselineExperimentConfig(BaseModel):
     """Mirrors configs/paper/*.yaml. Rejects configs that violate the shared
-    baseline experiment contract in physics_discovery.experiments.contract."""
+    baseline experiment contract in engine.experiments.contract."""
 
     experiment_name: str
     dataset_split: DatasetSplit

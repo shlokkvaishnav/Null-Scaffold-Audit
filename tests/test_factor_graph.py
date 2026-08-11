@@ -26,7 +26,7 @@ class TestFactorGraphPropagation(unittest.TestCase):
 
         # log/sqrt of a negative literal is NOT flagged: candidate equations
         # are evaluated with protected sqrt(|x|)/log(|x|) semantics (see
-        # physics_discovery.core.expression_eval), matching gplearn's own
+        # engine.expressions.expression_eval), matching gplearn's own
         # protected-function behavior, so these are not actually ill-defined.
         # (A real regression: this exact pattern once caused a genuinely
         # good Coulomb's-law candidate to be rejected outright.)

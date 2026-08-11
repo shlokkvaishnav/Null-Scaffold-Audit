@@ -75,7 +75,7 @@ class GplearnReasoner:
             model.fit(X, y)
             equation_str = model.equation
 
-            from .hypothesis import Hypothesis
+            from engine.expressions.hypothesis import Hypothesis
             iteration = observation.get("iteration", 0) if isinstance(observation, dict) else 0
             return Hypothesis(equation=equation_str, regime_id=regime_id, iteration=iteration)
         # Blanket by necessity: a gplearn fit over caller-supplied data raises
@@ -145,7 +145,7 @@ class PySRReasoner:
                 return None
 
             # Create hypothesis
-            from .hypothesis import Hypothesis
+            from engine.expressions.hypothesis import Hypothesis
             iteration = observation.get("iteration", 0) if isinstance(observation, dict) else 0
             h = Hypothesis(equation=equation_str, regime_id=regime_id, iteration=iteration)
 
@@ -191,7 +191,7 @@ class HypothesisGenerator:
         Returns:
             Hypothesis object or None
         """
-        from .hypothesis import Hypothesis
+        from engine.expressions.hypothesis import Hypothesis
 
         if self.mode == "placeholder":
             # Deterministic template

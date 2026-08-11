@@ -28,10 +28,10 @@ import time
 from pathlib import Path
 from typing import Any
 
+from engine.evaluation.equivalence import check_equivalence
+from engine.evaluation.metrics import compute_fit_metrics
 from physics_discovery.core.agent import DiscoveryAgent
 from physics_discovery.data.feynman_loader import generate_feynman_dataset, list_feynman_equations
-from physics_discovery.evaluation.metrics import compute_fit_metrics
-from physics_discovery.evaluation.rediscovery import check_equivalence
 from physics_discovery.generators.baselines import BaselineModel
 from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator
 

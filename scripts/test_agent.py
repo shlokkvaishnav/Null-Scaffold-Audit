@@ -47,7 +47,7 @@ def main():
 
     # Test hypothesis creation
     print("\n[+] Testing Hypothesis class...")
-    from physics_discovery.core.hypothesis import Hypothesis
+    from engine.expressions.hypothesis import Hypothesis
 
     hyp = Hypothesis(equation="y = 2*x + 1", regime_id=0)
     print(f"  - Created hypothesis: {hyp}")

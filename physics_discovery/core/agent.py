@@ -6,6 +6,7 @@ Manages the Perception -> Retrieval -> Reasoning -> Verification -> Learning loo
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any
 
+from ..validation.equation_validity import EquationValidator
 from .loop_control import ConvergenceController
 
 if TYPE_CHECKING:
@@ -13,12 +14,13 @@ if TYPE_CHECKING:
     # method that first needs it, so importing them at runtime would undo that;
     # under TYPE_CHECKING they cost nothing and let the attributes below carry
     # real types instead of being inferred as None.
+    from engine.scoring import HypothesisScorer
+
     from .archive import HypothesisArchive
     from .belief import ConfidenceTracker
     from .generator import HypothesisGenerator
     from .perception import PerceptionModule
     from .retrieval import PriorLibrary
-    from .scorer import HypothesisScorer
 
 
 class DiscoveryAgent:
@@ -125,8 +127,8 @@ class DiscoveryAgent:
             list: Verified Hypothesis objects
         """
         if self.verification_module is None:
-            from .scorer import HypothesisScorer
-            self.verification_module = HypothesisScorer(self.config)
+            from engine.scoring import HypothesisScorer
+            self.verification_module = HypothesisScorer(self.config, validator=EquationValidator())
 
         # Initialize archive if needed (for rejection logging)
         if self.memory is None:
@@ -215,8 +217,8 @@ class DiscoveryAgent:
             self.verified_hypotheses = self.proposed_hypotheses.copy()
             # Still score them for belief updates
             if self.verification_module is None:
-                from .scorer import HypothesisScorer
-                self.verification_module = HypothesisScorer(self.config)
+                from engine.scoring import HypothesisScorer
+                self.verification_module = HypothesisScorer(self.config, validator=EquationValidator())
             for h in self.verified_hypotheses:
                 self.verification_module.score_hypothesis(h, self.observation)
 

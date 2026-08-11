@@ -23,7 +23,7 @@ from typing import Any
 import numpy as np
 import sympy
 
-from physics_discovery.core.expression_eval import GPLEARN_FUNCTIONS as _GPLEARN_FUNCTIONS
+from engine.expressions.expression_eval import GPLEARN_FUNCTIONS as _GPLEARN_FUNCTIONS
 
 
 def _remap_generic_variable_names(expr_str: str, variables: list[str]) -> str:

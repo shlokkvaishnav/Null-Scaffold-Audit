@@ -44,6 +44,25 @@ class AlgorithmPlugin(Protocol):
 
 
 @runtime_checkable
+class ConstraintValidator(Protocol):
+    """Decides whether a candidate equation breaks a rule the engine cannot know.
+
+    Scoring a candidate is arithmetic and belongs here. Deciding what makes one
+    *invalid* is not: "no logarithm of a negative" is a property of the
+    expression, but "no negative mass" is a property of a field. So the rule set
+    is injected into the scorer rather than imported by it -- which is what lets
+    `engine.scoring` penalise violations without knowing a single domain.
+
+    `DomainPlugin.validate` is the same capability at the orchestrator's level;
+    one plugin object can satisfy both.
+    """
+
+    def check_constraints(self, equation: str) -> dict[str, Any]:
+        """Return `{constraint_name: details}` per violation, empty dict if valid."""
+        ...
+
+
+@runtime_checkable
 class DomainPlugin(Protocol):
     """A scientific domain: supplies data and knows how to score/validate candidates in it."""
 
