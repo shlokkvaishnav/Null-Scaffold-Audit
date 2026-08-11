@@ -128,6 +128,7 @@ def _outcome_metrics(problem: AuditProblem, equation: str, seed: int) -> dict[st
             seed=seed,
         )
         recovered = float(bool(equivalence["symbolic_match"]))
+        strictly_recovered = float(bool(equivalence["strict_match"]))
     # The blanket catch below is deliberate. sympy raises no single documented
     # exception type for unparseable or pathological input -- TypeError,
     # AttributeError, RecursionError and its own SympifyError all appear,
@@ -137,12 +138,18 @@ def _outcome_metrics(problem: AuditProblem, equation: str, seed: int) -> dict[st
     # "not recovered", which a crash would prevent us from recording at all.
     except Exception:  # noqa: BLE001
         recovered = 0.0
+        strictly_recovered = 0.0
 
     return {
         "rmse": float(fit["rmse"]),
         "mae": float(fit["mae"]),
         "symbolic_complexity": float(fit["symbolic_complexity"]),
+        # SRBench's definition: difference or ratio to ground truth simplifies
+        # to a constant. This is the one the audit registers a margin for.
         "exact_recovery": recovered,
+        # The stricter definition this project used before, recorded alongside
+        # so relaxing the rule can never quietly inflate the headline figure.
+        "strict_recovery": strictly_recovered,
         "nonfinite_fraction": float(nonfinite.mean()),
     }
 

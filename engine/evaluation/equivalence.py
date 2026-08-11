@@ -6,9 +6,20 @@ terms, small numeric-fit constants rather than exact ones). This module
 determines whether a candidate equation is *equivalent* to a ground-truth
 formula via two complementary checks:
 
-1. Symbolic equivalence: simplify(candidate - ground_truth) == 0 after
-   positionally mapping generic variable names (x0, x1, ...) onto the
-   ground truth's variable list if needed.
+1. Symbolic equivalence, following SRBench: the candidate counts as a
+   rediscovery when simplify(candidate - ground_truth) or
+   simplify(candidate / ground_truth) is a constant, after positionally
+   mapping generic variable names (x0, x1, ...) onto the ground truth's
+   variable list if needed. Strict identity is reported separately as
+   `strict_match`.
+
+   The relaxation is not leniency for its own sake. A symbolic regressor
+   fits its constants numerically, so a run that returns 2.0001*x where the
+   truth is 2*x has recovered the law and missed a decimal; scoring that as
+   failure measures the optimiser rather than the discovery. Matching
+   SRBench's rule is also what makes a recovery rate here comparable to a
+   published one -- under a stricter rule, ours would read as worse than
+   other methods for reasons that have nothing to do with the method.
 2. Numeric equivalence: evaluate both expressions at many seeded random
    points within the documented variable ranges and check they agree within
    a relative + absolute tolerance. This is the more robust/primary signal
@@ -52,20 +63,60 @@ def _safe_sympify(expr_str: str, variables: list[str]):
     return sympy.sympify(expr_str, locals={**_GPLEARN_FUNCTIONS, **symbols})
 
 
-def _symbolic_equivalence(candidate: str, ground_truth_formula: str, variables: list[str]) -> bool:
+def _is_constant(expr: Any, variables: list[str]) -> bool:
+    """True when `expr` contains none of the problem's variables and is finite."""
+    if expr is None:
+        return False
+    free: set[Any] = getattr(expr, "free_symbols", set())
+    if free & {sympy.Symbol(name) for name in variables}:
+        return False
+    # zoo/nan/oo come out of dividing by something that simplifies to zero.
+    # They are variable-free, and they are not constants in any useful sense.
+    return bool(expr.is_finite is not False) and not expr.has(sympy.nan, sympy.zoo, sympy.oo)
+
+
+def _symbolic_equivalence(
+    candidate: str, ground_truth_formula: str, variables: list[str]
+) -> tuple[bool, bool]:
+    """Return (srbench_equivalent, strictly_identical).
+
+    The first follows SRBench's definition of a symbolic solution: a candidate
+    counts as rediscovery when its difference from, or its ratio to, the ground
+    truth simplifies to a constant. That is deliberately more permissive than
+    exact identity, and it is the right permissiveness -- a symbolic regressor
+    fits its constants numerically, so a run recovering `2.0001*x` where the
+    truth is `2*x` has found the law and missed a decimal. Scoring that as
+    failure measures the optimiser, not the discovery.
+
+    The second is the strict test this project used before adopting SRBench's.
+    It is kept because it is strictly stronger and costs nothing once the
+    expressions are parsed. Reporting both means changing the definition cannot
+    quietly inflate a headline number -- the stricter figure is still there.
+    """
     try:
         candidate_remapped = _remap_generic_variable_names(candidate, variables)
         candidate_expr = _safe_sympify(candidate_remapped, variables)
         truth_expr = _safe_sympify(ground_truth_formula, variables)
-        diff = sympy.simplify(candidate_expr - truth_expr)
-        return bool(diff == 0)
+
+        difference = sympy.simplify(candidate_expr - truth_expr)
+        strict = bool(difference == 0)
+        if _is_constant(difference, variables):
+            return True, strict
+
+        ratio = sympy.simplify(candidate_expr / truth_expr)
+        # A zero ratio means the candidate collapsed to nothing. That is not a
+        # rediscovery of anything, however constant it is.
+        if _is_constant(ratio, variables) and ratio != 0:
+            return True, strict
+
+        return False, strict
     # Blanket by necessity: sympify/simplify over a search-generated string
     # raise no single documented type -- SympifyError, TypeError,
     # AttributeError and RecursionError all occur. An equivalence check that
     # could not run has not shown the candidate correct, so False is the
     # conservative answer for every one of them.
     except Exception:  # noqa: BLE001
-        return False
+        return False, False
 
 
 def _numeric_equivalence(
@@ -158,7 +209,9 @@ def check_equivalence(
         Dict with keys: symbolic_match (bool), numeric_match (bool),
         max_relative_error (float).
     """
-    symbolic_match = _symbolic_equivalence(candidate_equation, ground_truth_formula, variables)
+    symbolic_match, strict_match = _symbolic_equivalence(
+        candidate_equation, ground_truth_formula, variables
+    )
     numeric_result = _numeric_equivalence(
         candidate_equation,
         ground_truth_formula,
@@ -172,6 +225,7 @@ def check_equivalence(
 
     return {
         "symbolic_match": symbolic_match,
+        "strict_match": strict_match,
         "numeric_match": numeric_result["numeric_match"],
         "max_relative_error": numeric_result["max_relative_error"],
     }
