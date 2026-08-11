@@ -75,7 +75,7 @@ extend-exclude = [
 # what this codebase already satisfied: the gate exists to stop new drift, and
 # a rule set chosen to maximise findings on day one gets switched off by week
 # two. Widening this set is an architecture decision and belongs in an ADR
-# (BOOTSTRAP.md §10), not in a lint config edited in passing.
+# (an ADR under docs/adr/), not in a lint config edited in passing.
 extend-select = ["I", "UP"]
 
 [tool.mypy]

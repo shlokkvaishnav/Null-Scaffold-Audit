@@ -1,4 +1,3 @@
-<!-- Purpose statement required by BOOTSTRAP.md section 8. -->
 
 # docker/
 
@@ -8,4 +7,4 @@
 
 **Does not contain:** Base images referenced by tag. A tag is mutable and silently breaks reproducibility across build dates.
 
-**Governing rule:** BOOTSTRAP.md section 11.1. Given the same inputs, a build produces the same outputs — which requires the base image to be the same image, not merely the same name.
+**Governing rule:** reproducible builds. Given the same inputs, a build produces the same outputs — which requires the base image to be the same image, not merely the same name.

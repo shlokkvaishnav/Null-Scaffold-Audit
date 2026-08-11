@@ -1,4 +1,3 @@
-<!-- Purpose statement required by BOOTSTRAP.md section 8. -->
 
 # tools/
 

@@ -1,4 +1,4 @@
-# Milestone 0 gates (BOOTSTRAP.md section 18, item 6).
+# The project's enforcement gates. Each moves a rule from convention into CI.
 #
 # Every job here exists to move a rule from convention into enforcement. A rule
 # that depends on reviewer attention is a rule that erodes, so nothing in this
@@ -7,7 +7,7 @@
 #
 # The environment is resolved from the committed uv.lock rather than from a
 # fresh dependency resolution, so a CI run a year from now installs the same
-# packages as one today (BOOTSTRAP.md section 11.1).
+# packages as one today.
 
 name: CI
 
@@ -77,7 +77,7 @@ jobs:
       # The coverage floor covers the code written against an RFC, not the
       # tree awaiting migration. It widens as each subsystem is rebuilt; a
       # floor averaged over code that is being replaced measures nothing
-      # (BOOTSTRAP.md section 11).
+      #.
       #
       # Coverage targets are given as paths, not module names: --cov=engine.audit
       # imports the package for source discovery and collides with numpy's
