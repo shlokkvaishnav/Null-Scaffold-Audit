@@ -3,8 +3,9 @@ Hypothesis Module.
 First-class symbolic hypothesis objects.
 """
 
+from typing import Any
+
 import numpy as np
-from typing import Dict, Optional, Any
 
 from .expression_eval import safe_evaluate
 
@@ -28,16 +29,19 @@ class Hypothesis:
 
         # Validation state
         self.valid = True
-        self.violation_log: Dict = {}
+        self.violation_log: dict = {}
 
         # Evaluation scores
-        self.likelihood: Optional[float] = None
-        self.complexity: Optional[int] = None
-        self.score: Optional[float] = None
+        self.likelihood: float | None = None
+        # Float rather than int: the two scorers write different things here --
+        # a node count from one, a string length from the other -- and the
+        # penalty term multiplies it by a float weight.
+        self.complexity: float | None = None
+        self.score: float | None = None
 
         # Lineage tracking
         self.created_at = iteration
-        self.parent_id: Optional[str] = None
+        self.parent_id: str | None = None
 
     def evaluate(self, features: np.ndarray) -> np.ndarray:
         """
@@ -90,7 +94,7 @@ class Hypothesis:
 
         return self.valid
 
-    def get_score_components(self) -> Dict[str, Optional[float]]:
+    def get_score_components(self) -> dict[str, float | None]:
         """Get breakdown of score components."""
         return {
             "likelihood": self.likelihood,
@@ -116,7 +120,7 @@ class Hypothesis:
 
     def compute_composite_score(self, y_true: np.ndarray, y_pred: np.ndarray,
                                 screener: Any, x: np.ndarray,
-                                lambdas: Dict[str, float]) -> float:
+                                lambdas: dict[str, float]) -> float:
         """
         Compute total evaluation score accounting for accuracy, validity,
         parsimony, and dynamic Lyapunov stability.

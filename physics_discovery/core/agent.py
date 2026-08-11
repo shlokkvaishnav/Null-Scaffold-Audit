@@ -3,10 +3,22 @@ Agent Orchestrator.
 Manages the Perception -> Retrieval -> Reasoning -> Verification -> Learning loop.
 """
 
-import numpy as np
-from typing import Dict, List, Optional, Any, Iterator
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Any
 
 from .loop_control import ConvergenceController
+
+if TYPE_CHECKING:
+    # Import-time only. Every one of these is constructed lazily inside the
+    # method that first needs it, so importing them at runtime would undo that;
+    # under TYPE_CHECKING they cost nothing and let the attributes below carry
+    # real types instead of being inferred as None.
+    from .archive import HypothesisArchive
+    from .belief import ConfidenceTracker
+    from .generator import HypothesisGenerator
+    from .perception import PerceptionModule
+    from .retrieval import PriorLibrary
+    from .scorer import HypothesisScorer
 
 
 class DiscoveryAgent:
@@ -15,7 +27,7 @@ class DiscoveryAgent:
     Manages the Perception -> Retrieval -> Reasoning -> Verification -> Learning loop.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize the equation-discovery agent.
 
@@ -24,20 +36,22 @@ class DiscoveryAgent:
         """
         self.config = config or {}
 
-        # Core components (lazy initialized)
-        self.perception = None
-        self.retrieval_module = None
-        self.reasoning_module = None
-        self.verification_module = None
-        self.memory = None
-        self.belief = None
+        # Core components (lazy initialized). Optional is the honest type: each
+        # stays None until the stage that owns it runs, and the ablation flags
+        # mean a stage may never run at all.
+        self.perception: PerceptionModule | None = None
+        self.retrieval_module: PriorLibrary | None = None
+        self.reasoning_module: HypothesisGenerator | None = None
+        self.verification_module: HypothesisScorer | None = None
+        self.memory: HypothesisArchive | None = None
+        self.belief: ConfidenceTracker | None = None
 
         # State
-        self.observation: Optional[Dict] = None
-        self.priors: Optional[Dict] = None
-        self.candidate_hypotheses: List = []
-        self.proposed_hypotheses: List = []
-        self.verified_hypotheses: List = []
+        self.observation: dict | None = None
+        self.priors: dict | None = None
+        self.candidate_hypotheses: list = []
+        self.proposed_hypotheses: list = []
+        self.verified_hypotheses: list = []
         self.iteration: int = 0
 
         # Cache config values
@@ -46,7 +60,7 @@ class DiscoveryAgent:
         # Convergence / progress-reporting delegate
         self._loop_control = ConvergenceController()
 
-    def observe(self, data: Any) -> Dict:
+    def observe(self, data: Any) -> dict:
         """
         Perception: Encode raw data into agent observations.
 
@@ -79,7 +93,7 @@ class DiscoveryAgent:
 
         return self.priors, self.candidate_hypotheses
 
-    def reason(self) -> List:
+    def reason(self) -> list:
         """
         Reasoning: Propose symbolic hypotheses for each regime.
 
@@ -103,7 +117,7 @@ class DiscoveryAgent:
 
         return self.proposed_hypotheses
 
-    def verify(self) -> List:
+    def verify(self) -> list:
         """
         Verification: Validate hypotheses against equation-validity constraints.
 
@@ -267,13 +281,13 @@ class DiscoveryAgent:
 
         print("\n[+] Agent loop complete")
 
-    def _get_current_equations(self) -> List[str]:
+    def _get_current_equations(self) -> list[str]:
         """Get list of equations currently in memory."""
         if self.memory and self.memory.hypotheses:
             return [str(h.equation) for h in self.memory.hypotheses]
         return []
 
-    def introspect(self) -> Dict[str, Any]:
+    def introspect(self) -> dict[str, Any]:
         """
         Agent self-reporting for transparency and debugging.
 

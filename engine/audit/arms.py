@@ -83,7 +83,12 @@ class BaseSearcher(Protocol):
     so a pipeline that cannot state it cannot be audited.
     """
 
-    restart_cost: int
+    # Declared read-only so a pipeline may derive it. SymbolicRestartSearcher
+    # computes it as population_size * generations rather than storing it, and a
+    # settable-attribute declaration would reject that -- for no benefit, since
+    # nothing here ever assigns to it.
+    @property
+    def restart_cost(self) -> int: ...
 
     def search(self, problem: Any, seed: int) -> SearchOutcome: ...
 

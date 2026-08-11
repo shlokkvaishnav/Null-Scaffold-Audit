@@ -18,7 +18,7 @@ formula via two complementary checks:
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 import sympy
@@ -26,7 +26,7 @@ import sympy
 from physics_discovery.core.expression_eval import GPLEARN_FUNCTIONS as _GPLEARN_FUNCTIONS
 
 
-def _remap_generic_variable_names(expr_str: str, variables: List[str]) -> str:
+def _remap_generic_variable_names(expr_str: str, variables: list[str]) -> str:
     """Rewrite generic x0, x1, ... variable names to the ground-truth's variable names.
 
     Symbolic regression backends (gplearn, etc.) commonly emit variables named
@@ -47,32 +47,37 @@ def _remap_generic_variable_names(expr_str: str, variables: List[str]) -> str:
     return remapped
 
 
-def _safe_sympify(expr_str: str, variables: List[str]):
+def _safe_sympify(expr_str: str, variables: list[str]):
     symbols = {name: sympy.Symbol(name) for name in variables}
     return sympy.sympify(expr_str, locals={**_GPLEARN_FUNCTIONS, **symbols})
 
 
-def _symbolic_equivalence(candidate: str, ground_truth_formula: str, variables: List[str]) -> bool:
+def _symbolic_equivalence(candidate: str, ground_truth_formula: str, variables: list[str]) -> bool:
     try:
         candidate_remapped = _remap_generic_variable_names(candidate, variables)
         candidate_expr = _safe_sympify(candidate_remapped, variables)
         truth_expr = _safe_sympify(ground_truth_formula, variables)
         diff = sympy.simplify(candidate_expr - truth_expr)
         return bool(diff == 0)
-    except Exception:
+    # Blanket by necessity: sympify/simplify over a search-generated string
+    # raise no single documented type -- SympifyError, TypeError,
+    # AttributeError and RecursionError all occur. An equivalence check that
+    # could not run has not shown the candidate correct, so False is the
+    # conservative answer for every one of them.
+    except Exception:  # noqa: BLE001
         return False
 
 
 def _numeric_equivalence(
     candidate: str,
     ground_truth_formula: str,
-    variables: List[str],
-    test_ranges: Dict[str, List[float]],
+    variables: list[str],
+    test_ranges: dict[str, list[float]],
     n_check_points: int,
     seed: int,
     rtol: float,
     atol: float,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     try:
         candidate_remapped = _remap_generic_variable_names(candidate, variables)
         symbols = sympy.symbols(variables)
@@ -115,20 +120,23 @@ def _numeric_equivalence(
         max_rel_error = float(np.max(rel_error)) if rel_error.size else float("inf")
 
         return {"numeric_match": match, "max_relative_error": max_rel_error}
-    except Exception:
+    # Same reasoning as the symbolic path: evaluating two arbitrary expressions
+    # over sampled ranges can fail in numpy or in sympy, and a check that could
+    # not run is reported as "no match" rather than crashing a sweep.
+    except Exception:  # noqa: BLE001
         return {"numeric_match": False, "max_relative_error": float("inf")}
 
 
 def check_equivalence(
     candidate_equation: str,
     ground_truth_formula: str,
-    variables: List[str],
-    test_ranges: Dict[str, List[float]],
+    variables: list[str],
+    test_ranges: dict[str, list[float]],
     n_check_points: int = 200,
     seed: int = 0,
     rtol: float = 1e-3,
     atol: float = 1e-6,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Check whether a discovered candidate equation is equivalent to ground truth.
 
     Args:

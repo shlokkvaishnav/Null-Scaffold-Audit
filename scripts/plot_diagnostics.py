@@ -110,7 +110,7 @@ def create_equation_table(metrics, output_dir):
     """Plot 3: Equation diversity snapshot (as text table)."""
     ablations = ["baseline", "no_verify", "no_memory", "no_belief", "no_reasoning"]
 
-    fig, ax = plt.subplots(figsize=(10, 4))
+    _fig, ax = plt.subplots(figsize=(10, 4))
     ax.axis("tight")
     ax.axis("off")
 

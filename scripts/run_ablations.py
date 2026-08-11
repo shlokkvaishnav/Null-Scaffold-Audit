@@ -140,7 +140,10 @@ def main():
         try:
             metrics = run_ablation(ablation, max_iters=10)
             all_metrics[ablation] = metrics
-        except Exception as e:
+        # Deliberately blanket: one ablation dying must not discard the ones
+        # that already ran. The failure is printed with its traceback rather
+        # than swallowed, and the variant is simply absent from all_metrics.
+        except Exception as e:  # noqa: BLE001
             print(f"[ERROR] Ablation {ablation} failed: {e}")
             import traceback
 

@@ -50,7 +50,11 @@ def _hardware_metadata() -> dict[str, Any]:
         metadata["cuda_device_count"] = (
             int(torch.cuda.device_count()) if torch.cuda.is_available() else 0
         )
-    except Exception:
+    # torch is an optional dependency and the CUDA probe talks to a driver, so
+    # this covers the package being absent, the driver being missing or broken,
+    # and the API having moved. Hardware metadata is descriptive; failing to
+    # collect it must not stop a suite from running.
+    except (ImportError, AttributeError, RuntimeError, OSError):
         metadata["torch_version"] = None
         metadata["cuda_available"] = False
         metadata["cuda_device_count"] = 0
@@ -157,7 +161,7 @@ def run_config(config_path: Path, output_root: Path) -> dict[str, str]:
     variants = list(dict.fromkeys(config.get("models", []) + config.get("ablations", [])))
 
     for variant in variants:
-        if variant.startswith("discovery_agent") or variant.startswith("no_"):
+        if variant.startswith(("discovery_agent", "no_")):
             continue
         _runner_for_variant(variant)
 
@@ -172,7 +176,7 @@ def run_config(config_path: Path, output_root: Path) -> dict[str, str]:
             data = generate_synthetic_regression(seed=seed)
             started = time.perf_counter()
 
-            if variant.startswith("discovery_agent") or variant.startswith("no_"):
+            if variant.startswith(("discovery_agent", "no_")):
                 y_pred, equation = _run_discovery_agent(
                     data, seed=seed, variant=variant, budget=config.get("budget", {})
                 )

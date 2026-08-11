@@ -3,8 +3,14 @@ Hypothesis Scorer Module.
 Validates hypotheses against equation-validity constraints and data support.
 """
 
+from typing import TYPE_CHECKING
+
 import numpy as np
-from typing import Dict, Optional, Any
+
+if TYPE_CHECKING:
+    # The runtime import stays inside check(), which is where the validator is
+    # first needed; naming the type here costs nothing at import time.
+    from ..validation.equation_validity import EquationValidator
 
 
 class HypothesisScorer:
@@ -18,7 +24,7 @@ class HypothesisScorer:
     COMPLEXITY_PENALTY_WEIGHT = 0.01
     FAILURE_PENALTY = 1e3
 
-    def __init__(self, config: Optional[Dict] = None):
+    def __init__(self, config: dict | None = None):
         """
         Initialize the hypothesis scorer.
 
@@ -26,9 +32,9 @@ class HypothesisScorer:
             config: Configuration dictionary
         """
         self.config = config or {}
-        self.constraints_checker = None
+        self.constraints_checker: EquationValidator | None = None
 
-    def check(self, hypothesis) -> Dict:
+    def check(self, hypothesis) -> dict:
         """
         Verify a hypothesis against equation-validity constraints.
 
@@ -53,7 +59,7 @@ class HypothesisScorer:
 
         return self.constraints_checker.check_constraints(equation)
 
-    def score_hypothesis(self, hypothesis, observation: Optional[Dict] = None) -> float:
+    def score_hypothesis(self, hypothesis, observation: dict | None = None) -> float:
         """
         Assigns a scalar score using data fit + validity + complexity.
         Higher score = better hypothesis.
@@ -92,7 +98,7 @@ class HypothesisScorer:
 
         return hypothesis.score
 
-    def _compute_data_misfit(self, hypothesis, observation: Optional[Dict]) -> float:
+    def _compute_data_misfit(self, hypothesis, observation: dict | None) -> float:
         """
         Compute MSE between hypothesis predictions and targets.
 
@@ -134,10 +140,14 @@ class HypothesisScorer:
             residual = targets - y_pred
             return float(np.mean(residual ** 2))
 
-        except Exception:
+        # Blanket by necessity: hypothesis.evaluate runs an arbitrary
+        # search-generated expression. A candidate that cannot be evaluated
+        # scores as maximally unfit, which is what FAILURE_PENALTY encodes --
+        # the same answer for every exception type it could raise.
+        except Exception:  # noqa: BLE001
             return self.FAILURE_PENALTY
 
-    def batch_verify(self, hypotheses: list, observation: Optional[Dict] = None) -> list:
+    def batch_verify(self, hypotheses: list, observation: dict | None = None) -> list:
         """
         Verify and score multiple hypotheses.
 

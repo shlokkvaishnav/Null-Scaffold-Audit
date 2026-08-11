@@ -50,8 +50,17 @@ def list_plugins() -> None:
     )
 
 
+# Typer reads its argument metadata from the default value, which means calling
+# typer.Argument() in the signature -- the pattern flake8-bugbear rejects,
+# because a call evaluated once at import time is a trap when the value is
+# mutable. These are immutable metadata objects, so the hazard does not apply;
+# hoisting them to module scope satisfies the rule without disguising anything.
+_RUN_CONFIG_ARGUMENT = typer.Argument(..., help="Path to a RunConfig YAML file.")
+_BENCHMARK_CONFIG_ARGUMENT = typer.Argument(..., help="Path to a configs/paper-style YAML file.")
+
+
 @app.command("run")
-def run(config_path: Path = typer.Argument(..., help="Path to a RunConfig YAML file.")) -> None:
+def run(config_path: Path = _RUN_CONFIG_ARGUMENT) -> None:
     """Run one domain+algorithm plugin pair through the orchestrator."""
     config = load_run_config(config_path)
     registry = _default_registry()
@@ -61,9 +70,7 @@ def run(config_path: Path = typer.Argument(..., help="Path to a RunConfig YAML f
 
 
 @app.command("benchmark")
-def benchmark(
-    config_path: Path = typer.Argument(..., help="Path to a configs/paper-style YAML file."),
-) -> None:
+def benchmark(config_path: Path = _BENCHMARK_CONFIG_ARGUMENT) -> None:
     """Validate a paper-style benchmark config and run it via scripts.reproduce_benchmarks."""
     # Imported here, not at module scope, because both the schema and the runner
     # belong to the legacy physics_discovery tree rather than to the engine. The

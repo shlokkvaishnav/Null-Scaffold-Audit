@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -12,7 +12,7 @@ class DatasetInfo(BaseModel):
     """Metadata returned after a dataset has been uploaded and parsed."""
 
     id: str
-    feature_names: List[str]
+    feature_names: list[str]
     n_rows: int
 
 
@@ -29,7 +29,7 @@ class JobRequest(BaseModel):
             "opt-in backend but requires a Julia-enabled image."
         ),
     )
-    max_iters: Optional[int] = Field(
+    max_iters: int | None = Field(
         default=None,
         description="Optional cap on generations/iterations for the symbolic search.",
     )
@@ -48,7 +48,7 @@ class JobResult(BaseModel):
 
     job_id: str
     status: Literal["pending", "running", "done", "failed"]
-    equation: Optional[str] = None
-    rmse: Optional[float] = None
-    confidence: Optional[float] = None
-    error: Optional[str] = None
+    equation: str | None = None
+    rmse: float | None = None
+    confidence: float | None = None
+    error: str | None = None

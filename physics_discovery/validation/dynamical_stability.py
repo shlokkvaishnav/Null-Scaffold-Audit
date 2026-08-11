@@ -1,5 +1,6 @@
-import numpy as np
 from typing import Any
+
+import numpy as np
 
 
 class LyapunovScreener:
@@ -71,6 +72,10 @@ class LyapunovScreener:
             penalty = max(0.0, float(lambda_max) - self.delta)
             return penalty
 
-        except Exception:
-            # Fallback penalty if evaluation throws exceptions (e.g., overflow)
+        # Blanket by necessity: this differentiates and evaluates an arbitrary
+        # search-generated expression, then takes eigenvalues of the result.
+        # sympy, numpy and linalg each raise their own families here, and an
+        # expression whose stability cannot be established is treated as
+        # unstable -- the conservative direction for a screening penalty.
+        except Exception:  # noqa: BLE001
             return 100.0

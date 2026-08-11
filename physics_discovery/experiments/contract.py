@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from copy import deepcopy
-from typing import Any, Dict, Mapping
+from typing import Any
 
-BASELINE_EXPERIMENT_CONTRACT: Dict[str, Any] = {
+BASELINE_EXPERIMENT_CONTRACT: dict[str, Any] = {
     "dataset_split": {
         "strategy": "seeded_random_split",
         "train": "train",
@@ -62,7 +63,7 @@ def validate_baseline_contract(config: Mapping[str, Any], *, runner_name: str = 
         )
 
 
-def apply_contract(config: Mapping[str, Any]) -> Dict[str, Any]:
+def apply_contract(config: Mapping[str, Any]) -> dict[str, Any]:
     """Return a copy of config with the canonical baseline contract enforced."""
     merged = deepcopy(dict(config))
     for key, value in BASELINE_EXPERIMENT_CONTRACT.items():

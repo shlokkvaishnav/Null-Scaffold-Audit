@@ -45,13 +45,14 @@ for _path in (REPO_ROOT, REPO_ROOT / "scripts"):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
-from engine.audit import audit  # noqa: E402
-from physics_discovery.audit.agent_adapter import DiscoveryAgentScaffold  # noqa: E402
-from run_null_scaffold_audit import (  # noqa: E402
+from run_null_scaffold_audit import (
     HIGHER_IS_BETTER,
     build_problem,
     margins_for,
 )
+
+from engine.audit import audit
+from physics_discovery.audit.agent_adapter import DiscoveryAgentScaffold
 
 FIXTURE = Path(__file__).parent / "fixtures" / "audit_behaviour_lock.json"
 

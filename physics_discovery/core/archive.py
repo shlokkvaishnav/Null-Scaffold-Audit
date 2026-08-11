@@ -3,7 +3,6 @@ Hypothesis Archive Module.
 Strategic curation of hypotheses with selective forgetting.
 """
 
-from typing import List, Dict, Optional, Any
 
 
 class HypothesisArchive:
@@ -20,13 +19,13 @@ class HypothesisArchive:
             max_hypotheses_per_regime: Maximum hypotheses to keep per regime
             max_capacity: Overall capacity limit
         """
-        self.hypotheses: List = []
+        self.hypotheses: list = []
         self.transition_matrix = None
-        self.regime_history: List = []
+        self.regime_history: list = []
         self.max_hypotheses_per_regime = max_hypotheses_per_regime
         self.max_capacity = max_capacity
-        self.rejection_log: List[Dict] = []
-        self.pruned_log: List[Dict] = []
+        self.rejection_log: list[dict] = []
+        self.pruned_log: list[dict] = []
 
     def store(self, hypothesis) -> None:
         """
@@ -38,7 +37,7 @@ class HypothesisArchive:
         if hypothesis is not None:
             self.hypotheses.append(hypothesis)
 
-    def recall(self, regime_id: Optional[int] = None, query: Optional[Dict] = None) -> List:
+    def recall(self, regime_id: int | None = None, query: dict | None = None) -> list:
         """
         Retrieve hypotheses matching query criteria.
 
@@ -62,7 +61,7 @@ class HypothesisArchive:
 
         return self.hypotheses.copy()
 
-    def prune(self, current_iteration: Optional[int] = None) -> int:
+    def prune(self, current_iteration: int | None = None) -> int:
         """
         Keep only top-K hypotheses per regime (strategic curation).
 
@@ -79,7 +78,7 @@ class HypothesisArchive:
         kept = []
 
         # Get unique regime IDs
-        regime_ids = set(h.regime_id for h in self.hypotheses if hasattr(h, 'regime_id'))
+        regime_ids = {h.regime_id for h in self.hypotheses if hasattr(h, 'regime_id')}
 
         for k in regime_ids:
             # Get valid hypotheses for this regime
@@ -107,10 +106,12 @@ class HypothesisArchive:
                     "iteration": current_iteration
                 })
 
-        # Also keep invalid hypotheses (for analysis)
-        invalid = [h for h in self.hypotheses
-                   if not getattr(h, 'valid', True)]
-
+        # Invalid hypotheses are NOT kept. A list of them was being built here
+        # under a comment saying they were retained for analysis, but it was
+        # never read and `kept` never included them -- so pruning has always
+        # discarded them. The dead list is removed rather than wired up:
+        # retaining them would change what the archive holds, and the audit's
+        # verdicts are computed from it.
         self.hypotheses = kept
         return initial_count - len(kept)
 
@@ -134,7 +135,7 @@ class HypothesisArchive:
         """Get total number of pruned hypotheses."""
         return len(self.pruned_log)
 
-    def export_rejections(self) -> List[Dict]:
+    def export_rejections(self) -> list[dict]:
         """
         Export rejection statistics for explainability and analysis.
 

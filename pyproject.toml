@@ -51,15 +51,15 @@ testpaths = ["tests"]
 line-length = 100
 target-version = "py311"
 
-# The legacy trees predate Milestone 0 and are awaiting migration behind the
-# plugin contract. They are excluded rather than cleaned because a lint gate
-# that reports hundreds of inherited findings is one that gets ignored, and an
-# ignored gate protects nothing. Each tree returns to the gate as it is
-# migrated -- the exclusion list is expected to shrink to nothing, and it is
-# reviewed whenever it does not.
+# `results/` holds generated artifacts, not source, and is never linted.
+#
+# physics_discovery/ and alpha_discovery/ used to sit here as well, on the
+# argument that a gate reporting hundreds of inherited findings gets ignored.
+# That argument expires once the findings are fixed: the tree is now clean and
+# stays in the gate, so the domain-independence refactor cannot move unlinted
+# code into the core. The exclusion list has shrunk to nothing but generated
+# output, which is where it was always supposed to end up.
 extend-exclude = [
-    "physics_discovery",
-    "alpha_discovery",
     "results",
 ]
 

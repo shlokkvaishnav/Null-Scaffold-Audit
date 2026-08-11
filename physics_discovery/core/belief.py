@@ -3,8 +3,9 @@ Confidence Tracking Module.
 Maintains soft regime confidence distributions and uncertainty estimates.
 """
 
+from typing import Any
+
 import numpy as np
-from typing import List, Dict, Optional, Any
 
 
 class ConfidenceTracker:
@@ -26,14 +27,14 @@ class ConfidenceTracker:
 
         self.num_regimes = num_regimes
         self.pi = np.ones(num_regimes) / num_regimes
-        self.prev_beliefs: Optional[np.ndarray] = None
-        self.history: List[Dict] = []
+        self.prev_beliefs: np.ndarray | None = None
+        self.history: list[dict] = []
 
     @property
     def beliefs(self) -> np.ndarray:
         return self.pi
 
-    def update(self, hypotheses: List, temperature: float = 1.0) -> np.ndarray:
+    def update(self, hypotheses: list, temperature: float = 1.0) -> np.ndarray:
         if temperature <= 0:
             raise ValueError(f"temperature must be > 0, got {temperature}")
 
@@ -91,11 +92,11 @@ class EquationConfidenceTracker:
 
     def __init__(self, regime_id: int):
         self.regime_id = regime_id
-        self.q_h: Dict[str, float] = {}
-        self.h_scores: Dict[str, float] = {}
+        self.q_h: dict[str, float] = {}
+        self.h_scores: dict[str, float] = {}
         self.Z_k: float = 0.0
 
-    def update(self, hypotheses: List[Any], temperature: float = 1.0) -> Dict[str, float]:
+    def update(self, hypotheses: list[Any], temperature: float = 1.0) -> dict[str, float]:
         if not hypotheses:
             self.q_h = {}
             self.Z_k = 0.0
@@ -111,8 +112,10 @@ class EquationConfidenceTracker:
         if not valid_hypotheses:
             return self.q_h
 
-        scores = np.array(scores)
-        scores_normalized = scores / temperature
+        # New name rather than rebinding `scores`: it is a list above and an
+        # array here, and one variable holding both is what the checker flags.
+        score_array = np.asarray(scores, dtype=float)
+        scores_normalized = score_array / temperature
         scores_normalized -= np.max(scores_normalized)
 
         exp_scores = np.exp(scores_normalized)
@@ -140,13 +143,13 @@ class FactorGraphConfidenceUpdater:
         self.num_regimes = num_regimes
         self.gamma = max(0.0, min(1.0, gamma))
         self.pi = np.ones(num_regimes) / num_regimes
-        self.history = []
+        self.history: list[dict] = []
 
     @property
     def beliefs(self) -> np.ndarray:
         return self.pi
 
-    def update(self, hypotheses: List[Any], validity_checker: Any) -> np.ndarray:
+    def update(self, hypotheses: list[Any], validity_checker: Any) -> np.ndarray:
         """
         Args:
             hypotheses: candidate hypotheses being scored this round
@@ -194,7 +197,7 @@ class GeodesicConfidenceUpdater:
         self.num_regimes = num_regimes
         self.eta = max(0.0, min(1.0, eta))
         self.pi = np.ones(num_regimes) / num_regimes
-        self.history = []
+        self.history: list[dict] = []
 
     @property
     def beliefs(self) -> np.ndarray:

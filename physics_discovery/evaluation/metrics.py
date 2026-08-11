@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from collections.abc import Iterable
+from typing import Any
 
 import numpy as np
 from scipy import stats
@@ -18,8 +19,8 @@ def calibration_error(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 def compute_fit_metrics(
     y_true: np.ndarray,
     y_pred: np.ndarray,
-    equation: Optional[str] = None,
-) -> Dict[str, float]:
+    equation: str | None = None,
+) -> dict[str, float]:
     """Compute standard regression fit metrics for a candidate model's predictions.
 
     Args:
@@ -49,7 +50,7 @@ def compute_fit_metrics(
 def confidence_interval(
     values: Iterable[float],
     confidence_level: float = 0.95,
-) -> Tuple[float, float, float]:
+) -> tuple[float, float, float]:
     """Compute (mean, ci_low, ci_high) via a t-distribution confidence interval."""
     arr = np.asarray(list(values), dtype=float)
     mean = float(np.mean(arr))
@@ -61,10 +62,10 @@ def confidence_interval(
 
 
 def paired_significance(
-    per_seed_rows: List[Dict[str, Any]],
-    metrics: List[str],
+    per_seed_rows: list[dict[str, Any]],
+    metrics: list[str],
     baseline: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Paired t-test of each non-baseline model's metrics against a baseline model.
 
     Args:
@@ -77,8 +78,8 @@ def paired_significance(
         List of dicts with keys: model, baseline, metric, t_stat, p_value,
         mean_delta. Empty if the baseline model has no rows.
     """
-    rows: List[Dict[str, Any]] = []
-    by_model: Dict[str, List[Dict[str, Any]]] = {}
+    rows: list[dict[str, Any]] = []
+    by_model: dict[str, list[dict[str, Any]]] = {}
     for row in per_seed_rows:
         by_model.setdefault(row["model"], []).append(row)
 

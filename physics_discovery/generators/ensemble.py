@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
@@ -12,12 +12,12 @@ from sklearn.neural_network import MLPRegressor
 class Ensemble:
     """Simple neural+tree ensemble used as a neural-MoE style baseline."""
 
-    config: Dict[str, Any]
+    config: dict[str, Any]
 
     def __post_init__(self) -> None:
         self.config = self.config or {}
         self.random_state = int(self.config.get("random_state", 0))
-        self.models: List[Any] = []
+        self.models: list[Any] = []
 
     def fit(self, X, y):
         X = np.asarray(X)

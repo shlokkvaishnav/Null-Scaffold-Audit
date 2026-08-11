@@ -16,12 +16,7 @@ from engine.orchestrator import DiscoveryOrchestrator, ExperimentConfig
 from engine.registry import PluginRegistry
 
 try:
-    from physics_discovery.plugins.feynman import (
-        FeynmanDomainPlugin,
-        GBMBaselineAlgorithm,
-        SymbolicRegressionAlgorithm,
-        register,
-    )
+    from physics_discovery.plugins.feynman import FeynmanDomainPlugin, register
 except ImportError as exc:
     pytest.skip(
         f"physics_discovery.plugins.feynman not importable here: {exc}", allow_module_level=True

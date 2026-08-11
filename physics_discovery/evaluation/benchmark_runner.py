@@ -26,7 +26,7 @@ import csv
 import json
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from physics_discovery.core.agent import DiscoveryAgent
 from physics_discovery.data.feynman_loader import generate_feynman_dataset, list_feynman_equations
@@ -38,7 +38,7 @@ from physics_discovery.generators.symbolic import SymbolicHypothesisGenerator
 SMOKE_SUBSET_SIZE = 8
 
 
-def _select_equations(subset: str) -> List[Dict[str, Any]]:
+def _select_equations(subset: str) -> list[dict[str, Any]]:
     equations = list_feynman_equations()
     if subset == "smoke":
         return equations[:SMOKE_SUBSET_SIZE]
@@ -71,7 +71,7 @@ def _run_discovery_agent(x_train, y_train, x_test, backend: str, seed: int, max_
     regime-switching system -- the multi-regime path exists for datasets
     with piecewise structure, which isn't this benchmark's shape.
     """
-    agent_cfg: Dict[str, Any] = {
+    agent_cfg: dict[str, Any] = {
         "agent": {
             "num_regimes": 1,
             "use_verification": True,
@@ -99,10 +99,10 @@ def run_benchmark(
     backend: str = "gplearn",
     seed: int = 0,
     n_samples: int = 500,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Run the Feynman rediscovery benchmark and return a results table (list of dicts)."""
     equations = _select_equations(subset)
-    results: List[Dict[str, Any]] = []
+    results: list[dict[str, Any]] = []
 
     runners = {
         "symbolic_regression": lambda x_tr, y_tr, x_te: _run_symbolic(x_tr, y_tr, x_te, backend, seed),
@@ -165,7 +165,7 @@ def run_benchmark(
     return results
 
 
-def _write_artifacts(results: List[Dict[str, Any]], output_root: Path) -> Dict[str, str]:
+def _write_artifacts(results: list[dict[str, Any]], output_root: Path) -> dict[str, str]:
     output_root.mkdir(parents=True, exist_ok=True)
     json_path = output_root / "results.json"
     csv_path = output_root / "results.csv"

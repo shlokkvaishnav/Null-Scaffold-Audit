@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import numpy as np
 import sympy
@@ -23,17 +23,17 @@ _EQUATIONS_PATH = Path(__file__).resolve().parent / "feynman_equations.json"
 _ALLOWED_SYMPY_FUNCTIONS = {"exp", "log", "sin", "cos", "sqrt", "pi"}
 
 
-def _load_all() -> List[Dict[str, Any]]:
+def _load_all() -> list[dict[str, Any]]:
     with _EQUATIONS_PATH.open("r", encoding="utf-8") as handle:
         return json.load(handle)
 
 
-def list_feynman_equations() -> List[Dict[str, Any]]:
+def list_feynman_equations() -> list[dict[str, Any]]:
     """Return metadata for every curated Feynman-style equation."""
     return _load_all()
 
 
-def load_feynman_equation(equation_id: str) -> Dict[str, Any]:
+def load_feynman_equation(equation_id: str) -> dict[str, Any]:
     """Return the metadata dict for a single equation by its `id`."""
     for entry in _load_all():
         if entry["id"] == equation_id:
@@ -41,7 +41,7 @@ def load_feynman_equation(equation_id: str) -> Dict[str, Any]:
     raise KeyError(f"Unknown Feynman equation id: {equation_id!r}")
 
 
-def _build_callable(formula: str, variables: List[str]):
+def _build_callable(formula: str, variables: list[str]):
     symbols = sympy.symbols(variables)
     if len(variables) == 1:
         symbols = (symbols,)
@@ -56,7 +56,7 @@ def generate_feynman_dataset(
     n_samples: int = 1000,
     noise_std: float = 0.0,
     seed: int = 0,
-) -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
+) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
     """Sample a synthetic dataset for a curated Feynman-style equation.
 
     Args:
@@ -73,8 +73,8 @@ def generate_feynman_dataset(
         is a dict with the formula string, variable names, and equation id/name.
     """
     entry = load_feynman_equation(equation_id)
-    variables: List[str] = entry["variables"]
-    ranges: Dict[str, List[float]] = entry["ranges"]
+    variables: list[str] = entry["variables"]
+    ranges: dict[str, list[float]] = entry["ranges"]
     formula: str = entry["formula"]
 
     rng = np.random.default_rng(seed)

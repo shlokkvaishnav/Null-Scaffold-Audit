@@ -13,7 +13,7 @@ predates this plugin layer and is untouched by it).
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import numpy as np
 
@@ -36,7 +36,7 @@ class SymbolicRegressionAlgorithm:
     def __init__(self, **config: Any) -> None:
         self._model = SymbolicHypothesisGenerator(config)
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "SymbolicRegressionAlgorithm":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> SymbolicRegressionAlgorithm:
         self._model.fit(X, y)
         return self
 
@@ -44,7 +44,7 @@ class SymbolicRegressionAlgorithm:
         return self._model.predict(X)
 
     @property
-    def equation(self) -> Optional[str]:
+    def equation(self) -> str | None:
         return self._model.equation
 
 
@@ -57,7 +57,7 @@ class GBMBaselineAlgorithm:
         config.setdefault("model_type", "lightgbm")
         self._model = BaselineModel(config)
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "GBMBaselineAlgorithm":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> GBMBaselineAlgorithm:
         self._model.fit(X, y)
         return self
 
@@ -65,7 +65,7 @@ class GBMBaselineAlgorithm:
         return self._model.predict(X)
 
     @property
-    def equation(self) -> Optional[str]:
+    def equation(self) -> str | None:
         return None
 
 
@@ -77,7 +77,7 @@ class NeuralEnsembleAlgorithm:
     def __init__(self, **config: Any) -> None:
         self._model = Ensemble(config)
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "NeuralEnsembleAlgorithm":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> NeuralEnsembleAlgorithm:
         self._model.fit(X, y)
         return self
 
@@ -85,7 +85,7 @@ class NeuralEnsembleAlgorithm:
         return self._model.predict(X)
 
     @property
-    def equation(self) -> Optional[str]:
+    def equation(self) -> str | None:
         return None
 
 
@@ -106,7 +106,7 @@ class DiscoveryAgentAlgorithm:
         max_iters: int = 3,
         **extra_agent_config: Any,
     ) -> None:
-        agent_cfg: Dict[str, Any] = {
+        agent_cfg: dict[str, Any] = {
             "agent": {
                 "num_regimes": 1,
                 "use_verification": True,
@@ -122,7 +122,7 @@ class DiscoveryAgentAlgorithm:
         self._max_iters = max_iters
         self._best_hypothesis = None
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "DiscoveryAgentAlgorithm":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> DiscoveryAgentAlgorithm:
         obs = {"features": X, "targets": y}
         for _ in range(self._max_iters):
             self._agent.step(obs)
@@ -141,7 +141,7 @@ class DiscoveryAgentAlgorithm:
         return self._best_hypothesis.evaluate(X)
 
     @property
-    def equation(self) -> Optional[str]:
+    def equation(self) -> str | None:
         if self._best_hypothesis is None:
             return None
         return str(self._best_hypothesis.equation)
@@ -155,15 +155,29 @@ class FeynmanDomainPlugin:
     def __init__(self) -> None:
         self._validator = EquationValidator()
 
-    def load_dataset(
-        self,
-        equation_id: str,
-        n_samples: int = 500,
-        noise_std: float = 0.0,
-        seed: int = 0,
-    ) -> Dataset:
+    def load_dataset(self, **kwargs: Any) -> Dataset:
+        """Load one benchmark equation as a Dataset.
+
+        Takes **kwargs rather than named parameters because that is what the
+        DomainPlugin contract declares. The orchestrator forwards an opaque
+        config dict it cannot type-check, so a plugin that narrowed the
+        signature would not actually satisfy the protocol it is registered
+        against -- which is what the type checker was reporting.
+
+        Required keys are validated here so a missing one fails with a message
+        naming the plugin, rather than as a bare TypeError from the call site.
+
+        Keys: equation_id (required), n_samples (500), noise_std (0.0), seed (0).
+        """
+        if "equation_id" not in kwargs:
+            raise TypeError(
+                f"{self.name} requires 'equation_id' in domain_kwargs; got keys {sorted(kwargs)}"
+            )
         X, y, ground_truth = generate_feynman_dataset(
-            equation_id, n_samples=n_samples, noise_std=noise_std, seed=seed
+            kwargs["equation_id"],
+            n_samples=kwargs.get("n_samples", 500),
+            noise_std=kwargs.get("noise_std", 0.0),
+            seed=kwargs.get("seed", 0),
         )
         return Dataset(
             X=X,
@@ -172,7 +186,7 @@ class FeynmanDomainPlugin:
             metadata={"ground_truth": ground_truth},
         )
 
-    def validate(self, equation: Optional[str]) -> Dict[str, Any]:
+    def validate(self, equation: str | None) -> dict[str, Any]:
         if not equation:
             return {}
         return self._validator.check_constraints(equation)
@@ -181,8 +195,8 @@ class FeynmanDomainPlugin:
         self,
         y_true: np.ndarray,
         y_pred: np.ndarray,
-        equation: Optional[str] = None,
-    ) -> Dict[str, float]:
+        equation: str | None = None,
+    ) -> dict[str, float]:
         return compute_fit_metrics(y_true, y_pred, equation=equation)
 
 

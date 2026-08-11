@@ -47,15 +47,17 @@ def _run_variant(variant: str, seed: int, budget: dict[str, Any]):
         model.fit(data.x_train, data.y_train)
         return model.predict(data.x_test), data.y_test, model.equation
 
+    # Each branch binds its own name. Reusing `model` across three unrelated
+    # model classes made the variable's type depend on which branch ran.
     if variant == "neural_moe":
-        model = Ensemble({"random_state": seed})
-        model.fit(data.x_train, data.y_train)
-        return model.predict(data.x_test), data.y_test, "neural_moe_ensemble"
+        ensemble = Ensemble({"random_state": seed})
+        ensemble.fit(data.x_train, data.y_train)
+        return ensemble.predict(data.x_test), data.y_test, "neural_moe_ensemble"
 
     if variant in {"lightgbm", "xgboost"}:
-        model = BaselineModel({"model_type": variant, "random_state": seed})
-        model.fit(data.x_train, data.y_train)
-        return model.predict(data.x_test), data.y_test, variant
+        baseline = BaselineModel({"model_type": variant, "random_state": seed})
+        baseline.fit(data.x_train, data.y_train)
+        return baseline.predict(data.x_test), data.y_test, variant
 
     if variant == "discovery_agent_full" or variant.startswith("no_"):
         # The discovery-agent variants require the DiscoveryAgent's

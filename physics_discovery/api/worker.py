@@ -9,8 +9,8 @@ demo/portfolio service, not a production multi-worker deployment).
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Tuple
+from datetime import UTC, datetime
+from typing import Any
 
 import numpy as np
 
@@ -18,13 +18,13 @@ from physics_discovery.core.agent import DiscoveryAgent
 from physics_discovery.evaluation.metrics import compute_fit_metrics
 
 # dataset_id -> (X, y, feature_names)
-DATASETS: Dict[str, Tuple[np.ndarray, np.ndarray, List[str]]] = {}
+DATASETS: dict[str, tuple[np.ndarray, np.ndarray, list[str]]] = {}
 
 # job_id -> {"status", "created_at", "equation", "rmse", "confidence", "error"}
-JOBS: Dict[str, Dict[str, Any]] = {}
+JOBS: dict[str, dict[str, Any]] = {}
 
 
-def register_dataset(x: np.ndarray, y: np.ndarray, feature_names: List[str]) -> str:
+def register_dataset(x: np.ndarray, y: np.ndarray, feature_names: list[str]) -> str:
     """Store a loaded dataset in memory and return its generated id."""
     dataset_id = str(uuid.uuid4())
     DATASETS[dataset_id] = (x, y, feature_names)
@@ -36,7 +36,7 @@ def create_job() -> str:
     job_id = str(uuid.uuid4())
     JOBS[job_id] = {
         "status": "pending",
-        "created_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(UTC),
         "equation": None,
         "rmse": None,
         "confidence": None,
@@ -83,7 +83,7 @@ def run_discovery_job(
         # "discovery_agent" runner (evaluation/benchmark_runner.py).
         # num_regimes=1: an uploaded dataset is treated as one global
         # equation, not a regime-switching system.
-        agent_cfg: Dict[str, Any] = {
+        agent_cfg: dict[str, Any] = {
             "agent": {
                 "num_regimes": 1,
                 "use_verification": True,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
@@ -12,7 +12,7 @@ from sklearn.linear_model import LinearRegression
 class BaselineModel:
     """Wrapper for baseline regressors used in benchmark scripts."""
 
-    config: Dict[str, Any]
+    config: dict[str, Any]
 
     def __post_init__(self) -> None:
         self.config = self.config or {}

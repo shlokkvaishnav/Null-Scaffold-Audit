@@ -1,7 +1,7 @@
+
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Dict
+from torch import nn
 
 
 class JointELBO(nn.Module):
@@ -34,8 +34,8 @@ class JointELBO(nn.Module):
         return F.softmax(self.transition_logits, dim=1)
 
     def forward(self, log_likelihoods: torch.Tensor, gate_probs: torch.Tensor,
-                regime_priors: Optional[torch.Tensor] = None,
-                equation_beliefs: Optional[Dict[int, Dict[str, float]]] = None) -> Dict[str, torch.Tensor]:
+                regime_priors: torch.Tensor | None = None,
+                equation_beliefs: dict[int, dict[str, float]] | None = None) -> dict[str, torch.Tensor]:
         """
         Calculate ELBO over sequenced batches.
 

@@ -11,7 +11,6 @@ backend produced the string.
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 import numpy as np
 import sympy
@@ -37,7 +36,7 @@ GPLEARN_FUNCTIONS = {
 }
 
 
-def safe_evaluate(equation: str, features: np.ndarray) -> Optional[np.ndarray]:
+def safe_evaluate(equation: str, features: np.ndarray) -> np.ndarray | None:
     """Evaluate an equation string against a (n_samples, n_features) array.
 
     Supports variable names ``x0``/``X0``, ``x1``/``X1``, ... (case-insensitive,
@@ -71,5 +70,11 @@ def safe_evaluate(equation: str, features: np.ndarray) -> Optional[np.ndarray]:
         if result.shape == ():
             result = np.full(n_samples, float(result))
         return result
-    except Exception:
+    # Blanket by necessity: this evaluates an arbitrary search-generated
+    # expression through sympify and lambdify, which between them raise
+    # SympifyError, TypeError, AttributeError, NameError, ZeroDivisionError,
+    # OverflowError and RecursionError depending on the input. Enumerating them
+    # would silently miss cases, and "could not be evaluated" is the same
+    # answer for every one of them.
+    except Exception:  # noqa: BLE001
         return None

@@ -19,7 +19,6 @@ are not part of the default active checks.
 """
 
 import re
-from typing import Dict, Optional
 
 
 class EquationValidator:
@@ -27,7 +26,7 @@ class EquationValidator:
     Checks candidate equations for basic mathematical validity issues.
     """
 
-    def __init__(self, config: Optional[Dict] = None):
+    def __init__(self, config: dict | None = None):
         """
         Initialize the equation validator.
 
@@ -37,7 +36,7 @@ class EquationValidator:
         self.config = config or {}
         self._custom_constraints: list = []
 
-    def check_constraints(self, equation: str) -> Dict[str, Dict]:
+    def check_constraints(self, equation: str) -> dict[str, dict]:
         """
         Check basic validity constraints for a given equation string.
 
@@ -67,7 +66,7 @@ class EquationValidator:
 
         return violations
 
-    def _check_division_by_zero(self, equation: str) -> Optional[Dict]:
+    def _check_division_by_zero(self, equation: str) -> dict | None:
         """Check for potential division by zero."""
         if re.search(r'/\s*0(?!\d)', equation):
             return {"division_by_zero": {
@@ -76,7 +75,7 @@ class EquationValidator:
             }}
         return None
 
-    def _check_negative_log(self, equation: str) -> Optional[Dict]:
+    def _check_negative_log(self, equation: str) -> dict | None:
         """Check for log of a negative literal."""
         if re.search(r'log\s*\(\s*-', equation):
             return {"negative_log": {
@@ -85,7 +84,7 @@ class EquationValidator:
             }}
         return None
 
-    def _check_imaginary_sqrt(self, equation: str) -> Optional[Dict]:
+    def _check_imaginary_sqrt(self, equation: str) -> dict | None:
         """Check for sqrt of a negative literal."""
         if re.search(r'sqrt\s*\(\s*-', equation):
             return {"imaginary_sqrt": {

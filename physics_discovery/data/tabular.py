@@ -4,17 +4,16 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
-from typing import List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
 
 def load_csv(
-    path: Union[str, Path],
+    path: str | Path,
     target_column: str,
     drop_non_numeric: bool = True,
-) -> Tuple[np.ndarray, np.ndarray, List[str]]:
+) -> tuple[np.ndarray, np.ndarray, list[str]]:
     """Load a CSV file into (X, y, feature_names) for equation discovery.
 
     Args:

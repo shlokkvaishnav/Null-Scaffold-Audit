@@ -78,7 +78,12 @@ class GplearnReasoner:
             from .hypothesis import Hypothesis
             iteration = observation.get("iteration", 0) if isinstance(observation, dict) else 0
             return Hypothesis(equation=equation_str, regime_id=regime_id, iteration=iteration)
-        except Exception:
+        # Blanket by necessity: a gplearn fit over caller-supplied data raises
+        # anything from ValueError on degenerate input to arbitrary numpy
+        # errors, and a failed proposal is simply "no hypothesis this round".
+        # Returning None keeps the loop running, which is what the agent's
+        # ablation flags depend on.
+        except Exception:  # noqa: BLE001
             return None
 
 
@@ -146,8 +151,9 @@ class PySRReasoner:
 
             return h
 
-        except Exception:
-            # PySR failed
+        # Same reasoning as the gplearn path above, plus PySR's Julia bridge,
+        # which surfaces backend failures as its own exception types.
+        except Exception:  # noqa: BLE001
             return None
 
 

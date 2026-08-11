@@ -1,7 +1,7 @@
+from typing import Any
+
 import torch
-import torch.nn as nn
-from typing import Dict, Any
-import numpy as np
+from torch import nn
 
 
 class DiscoveryTrainer:
@@ -10,7 +10,8 @@ class DiscoveryTrainer:
     agent's 3-level variational EM loop (regime discovery).
     """
     def __init__(self, agent: Any, gate_module: nn.Module, elbo_module: nn.Module,
-                 lr: float = 1e-3, entropy_min: float = 0.1, lambdas: Dict[str, float] = None):
+                 lr: float = 1e-3, entropy_min: float = 0.1,
+                 lambdas: dict[str, float] | None = None):
         """
         Args:
             agent: The core DiscoveryAgent orchestrator handling symbolic-regression searches
@@ -37,7 +38,7 @@ class DiscoveryTrainer:
             "complex": 0.01
         }
 
-    def train_step(self, x: torch.Tensor, y: torch.Tensor, t: int) -> Dict[str, Any]:
+    def train_step(self, x: torch.Tensor, y: torch.Tensor, t: int) -> dict[str, Any]:
         """
         Executes one full iteration of the variational EM discovery loop.
 

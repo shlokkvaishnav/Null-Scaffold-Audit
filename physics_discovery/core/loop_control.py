@@ -7,8 +7,8 @@ implementation: the convergence-check and progress-reporting logic that used
 to live inline inside the agent's `run_loop` method.
 """
 
+
 import numpy as np
-from typing import List, Optional
 
 
 class ConvergenceController:
@@ -26,11 +26,11 @@ class ConvergenceController:
 
     def check_convergence(
         self,
-        pi: Optional[np.ndarray],
-        prev_pi: Optional[np.ndarray],
-        current_eqs: List[str],
-        prev_hypotheses: Optional[List[str]],
-        tol: Optional[float] = None,
+        pi: np.ndarray | None,
+        prev_pi: np.ndarray | None,
+        current_eqs: list[str],
+        prev_hypotheses: list[str] | None,
+        tol: float | None = None,
         iteration: int = 0,
     ) -> bool:
         """Check if the agent has converged."""
@@ -54,8 +54,8 @@ class ConvergenceController:
         self,
         n_proposed: int,
         n_verified: int,
-        pi: Optional[np.ndarray],
-        prev_pi: Optional[np.ndarray],
+        pi: np.ndarray | None,
+        prev_pi: np.ndarray | None,
     ) -> None:
         """Report iteration progress."""
         n_rejected = n_proposed - n_verified

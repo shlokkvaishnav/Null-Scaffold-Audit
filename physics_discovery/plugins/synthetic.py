@@ -12,7 +12,7 @@ algorithms.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import numpy as np
 
@@ -36,19 +36,23 @@ class SyntheticRegressionDomainPlugin:
     def __init__(self) -> None:
         self._validator = EquationValidator()
 
-    def load_dataset(
-        self,
-        seed: int = 0,
-        n_samples: int = 200,
-        n_features: int = 6,
-        noise_std: float = 0.1,
-    ) -> Dataset:
+    def load_dataset(self, **kwargs: Any) -> Dataset:
+        """Generate a synthetic regression dataset.
+
+        Takes **kwargs to match the DomainPlugin contract, which the
+        orchestrator satisfies by splatting an untyped config dict. Every key
+        here is optional, so an empty call is valid and yields the defaults.
+
+        Keys: seed (0), n_samples (200), n_features (6), noise_std (0.1).
+        """
+        n_features = kwargs.get("n_features", 6)
+        noise_std = kwargs.get("noise_std", 0.1)
         # train_fraction=1.0 puts every sample in x_train/y_train (x_test/y_test
         # empty) -- the orchestrator does its own train/test split downstream,
         # so this just reuses generate_synthetic_regression as an unsplit source.
         split_data = generate_synthetic_regression(
-            seed=seed,
-            n_samples=n_samples,
+            seed=kwargs.get("seed", 0),
+            n_samples=kwargs.get("n_samples", 200),
             n_features=n_features,
             train_fraction=1.0,
             noise_std=noise_std,
@@ -63,7 +67,7 @@ class SyntheticRegressionDomainPlugin:
             },
         )
 
-    def validate(self, equation: Optional[str]) -> Dict[str, Any]:
+    def validate(self, equation: str | None) -> dict[str, Any]:
         if not equation:
             return {}
         return self._validator.check_constraints(equation)
@@ -72,8 +76,8 @@ class SyntheticRegressionDomainPlugin:
         self,
         y_true: np.ndarray,
         y_pred: np.ndarray,
-        equation: Optional[str] = None,
-    ) -> Dict[str, float]:
+        equation: str | None = None,
+    ) -> dict[str, float]:
         return compute_fit_metrics(y_true, y_pred, equation=equation)
 
 

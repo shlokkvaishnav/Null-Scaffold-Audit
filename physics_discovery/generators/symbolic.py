@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 
@@ -10,7 +10,7 @@ import numpy as np
 class SymbolicHypothesisGenerator:
     """Wrapper for symbolic regression backends."""
 
-    config: Dict[str, Any]
+    config: dict[str, Any]
 
     def __post_init__(self) -> None:
         self.config = self.config or {}
