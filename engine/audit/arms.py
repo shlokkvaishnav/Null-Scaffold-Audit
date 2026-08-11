@@ -272,21 +272,58 @@ def _holm_correct(
     controls the same family-wise rate: claims are sorted by strength and the
     k-th is tested against ``alpha / (m - k)``, stepping down until one fails.
 
-    Only verdicts that actually claim something enter the family. An
-    ``INCONCLUSIVE`` asserts nothing, so counting it would inflate ``m`` and
-    penalise the real claims for company they never kept.
+    Which claims belong in the family follows from how ``_overall`` aggregates
+    them, and the two directions differ:
+
+    - ``CONTRIBUTES`` and ``HARMFUL`` are aggregated as a **union** -- any one
+      metric triggers the overall verdict -- so the chance of a spurious claim
+      grows with the number of metrics, and Holm applies.
+    - ``NULL`` is aggregated as an **intersection-union test**: every metric
+      must be ``NULL`` before the overall verdict is. IUT already controls the
+      family-wise rate at ``alpha`` with no correction at all, because
+      equivalence is only claimed when each component independently clears the
+      bar. Correcting these would make ``NULL`` strictly harder to reach than
+      the statistics require -- and ``NULL`` is the positive finding this whole
+      subsystem exists to make sayable, so over-conservatism there is not a
+      safe default, it is the expensive kind of wrong.
+
+    ``INCONCLUSIVE`` asserts nothing and enters no family; counting it would
+    inflate ``m`` and penalise real claims for company they never kept.
 
     A claim that does not survive becomes ``INCONCLUSIVE``: the evidence did not
     hold up once the family was accounted for, which is precisely "could not
     tell" rather than "no effect". Its uncorrected p-value is retained so the
     downgrade is auditable rather than silent.
     """
+    corrected = dict(per_metric)
+
+    # NULL is aggregated by _overall as an intersection-union test: every metric
+    # must be NULL before the overall verdict is. Under IUT the family-wise rate
+    # is already controlled at alpha without any correction -- you only get to
+    # claim equivalence if each component independently clears the bar. So
+    # correcting these would make NULL strictly harder to reach than the
+    # statistics require, and NULL is the positive finding this audit exists to
+    # make sayable. They are recorded, and left alone.
+    for name, verdict in per_metric.items():
+        if verdict.verdict is Verdict.NULL and verdict.p_value is not None:
+            corrected[name] = dataclasses.replace(
+                verdict,
+                adjusted_p_value=verdict.p_value,
+                correction="none (intersection-union: every metric must be NULL)",
+            )
+
+    # CONTRIBUTES and HARMFUL are aggregated as a union -- any one metric
+    # triggers the overall verdict -- so their family-wise rate does grow with
+    # the number of metrics, and Holm applies.
     claims = sorted(
-        ((name, v) for name, v in per_metric.items() if v.p_value is not None),
+        (
+            (name, v)
+            for name, v in per_metric.items()
+            if v.p_value is not None and v.verdict in {Verdict.CONTRIBUTES, Verdict.HARMFUL}
+        ),
         key=lambda item: item[1].p_value or 0.0,
     )
 
-    corrected = dict(per_metric)
     running_max = 0.0
     family_size = len(claims)
 

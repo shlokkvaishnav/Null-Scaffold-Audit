@@ -54,7 +54,7 @@
         "n": 4,
         "p_value": 0.0,
         "adjusted_p_value": 0.0,
-        "correction": "holm(family=1, alpha=0.05)"
+        "correction": "none (intersection-union: every metric must be NULL)"
       }
     }
   },
@@ -101,7 +101,7 @@
         "n": 4,
         "p_value": 0.08881165585689521,
         "adjusted_p_value": 0.08881165585689521,
-        "correction": "holm(family=2, alpha=0.05)"
+        "correction": "holm(family=1, alpha=0.05)"
       },
       "exact_recovery": {
         "verdict": "NULL",
@@ -113,7 +113,7 @@
         "n": 4,
         "p_value": 0.0,
         "adjusted_p_value": 0.0,
-        "correction": "holm(family=2, alpha=0.05)"
+        "correction": "none (intersection-union: every metric must be NULL)"
       }
     }
   }
