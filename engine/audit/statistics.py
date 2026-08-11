@@ -105,6 +105,63 @@ def _interval(
     return float(result.confidence_interval.low), float(result.confidence_interval.high)
 
 
+TARGET_POWER = 0.80
+"""The power an equivalence claim is planned against, by convention."""
+
+
+def required_sample_size(
+    margin: float,
+    spread: float,
+    confidence: float = 0.90,
+    target_power: float = TARGET_POWER,
+    max_n: int = 100_000,
+) -> int | None:
+    """Smallest paired sample size whose TOST power reaches ``target_power``.
+
+    Reported so ``INCONCLUSIVE`` stops being a surprise. An audit that keeps
+    discovering after the fact that it could not tell is one that never asked
+    how many seeds the question needed -- and the answer is knowable from the
+    margin and the observed spread. "Inconclusive at 20 seeds, would need 96"
+    is an instruction; "inconclusive" alone is only a disappointment.
+
+    Uses the observed spread, so it is a retrospective estimate rather than a
+    pre-registration: the spread is itself estimated from the sample it is
+    describing, and at small n it is estimated badly. Treat the number as an
+    order of magnitude for planning the next sweep, not as a guarantee.
+
+    Returns None when even ``max_n`` observations would not reach the target,
+    which means the margin is too tight for the noise and no amount of seeds
+    will rescue it -- a finding about the design, not about the wrapper.
+    """
+    if margin <= 0:
+        raise ValueError(f"margin must be positive, got {margin}")
+    if not 0.0 < target_power < 1.0:
+        raise ValueError(f"target_power must lie in (0, 1), got {target_power}")
+    if spread == 0.0:
+        # Both arms are constant; repeated sampling cannot disagree, so the
+        # smallest sample the statistics accept is already enough.
+        return 2
+
+    alpha = (1.0 - confidence) / 2.0
+    if _tost_power(margin, spread, 2, alpha) >= target_power:
+        return 2
+
+    # Power is monotone in n, so find a bracket by doubling and then bisect.
+    low, high = 2, 4
+    while high <= max_n and _tost_power(margin, spread, high, alpha) < target_power:
+        low, high = high, high * 2
+    if high > max_n:
+        return None
+
+    while low < high:
+        midpoint = (low + high) // 2
+        if _tost_power(margin, spread, midpoint, alpha) >= target_power:
+            high = midpoint
+        else:
+            low = midpoint + 1
+    return low
+
+
 def _claim_p_value(differences: np.ndarray, margin: float, verdict: Verdict) -> float | None:
     """Evidence for the claim this verdict makes, so it can be corrected.
 
@@ -235,4 +292,5 @@ def equivalence_verdict(
         n=n,
         higher_is_better=higher_is_better,
         p_value=_claim_p_value(differences, margin, verdict),
+        n_for_target_power=required_sample_size(margin, spread, confidence),
     )

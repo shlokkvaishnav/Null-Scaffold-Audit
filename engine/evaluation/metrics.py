@@ -9,6 +9,8 @@ import numpy as np
 from scipy import stats
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
+from engine.expressions.expression_eval import node_count
+
 
 def calibration_error(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     """Mean-residual bias normalized by the target's standard deviation."""
@@ -27,17 +29,24 @@ def compute_fit_metrics(
         y_true: Ground-truth target values.
         y_pred: Model predictions.
         equation: Optional string representation of the discovered equation,
-            used to compute a crude symbolic-complexity proxy (string length).
+            measured as its expression-tree node count.
 
     Returns:
         Dict with keys: rmse, mae, calibration_error, symbolic_complexity.
+
+    `symbolic_complexity` counts nodes, not characters. String length made
+    `x0*x1` and `x0 * x1` different sizes and tracked how a backend chose to
+    print a coefficient rather than the complexity of the law -- and the audit
+    registers a pre-registered margin against this metric, so the unit decides
+    verdicts. Nodes are also what the symbolic-regression literature reports,
+    which is what lets a figure here be compared against a published one.
     """
     y_true = np.asarray(y_true, dtype=float)
     y_pred = np.asarray(y_pred, dtype=float)
 
     rmse = float(np.sqrt(mean_squared_error(y_true, y_pred)))
     mae = float(mean_absolute_error(y_true, y_pred))
-    complexity = float(len(equation)) if equation else float("nan")
+    complexity = node_count(equation) if equation else float("nan")
 
     return {
         "rmse": rmse,

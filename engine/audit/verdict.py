@@ -89,6 +89,15 @@ class MetricVerdict:
     quietly-inflated confidence.
     """
 
+    n_for_target_power: int | None = None
+    """Paired observations needed to reach the conventional 80% power, at the
+    observed spread. ``None`` means no attainable sample size would, which is a
+    finding about the margin rather than about the wrapper.
+
+    Present so ``INCONCLUSIVE`` carries an instruction rather than only a
+    disappointment: "could not tell at 20 seeds, would need 96" is actionable.
+    """
+
     correction: str | None = None
     """Which correction produced ``adjusted_p_value``, named in the record.
 

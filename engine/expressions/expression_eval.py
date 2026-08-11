@@ -36,6 +36,44 @@ GPLEARN_FUNCTIONS = {
 }
 
 
+_TOKEN_RE = re.compile(r"[A-Za-z_]\w*|\d+\.?\d*|[+\-*/^]")
+
+
+def node_count(equation: str) -> float:
+    """Size of an expression as its number of expression-tree nodes.
+
+    String length was the unit in use, and it is the wrong one: it makes
+    ``x0*x1`` and ``x0 * x1`` different sizes, and it scales with how a backend
+    chose to print a coefficient rather than with the complexity of the law.
+    Node counts are what the symbolic-regression literature reports, so this is
+    also what makes a complexity figure here comparable to a published one.
+
+    Falls back to a token count when the expression cannot be parsed. The units
+    then differ -- tokens are not nodes -- which is accepted because it affects
+    only candidates no parser could read, and those are already scored as
+    maximally unfit by every other metric. Returning NaN would be more honest
+    about the unit and would abort the sweep, since the statistics layer rejects
+    non-finite observations outright.
+
+    Known perverse incentive in that fallback: a string with no expression
+    content at all -- ``"(((("`` -- yields zero tokens and therefore scores as
+    maximally *simple*, since lower complexity is better. It is left rather than
+    patched with a sentinel, because an invented number would enter a
+    pre-registered margin and quietly change what the audit certifies. The case
+    is bounded in practice: such a candidate cannot be evaluated, so it takes
+    the worst available rmse and scores zero on recovery.
+    """
+    if not equation:
+        return float("nan")
+    try:
+        expression = sympy.sympify(equation, locals=GPLEARN_FUNCTIONS)
+        return float(sum(1 for _ in sympy.preorder_traversal(expression)))
+    # Blanket by necessity, for the same reason as everywhere else that parses a
+    # search-generated string: sympify raises no single documented type.
+    except Exception:  # noqa: BLE001
+        return float(len(_TOKEN_RE.findall(equation)))
+
+
 def safe_evaluate(equation: str, features: np.ndarray) -> np.ndarray | None:
     """Evaluate an equation string against a (n_samples, n_features) array.
 
