@@ -62,7 +62,7 @@ jobs:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
       - run: uv sync --frozen --extra dev --extra gbm
-      - run: uv run mypy engine tools
+      - run: uv run mypy engine algorithms validators plugins cli tools
 
   test:
     name: Tests
@@ -101,11 +101,15 @@ jobs:
           python-version-file: .python-version
       - name: Check engine/ for scientific content
         run: python tools/check_domain_independence.py --path engine
+      # algorithms/ is gated too: a search algorithm naming a domain has
+      # stopped being reusable across them. validators/ deliberately is not,
+      # and cannot be -- constraint rules encode domain knowledge by
+      # definition. See validators/__init__.py.
+      - name: Check algorithms/ for scientific content
+        run: python tools/check_domain_independence.py --path algorithms
 
-  # Legacy tree, pending migration behind the plugin contract. Retained so its
-  # failures stay visible rather than being deleted out of view.
-  legacy-smoke-benchmark:
-    name: Legacy smoke benchmark
+  smoke-benchmark:
+    name: Smoke benchmark
     runs-on: ubuntu-latest
     needs: test
     steps:
@@ -115,4 +119,4 @@ jobs:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
       - run: uv sync --frozen --extra dev --extra gbm
-      - run: uv run python -m physics_discovery.evaluation.benchmark_runner --subset smoke --backend gplearn
+      - run: uv run python -m plugins.physics.benchmark_runner --subset smoke --backend gplearn
