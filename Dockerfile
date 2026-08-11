@@ -42,4 +42,4 @@ ENV SYMBOLIC_BACKEND=gplearn \
     PYTHONPATH=/app
 
 EXPOSE 8000
-CMD ["uvicorn", "physics_discovery.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "plugins.physics.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
