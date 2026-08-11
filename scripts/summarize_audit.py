@@ -33,12 +33,21 @@ EXPECTED_PROBLEMS = 8
 
 
 def load_sweeps(root: Path) -> dict[str, dict[str, Any]]:
+    """Every subdirectory holding an audit.json, known names ordered first.
+
+    Discovered rather than enumerated. The original list hardcoded three budget
+    directory names, so a sweep written anywhere else was silently absent from
+    the summary -- a collation step that quietly omits results is worse than no
+    collation step. Known names keep their deliberate smallest-first order;
+    anything else follows alphabetically, so the output stays deterministic.
+    """
+    found = {path.parent.name: path for path in sorted(root.glob("*/audit.json"))}
+    ordered = [name for name in BUDGET_ORDER if name in found]
+    ordered += sorted(name for name in found if name not in BUDGET_ORDER)
+
     sweeps: dict[str, dict[str, Any]] = {}
-    for name in BUDGET_ORDER:
-        path = root / name / "audit.json"
-        if not path.exists():
-            continue
-        sweeps[name] = json.loads(path.read_text(encoding="utf-8"))
+    for name in ordered:
+        sweeps[name] = json.loads(found[name].read_text(encoding="utf-8"))
     return sweeps
 
 
@@ -51,6 +60,8 @@ def to_rows(sweeps: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
                 rows.append(
                     {
                         "budget": budget.replace("budget_", ""),
+                        "domain": config.get("domain"),
+                        "scaffold": config.get("scaffold"),
                         "evaluations_per_fit": config.get("evaluations_per_fit"),
                         "seeds": config.get("seeds"),
                         "equation_id": report["equation_id"],
@@ -105,13 +116,14 @@ def build_markdown(sweeps: dict[str, dict[str, Any]], rows: list[dict[str, Any]]
         "",
         "## Sweeps included",
         "",
-        "| budget | evaluations per fit | seeds | problems completed |",
-        "|---|---|---|---|",
+        "| sweep | domain | evaluations per fit | seeds | problems completed |",
+        "|---|---|---|---|---|",
     ]
     for name, payload in sweeps.items():
         config = payload.get("config", {})
         lines.append(
-            f"| {name.replace('budget_', '')} | {config.get('evaluations_per_fit')} | "
+            f"| {name.replace('budget_', '')} | {config.get('domain', '-')} | "
+            f"{config.get('evaluations_per_fit')} | "
             f"{config.get('seeds')} | {config.get('problems_completed')} |"
         )
 
