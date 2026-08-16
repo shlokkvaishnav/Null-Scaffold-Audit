@@ -1,0 +1,96 @@
+{
+  "config": {
+    "domain": "synthetic",
+    "scaffold": "plugins.physics.audit_adapter:DiscoveryAgentScaffold",
+    "seeds": 4,
+    "max_iters": 3,
+    "population_size": 50,
+    "generations": 5,
+    "n_samples": 200,
+    "evaluations_per_fit": 250,
+    "margins": {
+      "rmse": "0.05 * std(y_test)",
+      "symbolic_complexity": 2.0,
+      "exact_recovery": 0.1
+    },
+    "problems_completed": 1
+  },
+  "reports": [
+    {
+      "domain": "synthetic",
+      "equation_id": "synthetic_regression",
+      "scaffold": "DiscoveryAgent",
+      "verdict": "INCONCLUSIVE",
+      "identical_representation_rate": 0.5,
+      "degeneracy": {
+        "assessed": true,
+        "runs": 4,
+        "degenerate_runs": 4,
+        "mean_distinct_ratio": 0.3333333333333333,
+        "min_proposals": 3
+      },
+      "degenerate": true,
+      "restarts_per_seed": 3,
+      "treatment_evaluations": 3000,
+      "control_evaluations": 3000,
+      "seeds": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "per_metric": {
+        "rmse": {
+          "metric": "rmse",
+          "verdict": "NULL",
+          "observed_difference": -0.0028019701546018183,
+          "ci_low": -0.008405910463805455,
+          "ci_high": 0.0,
+          "margin": 0.0825075469441813,
+          "power": 0.9998896484467961,
+          "n": 4,
+          "higher_is_better": false
+        },
+        "symbolic_complexity": {
+          "metric": "symbolic_complexity",
+          "verdict": "INCONCLUSIVE",
+          "observed_difference": -8.25,
+          "ci_low": -15.75,
+          "ci_high": 0.0,
+          "margin": 2.0,
+          "power": 0.0,
+          "n": 4,
+          "higher_is_better": false
+        },
+        "exact_recovery": {
+          "metric": "exact_recovery",
+          "verdict": "NULL",
+          "observed_difference": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "margin": 0.1,
+          "power": 1.0,
+          "n": 4,
+          "higher_is_better": true
+        }
+      },
+      "treatment_representations": [
+        "add(sin(X0), add(X0, X4))",
+        "add(X4, mul(div(X5, X5), X0))",
+        "mul(X0, sqrt(X0))",
+        "X0"
+      ],
+      "control_representations": [
+        "add(sin(X0), add(X0, X4))",
+        "add(X0, X4)",
+        "X0",
+        "X0"
+      ],
+      "limitations": [
+        "Per-metric verdicts are uncorrected for multiplicity. RFC-0001 section 4.2 specifies a Holm correction across metrics; it is not implemented, so the family-wise error rate exceeds the stated per-metric level when more than one metric is audited.",
+        "The identical-representation rate compares strings literally, not semantically, so it under-reports agreement between the arms.",
+        "The verdict holds at this budget only (3000 evaluations across all seeds) and does not transfer to another."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+domain,equation_id,metric,verdict,observed_difference,ci_low,ci_high,margin,power,n,higher_is_better
+synthetic,synthetic_regression,rmse,NULL,-0.0028019701546018183,-0.008405910463805455,0.0,0.0825075469441813,0.9998896484467961,4,False
+synthetic,synthetic_regression,symbolic_complexity,INCONCLUSIVE,-8.25,-15.75,0.0,2.0,0.0,4,False
+synthetic,synthetic_regression,exact_recovery,NULL,0.0,0.0,0.0,0.1,1.0,4,True

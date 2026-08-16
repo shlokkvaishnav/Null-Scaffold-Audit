@@ -23,12 +23,28 @@ data/cache/
 *.h5
 *.csv
 
-# Results
-results/
-results/outputs/
-results/checkpoints/
-results/ablations/
-results/diagnostics/
+# Results are generated and mostly bulky, so the directory is excluded --
+# with one deliberate exception.
+#
+# The audit's artifacts are the evidence for every claim this project makes.
+# `scripts/run_null_scaffold_audit.py` says that every number reported here is
+# read from these files and none is typed into prose by hand, and that sentence
+# is worth nothing if the files exist only on one laptop. Excluding them made
+# the record unverifiable by anyone else and destroyable by a disk failure.
+# They are a few hundred kilobytes of JSON and CSV.
+#
+# Git cannot re-include a file whose parent directory is excluded, so the
+# directories are opened up one level at a time and only the two artifact
+# filenames are let through. Everything else under results/ stays ignored.
+results/*
+!results/null_scaffold_audit/
+results/null_scaffold_audit/*
+!results/null_scaffold_audit/summary.md
+!results/null_scaffold_audit/summary.csv
+!results/null_scaffold_audit/*/
+results/null_scaffold_audit/*/*
+!results/null_scaffold_audit/*/audit.json
+!results/null_scaffold_audit/*/audit.csv
 wandb/
 mlruns/
 

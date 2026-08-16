@@ -1,0 +1,13 @@
+domain,equation_id,metric,verdict,observed_difference,ci_low,ci_high,margin,power,n,higher_is_better
+physics,relativistic_energy_momentum,rmse,NULL,-0.13530803989407073,-0.7801564947391519,0.388105473048874,2.271882186393613,0.9997573207917858,20,False
+physics,relativistic_energy_momentum,symbolic_complexity,INCONCLUSIVE,-7.15,-17.25,2.05,2.0,0.0,20,False
+physics,relativistic_energy_momentum,exact_recovery,NULL,0.0,0.0,0.0,0.1,1.0,20,True
+physics,snells_law,rmse,INCONCLUSIVE,-0.055075316262220245,-0.10117709974086278,-0.01100811852023005,0.02004924176364653,0.0,20,False
+physics,snells_law,symbolic_complexity,INCONCLUSIVE,0.65,-1.5,3.05,2.0,0.0,20,False
+physics,snells_law,exact_recovery,INCONCLUSIVE,-0.25,-0.45,-0.05,0.1,0.0,20,True
+physics,shm_period,rmse,INCONCLUSIVE,0.09882889959354942,-0.1333843059861182,0.6597262705180488,0.10018809255132657,0.0,20,False
+physics,shm_period,symbolic_complexity,INCONCLUSIVE,6.3,-1.1,13.6,2.0,0.0,20,False
+physics,shm_period,exact_recovery,INCONCLUSIVE,0.0,-0.1,0.1,0.1,0.0,20,True
+physics,ohms_law,rmse,NULL,0.0,-0.0,-0.0,10.356023288725595,1.0,20,False
+physics,ohms_law,symbolic_complexity,NULL,0.0,-0.0,-0.0,2.0,1.0,20,False
+physics,ohms_law,exact_recovery,NULL,0.0,0.0,0.0,0.1,1.0,20,True

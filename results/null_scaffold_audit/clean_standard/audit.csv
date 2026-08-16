@@ -1,0 +1,13 @@
+domain,equation_id,metric,verdict,observed_difference,ci_low,ci_high,margin,power,n,higher_is_better
+physics,coulomb_force,rmse,INCONCLUSIVE,0.0017599988248282405,-0.01105915446554169,0.014742342477777616,0.005658116703171748,0.0,20,False
+physics,coulomb_force,symbolic_complexity,NULL,0.0,-1.45,1.4,2.0,0.3769179955638071,20,False
+physics,coulomb_force,exact_recovery,NULL,0.0,0.0,0.0,0.1,1.0,20,True
+physics,newton_gravitation,rmse,INCONCLUSIVE,-0.2284289124722942,-1.836073409206993,1.0479998376080357,1.5738506276986879,0.013754100554097315,20,False
+physics,newton_gravitation,symbolic_complexity,INCONCLUSIVE,3.95,-12.5,18.9,2.0,0.0,20,False
+physics,newton_gravitation,exact_recovery,INCONCLUSIVE,0.05,-0.25,0.35,0.1,0.0,20,True
+physics,ideal_gas_law,rmse,NULL,2.5127233657514068,-94.90138858426448,96.5096780905289,105.02996188888399,0.03285498752601557,20,False
+physics,ideal_gas_law,symbolic_complexity,INCONCLUSIVE,-10.35,-41.0,8.8,2.0,0.0,20,False
+physics,ideal_gas_law,exact_recovery,INCONCLUSIVE,-0.1,-0.35,0.2,0.1,0.0,20,True
+physics,kinetic_energy,rmse,NULL,7.357395522406731,-21.59668717456712,26.91548904363441,81.50033891580105,0.9988418903482608,20,False
+physics,kinetic_energy,symbolic_complexity,INCONCLUSIVE,3.1,-18.556203011942102,24.85,2.0,0.0,20,False
+physics,kinetic_energy,exact_recovery,INCONCLUSIVE,0.05,-0.1,0.2,0.1,0.0,20,True
