@@ -28,6 +28,7 @@ from engine.audit import (
     WastefulScaffold,
     audit,
 )
+from engine.audit.calibration import selection_ceiling
 
 SEEDS = list(range(40))
 MARGIN = 1.0
@@ -163,6 +164,79 @@ def test_oracle_refuses_a_metric_the_searcher_does_not_report() -> None:
 def test_unwrap_returns_the_primitive_the_control_arm_will_use() -> None:
     base = FakeSearcher()
     assert NullScaffold(base=base).unwrap() is base
+
+
+# --------------------------------------------------------------------------
+# The ceiling on what selection alone can buy
+# --------------------------------------------------------------------------
+
+
+def test_ceiling_bounds_what_the_oracle_actually_achieves() -> None:
+    """The property that makes it a bound rather than an estimate.
+
+    No rule can select better than taking the best candidate by the measured
+    metric, so the oracle -- which does exactly that -- must land at the ceiling
+    and never above it. If this ever failed, the ceiling would be describing a
+    different quantity from the one it is used to rule things out with.
+    """
+    base = FakeSearcher(proxy_noise=ORACLE_PROXY_NOISE)
+    ceiling = selection_ceiling(
+        base, None, SEEDS, metric="rmse", restarts=RESTARTS, higher_is_better=False
+    )
+
+    oracle = OracleScaffold(base=base, restarts=RESTARTS)
+    null = NullScaffold(base=base, restarts=RESTARTS)
+    achieved = float(
+        np.mean(
+            [
+                null.run(None, seed).metrics["rmse"] - oracle.run(None, seed).metrics["rmse"]
+                for seed in SEEDS
+            ]
+        )
+    )
+    assert achieved == pytest.approx(ceiling["ceiling"], rel=1e-9)
+
+
+def test_ceiling_collapses_when_the_rule_already_agrees_with_the_metric() -> None:
+    """A searcher whose selection rule is the metric leaves nothing to exploit.
+
+    This is the case that matters in practice and the one that caught me out: on
+    four of seven real benchmark problems the searcher's training score ranked
+    candidates almost exactly as held-out error did, the ceiling was under a
+    twentieth of the margin, and a scaffold *built* to contribute could not.
+    Reading that as a broken audit would have been wrong.
+    """
+    agreeing = selection_ceiling(
+        FakeSearcher(proxy_noise=0.0), None, SEEDS, metric="rmse", restarts=RESTARTS
+    )
+    disagreeing = selection_ceiling(
+        FakeSearcher(proxy_noise=ORACLE_PROXY_NOISE),
+        None,
+        SEEDS,
+        metric="rmse",
+        restarts=RESTARTS,
+    )
+    assert agreeing["ceiling"] == pytest.approx(0.0, abs=1e-12)
+    assert disagreeing["ceiling"] > MARGIN
+
+
+def test_ceiling_is_never_negative() -> None:
+    """Selecting better cannot hurt, so the bound is one-sided by construction."""
+    for noise in (0.0, 1.0, 12.0):
+        result = selection_ceiling(
+            FakeSearcher(proxy_noise=noise), None, SEEDS, metric="rmse", restarts=3
+        )
+        assert result["ceiling"] >= 0.0
+
+
+def test_ceiling_rejects_a_design_with_nothing_to_choose_between() -> None:
+    with pytest.raises(ValueError, match="at least 2"):
+        selection_ceiling(FakeSearcher(), None, SEEDS, metric="rmse", restarts=1)
+
+
+def test_ceiling_refuses_an_unreported_metric() -> None:
+    with pytest.raises(KeyError, match="absent"):
+        selection_ceiling(FakeSearcher(), None, SEEDS, metric="absent", restarts=3)
 
 
 # --------------------------------------------------------------------------
