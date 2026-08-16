@@ -22,7 +22,7 @@ representation string, so this module holds no subject-matter knowledge
 from __future__ import annotations
 
 import dataclasses
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
@@ -407,6 +407,7 @@ def audit(
     *,
     margins: Mapping[str, float],
     higher_is_better: Mapping[str, bool] | None = None,
+    paired_binary: Collection[str] = (),
     confidence: float = 0.90,
     map_fn: Callable[[Callable[[int], Any], Iterable[int]], Iterable[Any]] = map,
     common_random_numbers: bool = False,
@@ -417,6 +418,12 @@ def audit(
     is required, with no default. A margin chosen after seeing the intervals is
     not an audit, and a default would be exactly that choice made silently on the
     caller's behalf.
+
+    ``paired_binary`` names the metrics whose observations are successes and
+    failures rather than measurements. It is declared here, alongside the margins
+    and the orientation, because it is a property of the experiment's design and
+    belongs with the rest of the design -- not something the statistics layer
+    should infer from whatever values one sweep happened to produce.
     """
     if not margins:
         raise ValueError("margins are required: an audit with no pre-registered margin is not one")
@@ -437,6 +444,7 @@ def audit(
             metric=metric,
             margin=margin,
             higher_is_better=orientation.get(metric, False),
+            paired_binary=metric in paired_binary,
             confidence=confidence,
         )
 

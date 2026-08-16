@@ -47,6 +47,7 @@ for _path in (REPO_ROOT, REPO_ROOT / "scripts"):
 
 from run_null_scaffold_audit import (
     HIGHER_IS_BETTER,
+    PAIRED_BINARY,
     default_registry,
     margins_for,
 )
@@ -102,6 +103,7 @@ def run_locked_audit() -> dict[str, Any]:
             list(range(SEEDS)),
             margins=margins_for(problem),
             higher_is_better=HIGHER_IS_BETTER,
+            paired_binary=PAIRED_BINARY,
         )
         arms = report.arms
         snapshot[equation_id] = {

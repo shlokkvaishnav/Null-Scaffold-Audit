@@ -55,6 +55,24 @@ def node_count(equation: str) -> float:
     about the unit and would abort the sweep, since the statistics layer rejects
     non-finite observations outright.
 
+    Three cheaper or cleaner-looking units were measured against this one on the
+    320 expressions of a real sweep, and none is an improvement:
+
+    * ``sympy.simplify`` first -- unaffordable. It did not finish 40 of the
+      bloated expressions in ten minutes, against 84 ms each here, and a search
+      routinely emits trees of 100+ nodes.
+    * ``sympy.cancel`` first -- actively worse. Putting a bloated tree over a
+      common denominator expanded it about tenfold, mean 41 nodes to 483.
+    * ``count_ops`` -- 9x faster and roughly half the absolute spread, but the
+      spread *relative to the mean* is the same or slightly worse (2.35 -> 2.41,
+      1.82 -> 2.06, 1.12 -> 1.13 across three problems).
+
+    That last one is the useful result: the run-to-run variation in this metric
+    is proportional to how large an expression the search happened to return, so
+    no choice of unit reduces it. A margin fixed in absolute nodes is therefore
+    the part that does not fit the measurement -- which is a finding about the
+    pre-registration, not something to be quietly repaired here.
+
     Known perverse incentive in that fallback: a string with no expression
     content at all -- ``"(((("`` -- yields zero tokens and therefore scores as
     maximally *simple*, since lower complexity is better. It is left rather than

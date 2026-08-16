@@ -105,6 +105,124 @@ def _interval(
     return float(result.confidence_interval.low), float(result.confidence_interval.high)
 
 
+def _binary_counts(treatment: np.ndarray, control: np.ndarray) -> tuple[int, int, int]:
+    """The paired 2x2 table, as ``(n, b, c)`` with ``b``/``c`` the discordant cells.
+
+    ``b`` counts pairs the treatment got and the control did not; ``c`` counts
+    the reverse. The concordant cells carry no information about the difference
+    of proportions, so they are not returned.
+    """
+    values = np.concatenate([treatment, control])
+    if not np.all((values == 0.0) | (values == 1.0)):
+        raise ValueError(
+            "a metric declared paired-binary must be 0 or 1 on every observation; "
+            f"got values spanning [{values.min()}, {values.max()}]"
+        )
+    b = int(np.sum((treatment == 1.0) & (control == 0.0)))
+    c = int(np.sum((treatment == 0.0) & (control == 1.0)))
+    return len(treatment), b, c
+
+
+def _tango_score(n: int, b: int, c: int, delta: float) -> float:
+    """Tango's score statistic for the paired difference of proportions.
+
+    The interval this generates is the one recommended for paired binomial
+    proportions, and the reason it is used here rather than the bootstrap is a
+    failure mode this audit cannot afford: the paired difference of a binary
+    metric takes only the values -1, 0 and +1, so when no pair disagrees every
+    resample is identical and the bootstrap interval collapses to a point. That
+    reads as certainty. It is not -- twenty agreeing pairs are consistent with a
+    true difference of about 0.12 -- and a point interval sits inside any margin,
+    so it reports ``NULL``, the audit's one positive verdict, on no evidence.
+
+    At ``delta = 0`` this reduces exactly to McNemar's statistic,
+    ``(b - c) / sqrt(b + c)``, which is what the tests pin it against.
+    """
+    quadratic = 2 * n
+    linear = -b - c + (2 * n - b + c) * delta
+    constant = -c * delta * (1.0 - delta)
+
+    discriminant = max(linear * linear - 4 * quadratic * constant, 0.0)
+    # The constrained maximum-likelihood estimate of the "control succeeded,
+    # treatment did not" cell probability, given a difference of exactly `delta`.
+    constrained = (math.sqrt(discriminant) - linear) / (2 * quadratic)
+
+    variance = n * (2.0 * constrained + delta * (1.0 - delta))
+    if variance <= 0.0:
+        # Reachable only at the boundary, where the constrained fit puts zero
+        # mass on both discordant cells. The observed difference is then either
+        # exactly `delta` or impossible under it.
+        observed = b - c - n * delta
+        if observed == 0.0:
+            return 0.0
+        return math.inf if observed > 0 else -math.inf
+    return (b - c - n * delta) / math.sqrt(variance)
+
+
+def _tango_interval(n: int, b: int, c: int, confidence: float) -> tuple[float, float]:
+    """Invert the score statistic to a two-sided interval on the difference.
+
+    ``_tango_score`` decreases monotonically in ``delta``, so each limit is
+    found by bisection rather than by solving the quartic that eliminating the
+    constrained estimate would produce. Fifty halvings take the bracket well
+    below 1e-14, which is far finer than any margin this audit registers.
+    """
+    critical = float(stats.norm.ppf(1.0 - (1.0 - confidence) / 2.0))
+
+    def limit(target: float) -> float:
+        low, high = -1.0, 1.0
+        for _ in range(50):
+            middle = (low + high) / 2.0
+            if _tango_score(n, b, c, middle) > target:
+                low = middle
+            else:
+                high = middle
+        return (low + high) / 2.0
+
+    return limit(critical), limit(-critical)
+
+
+def _binary_spread(n: int, b: int, c: int) -> float:
+    """Standard deviation of one paired difference, for the power calculation.
+
+    Under a true difference of zero the variance of a single paired difference
+    is the discordant rate, so the spread is its square root.
+
+    When no pair disagrees, the observed rate is zero, and taking that at face
+    value would report perfect power from a sample that observed nothing. The
+    rate is unobserved rather than absent, so the rule of three supplies its 95%
+    upper bound instead. That understates power rather than inventing it, which
+    is the only direction of error this module is entitled to make.
+    """
+    discordant = b + c
+    if discordant == 0:
+        return math.sqrt(3.0 / n)
+    return math.sqrt(discordant / n)
+
+
+def _binary_claim_p_value(n: int, b: int, c: int, margin: float, verdict: Verdict) -> float | None:
+    """``_claim_p_value``'s counterpart for a paired binary metric.
+
+    Same three claims, tested with the same score statistic that produced the
+    interval, so a verdict and its p-value cannot disagree about the evidence.
+    """
+    if verdict is Verdict.INCONCLUSIVE:
+        return None
+
+    at_upper = float(stats.norm.cdf(_tango_score(n, b, c, margin)))
+    at_lower = float(stats.norm.cdf(_tango_score(n, b, c, -margin)))
+
+    if verdict is Verdict.NULL:
+        # Reject `difference <= -margin` and `difference >= +margin`; the claim
+        # is only as strong as its weaker rejection.
+        return max(1.0 - at_lower, at_upper)
+    if verdict is Verdict.CONTRIBUTES:
+        # Reject `difference <= +margin`, which large positive evidence does.
+        return 1.0 - at_upper
+    # HARMFUL: reject `difference >= -margin`.
+    return at_lower
+
+
 TARGET_POWER = 0.80
 """The power an equivalence claim is planned against, by convention."""
 
@@ -237,6 +355,7 @@ def equivalence_verdict(
     metric: str,
     margin: float,
     higher_is_better: bool = False,
+    paired_binary: bool = False,
     confidence: float = 0.90,
     resamples: int = 10_000,
     seed: int = 0,
@@ -255,6 +374,14 @@ def equivalence_verdict(
     ``higher_is_better`` orients the metric. Getting it wrong inverts
     ``CONTRIBUTES`` and ``HARMFUL`` while leaving every number plausible, so it
     is an explicit argument rather than something inferred from the metric name.
+
+    ``paired_binary`` selects the machinery for a metric whose observations are
+    successes and failures rather than measurements -- a recovery rate, say. It
+    is *declared* by the caller and never inferred from the values, because a
+    continuous metric that happened to come back all-zeros on one sweep is still
+    continuous, and a rule that sniffed the data would silently switch tests
+    between sweeps of the same design. See ``_tango_score`` for why the default
+    machinery is not merely imprecise on such a metric but actively wrong.
 
     The function is pure and seeded: the same inputs return the same verdict,
     because a verdict that moved between runs could not be published next to
@@ -275,13 +402,28 @@ def equivalence_verdict(
     if not higher_is_better:
         differences = -differences
 
-    ci_low, ci_high = _interval(differences, confidence, resamples, seed)
-    verdict = _resolve(ci_low, ci_high, margin)
-
     n = len(differences)
-    spread = float(np.std(differences, ddof=1))
     # A (1 - 2*alpha) interval corresponds to a TOST at alpha per side.
     alpha = (1.0 - confidence) / 2.0
+
+    if paired_binary:
+        # Orientation is already applied above, so the arms are re-derived from
+        # the oriented difference rather than from the raw inputs: b counts the
+        # pairs where the treatment did better by the metric's own direction.
+        b = int(np.sum(differences == 1.0))
+        c = int(np.sum(differences == -1.0))
+        _binary_counts(treatment_values, control_values)  # validates 0/1 inputs
+        ci_low, ci_high = _tango_interval(n, b, c, confidence)
+        verdict = _resolve(ci_low, ci_high, margin)
+        spread = _binary_spread(n, b, c)
+        p_value = _binary_claim_p_value(n, b, c, margin, verdict)
+        test = "Tango score interval on the paired difference of proportions"
+    else:
+        ci_low, ci_high = _interval(differences, confidence, resamples, seed)
+        verdict = _resolve(ci_low, ci_high, margin)
+        spread = float(np.std(differences, ddof=1))
+        p_value = _claim_p_value(differences, margin, verdict)
+        test = "BCa bootstrap interval on the paired mean difference"
 
     return MetricVerdict(
         metric=metric,
@@ -293,6 +435,7 @@ def equivalence_verdict(
         power=_tost_power(margin, spread, n, alpha),
         n=n,
         higher_is_better=higher_is_better,
-        p_value=_claim_p_value(differences, margin, verdict),
+        p_value=p_value,
         n_for_target_power=required_sample_size(margin, spread, confidence),
+        test=test,
     )

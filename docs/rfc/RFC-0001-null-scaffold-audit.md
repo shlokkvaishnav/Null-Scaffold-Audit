@@ -176,6 +176,29 @@ Metrics are non-normal and heavy-tailed in this setting, so intervals are
 bootstrap (BCa) rather than parametric. Multiple metrics are corrected across
 (Holm), and the correction is stated in the report rather than left implicit.
 
+**Metrics that record a success rather than a measurement are tested
+differently.** A recovery rate is 0 or 1 on every seed, so its paired difference
+takes only the values −1, 0 and +1. When no seed disagrees between the arms
+every bootstrap resample is identical, the interval collapses to a single point,
+and a point lies inside any margin — so the procedure above returns `NULL`, this
+audit's one positive verdict, from a sample that observed no disagreement at
+all. Simulated at a true difference of 0.11 against a 0.10 margin with a sparse
+discordant rate, that certifies `NULL` about 10% of the time, against the 5% a
+TOST is meant to hold.
+
+Such metrics are therefore declared in advance and tested with a score interval
+for the paired difference of proportions (Tango), which reduces to McNemar's
+statistic at a difference of zero. Declared, not inferred: a continuous metric
+that happened to come back all-zeros on one sweep is still continuous, and a
+rule that sniffed the values would silently switch tests between sweeps of the
+same design. `exact_recovery` is the only metric currently so declared.
+
+The pre-registered margin does not move — this changes the test, not the bar.
+The verdicts it produces are strictly weaker than the ones it replaces: it can
+withdraw an equivalence claim, never manufacture one. Each verdict records
+which procedure produced it, so two metrics tested unalike cannot be read as
+though they were tested alike.
+
 ### 4.3 The degeneracy pre-check
 
 Before the statistical procedure runs at all, a cheap structural check:

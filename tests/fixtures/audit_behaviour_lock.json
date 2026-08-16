@@ -45,16 +45,16 @@
         "correction": null
       },
       "exact_recovery": {
-        "verdict": "NULL",
+        "verdict": "INCONCLUSIVE",
         "observed_difference": 0.0,
-        "ci_low": 0.0,
-        "ci_high": 0.0,
+        "ci_low": -0.4034786252027045,
+        "ci_high": 0.4034786252027045,
         "margin": 0.1,
-        "power": 1.0,
+        "power": 0.0,
         "n": 4,
-        "p_value": 0.0,
-        "adjusted_p_value": 0.0,
-        "correction": "none (intersection-union: every metric must be NULL)"
+        "p_value": null,
+        "adjusted_p_value": null,
+        "correction": null
       }
     }
   },
@@ -104,16 +104,16 @@
         "correction": null
       },
       "exact_recovery": {
-        "verdict": "NULL",
+        "verdict": "INCONCLUSIVE",
         "observed_difference": 0.0,
-        "ci_low": 0.0,
-        "ci_high": 0.0,
+        "ci_low": -0.4034786252027045,
+        "ci_high": 0.4034786252027045,
         "margin": 0.1,
-        "power": 1.0,
+        "power": 0.0,
         "n": 4,
-        "p_value": 0.0,
-        "adjusted_p_value": 0.0,
-        "correction": "none (intersection-union: every metric must be NULL)"
+        "p_value": null,
+        "adjusted_p_value": null,
+        "correction": null
       }
     }
   }

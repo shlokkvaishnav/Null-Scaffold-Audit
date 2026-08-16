@@ -67,6 +67,13 @@ HIGHER_IS_BETTER = {
     "exact_recovery": True,
 }
 
+# Metrics that record a success or a failure rather than a measurement, declared
+# here with the rest of the design. `exact_recovery` is either 0 or 1 on every
+# seed, so its paired difference takes only three values and the bootstrap that
+# serves the continuous metrics collapses on it -- see `_tango_score` in
+# engine/audit/statistics.py for what that collapse was certifying.
+PAIRED_BINARY = frozenset({"exact_recovery"})
+
 SMOKE_SUBSET_SIZE = 8
 
 
@@ -250,6 +257,7 @@ def main() -> int:
                 seeds,
                 margins=margins_for(problem),
                 higher_is_better=HIGHER_IS_BETTER,
+                paired_binary=PAIRED_BINARY,
                 map_fn=map_fn,
                 common_random_numbers=args.common_random_numbers,
             )

@@ -98,6 +98,15 @@ class MetricVerdict:
     disappointment: "could not tell at 20 seeds, would need 96" is actionable.
     """
 
+    test: str | None = None
+    """Which procedure produced ``ci_low``, ``ci_high`` and ``p_value``.
+
+    Recorded because the audit does not use one test for every metric: a
+    measurement and a success rate need different machinery, and a reader
+    comparing two verdicts is entitled to know whether they were reached the
+    same way. It travels with the number rather than living in prose.
+    """
+
     correction: str | None = None
     """Which correction produced ``adjusted_p_value``, named in the record.
 
