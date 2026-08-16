@@ -194,10 +194,17 @@ rule that sniffed the values would silently switch tests between sweeps of the
 same design. `exact_recovery` is the only metric currently so declared.
 
 The pre-registered margin does not move — this changes the test, not the bar.
-The verdicts it produces are strictly weaker than the ones it replaces: it can
-withdraw an equivalence claim, never manufacture one. Each verdict records
-which procedure produced it, so two metrics tested unalike cannot be read as
-though they were tested alike.
+Its effect on `NULL` is one-directional: it can withdraw an equivalence claim
+the collapsed interval manufactured, and cannot manufacture one itself. It is
+*not* uniformly more conservative, and should not be described as such — on a
+table with few discordant pairs the score interval is narrower than the
+bootstrap's, so it can also sharpen an `INCONCLUSIVE` into `HARMFUL` or
+`CONTRIBUTES`. That is the correct behaviour for a better-calibrated interval,
+but it means the change can move a verdict in either direction and each such
+move has to be read on its own.
+
+Each verdict records which procedure produced it, so two metrics tested unalike
+cannot be read as though they were tested alike.
 
 ### 4.3 The degeneracy pre-check
 

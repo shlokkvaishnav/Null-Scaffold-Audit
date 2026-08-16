@@ -25,7 +25,13 @@ from typing import Any
 import numpy as np
 
 from algorithms.symbolic import SymbolicHypothesisGenerator
-from engine.audit import AuditProblem, SearchOutcome
+from engine.audit import (
+    AuditProblem,
+    NullScaffold,
+    OracleScaffold,
+    SearchOutcome,
+    WastefulScaffold,
+)
 from engine.evaluation.equivalence import check_equivalence
 from engine.evaluation.metrics import compute_fit_metrics
 from engine.expressions.hypothesis import Hypothesis
@@ -200,6 +206,65 @@ class SymbolicRestartSearcher:
 
     def select(self, outcomes: Sequence[SearchOutcome]) -> SearchOutcome:
         return max(outcomes, key=lambda o: o.metrics["selection_score"])
+
+
+def _calibration_searcher(population_size: int, generations: int) -> SymbolicRestartSearcher:
+    return SymbolicRestartSearcher(population_size=population_size, generations=generations)
+
+
+def null_calibration(
+    *,
+    max_iters: int = 3,
+    population_size: int = DEFAULT_POPULATION_SIZE,
+    generations: int = DEFAULT_GENERATIONS,
+) -> NullScaffold:
+    """This domain's primitive, wrapped in the engine's null-by-construction scaffold.
+
+    The three factories here exist because the audit runner constructs a
+    scaffold from a `module:attribute` path with a fixed set of keyword
+    arguments. They are the seam and nothing more: the calibration logic is the
+    engine's and is shared by every domain, while the searcher it wraps is this
+    plugin's. A second domain calibrates its own audit by writing three
+    functions of this shape and no new statistics.
+
+    Expected verdict: NULL. See `engine.audit.calibration` for what each of the
+    three possible failures would mean.
+    """
+    return NullScaffold(
+        base=_calibration_searcher(population_size, generations), restarts=max_iters
+    )
+
+
+def wasteful_calibration(
+    *,
+    max_iters: int = 3,
+    population_size: int = DEFAULT_POPULATION_SIZE,
+    generations: int = DEFAULT_GENERATIONS,
+) -> WastefulScaffold:
+    """Expected verdict: HARMFUL. The same budget, then keeps the worst of it."""
+    return WastefulScaffold(
+        base=_calibration_searcher(population_size, generations), restarts=max_iters
+    )
+
+
+def oracle_calibration(
+    *,
+    max_iters: int = 3,
+    population_size: int = DEFAULT_POPULATION_SIZE,
+    generations: int = DEFAULT_GENERATIONS,
+) -> OracleScaffold:
+    """Expected verdict: CONTRIBUTES. Selects on held-out error, which is cheating.
+
+    Deliberately so: it is a ruler of known length, not a method. It answers the
+    one question no run of a real pipeline can -- whether this audit, at this
+    budget and this seed count, would notice a contribution if there were one.
+    """
+    return OracleScaffold(
+        base=_calibration_searcher(population_size, generations),
+        restarts=max_iters,
+        metric="rmse",
+        higher_is_better=False,
+    )
 
 
 @dataclass
