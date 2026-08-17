@@ -63,10 +63,13 @@ class FakeSearcher:
 
     restart_cost: int = 100
     proxy_noise: float = 1.0
+    quality_sd: float = 2.0
+    """How much the candidates themselves differ. Setting it to zero is the
+    "restarts tie" case: nothing to select between, whatever the rule."""
 
     def search(self, problem: Any, seed: int) -> SearchOutcome:
         rng = np.random.default_rng(seed)
-        quality = float(rng.normal(10.0, 2.0))
+        quality = float(rng.normal(10.0, self.quality_sd))
         observed = quality + float(rng.normal(0.0, self.proxy_noise))
         return SearchOutcome(
             metrics={"rmse": quality, "selection_score": -observed},
@@ -315,3 +318,49 @@ def test_the_three_verdicts_are_distinct() -> None:
     }
     # Same budget in all three, so no verdict is explained by unequal compute.
     assert len({report.arms.restarts_per_seed for report in reports}) == 1
+
+
+def test_metric_spread_separates_a_tied_field_from_a_faithful_rule() -> None:
+    """A low ceiling has two causes, and the ceiling alone cannot tell them apart.
+
+    Either the restarts landed in the same place, so there was nothing to select
+    between -- a fact about the problem -- or they differed a great deal and the
+    pipeline's rule already picked the best, which is a fact about the selection
+    signal and the far stronger finding. Reporting the within-seed spread beside
+    the ceiling is what makes them distinguishable from the artifact alone.
+
+    Both were observed on the real benchmark: `ideal_gas_law` had candidates whose
+    error varied by twice the margin while its ceiling sat at three hundredths of
+    it, and `ohms_law` had a spread of exactly zero.
+    """
+    faithful = selection_ceiling(
+        FakeSearcher(proxy_noise=0.0, quality_sd=2.0),
+        None,
+        SEEDS,
+        metric="rmse",
+        restarts=RESTARTS,
+    )
+    tied = selection_ceiling(
+        FakeSearcher(proxy_noise=0.0, quality_sd=0.0),
+        None,
+        SEEDS,
+        metric="rmse",
+        restarts=RESTARTS,
+    )
+
+    # Both have a zero ceiling -- the rule is perfect in both -- so the ceiling
+    # cannot be what distinguishes them.
+    assert faithful["ceiling"] == pytest.approx(0.0, abs=1e-12)
+    assert tied["ceiling"] == pytest.approx(0.0, abs=1e-12)
+
+    # The spread is what does.
+    assert faithful["metric_spread"] > 1.0
+    assert tied["metric_spread"] == pytest.approx(0.0, abs=1e-12)
+
+
+def test_metric_spread_is_never_negative() -> None:
+    for noise in (0.0, 1.0, 12.0):
+        result = selection_ceiling(
+            FakeSearcher(proxy_noise=noise), None, SEEDS, metric="rmse", restarts=3
+        )
+        assert result["metric_spread"] >= 0.0

@@ -91,15 +91,34 @@ def selection_ceiling(
     It is also cheap relative to what it saves: ``len(seeds) * restarts``
     searches and no second arm, against a full two-arm sweep.
 
-    Returns the mean ceiling and its spread across seeds, plus the design it was
-    measured under. Deliberately not a verdict: the margin lives with the caller
-    that pre-registered it, and this module has no business deciding what counts
-    as a practically interesting gain in someone else's domain.
+    ``metric_spread`` -- how much the candidates within one seed differ on the
+    metric -- is returned alongside, because a low ceiling has two very different
+    causes and the ceiling alone cannot tell them apart:
+
+    * The spread is also low: the restarts all landed in the same place, so there
+      was nothing to choose between. That is a statement about the problem's
+      difficulty, and on an easy benchmark it says little about wrappers.
+    * The spread is high but the ceiling is not: the candidates differed a great
+      deal and the pipeline's own rule *already picked the best one*. That is a
+      statement about the selection signal being faithful, and it is the stronger
+      finding -- there is no selection alpha for a wrapper to capture, however
+      much variety the searcher produced.
+
+    Both were observed. On one benchmark problem the candidates' error varied by
+    twice the pre-registered margin while the ceiling sat at three hundredths of
+    it, which is the second case in its sharpest form.
+
+    Returns the mean ceiling, its spread across seeds, that within-seed metric
+    spread, and the design it was measured under. Deliberately not a verdict: the
+    margin lives with the caller that pre-registered it, and this module has no
+    business deciding what counts as a practically interesting gain in someone
+    else's domain.
     """
     if restarts < 2:
         raise ValueError(f"a ceiling needs at least 2 candidates to choose between, got {restarts}")
 
     gains: list[float] = []
+    spreads: list[float] = []
     for seed in seeds:
         outcomes = [
             base.search(problem, paired_seed(seed + _CALIBRATION_OFFSET, restart))
@@ -116,11 +135,13 @@ def selection_ceiling(
         best = max(values) if higher_is_better else min(values)
         # Oriented so positive always means "better selection would have helped".
         gains.append(best - chosen if higher_is_better else chosen - best)
+        spreads.append(float(np.std(values, ddof=1)))
 
     array = np.asarray(gains, dtype=float)
     return {
         "ceiling": float(array.mean()),
         "ceiling_sd": float(array.std(ddof=1)) if len(array) > 1 else 0.0,
+        "metric_spread": float(np.mean(spreads)),
         "seeds": float(len(array)),
         "restarts": float(restarts),
     }

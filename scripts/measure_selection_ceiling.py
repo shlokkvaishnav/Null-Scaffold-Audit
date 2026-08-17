@@ -104,6 +104,18 @@ class _Probe:
             # up. Below 1.0, no selection-only wrapper can reach CONTRIBUTES.
             "ratio": result["ceiling"] / margin if margin else float("inf"),
             "reachable": bool(result["ceiling"] > margin),
+            "metric_spread": result["metric_spread"],
+            "spread_ratio": result["metric_spread"] / margin if margin else float("inf"),
+            # Why a low ceiling is low. "tied" means the restarts landed in the
+            # same place, so there was nothing to select between -- a fact about
+            # the problem. "faithful" means they differed and the pipeline's own
+            # rule already picked the best, which is a fact about the selection
+            # signal and the stronger of the two findings.
+            "null_because": (
+                "reachable"
+                if result["ceiling"] > margin
+                else ("tied" if result["metric_spread"] < 0.5 * margin else "faithful")
+            ),
             "seeds": int(result["seeds"]),
             "restarts": int(result["restarts"]),
         }
@@ -223,16 +235,28 @@ def main() -> int:
     write_artifacts(args.out, config, rows)
 
     reachable = [row for row in rows if row["reachable"]]
-    print(f"\n{'problem':<34}{'ceiling':>12}{'margin':>12}{'x margin':>11}  selection-only wrapper")
+    explanation = {
+        "reachable": "can reach CONTRIBUTES",
+        "faithful": "NULL: rule already picks the best",
+        "tied": "NULL: restarts tie, nothing to pick",
+    }
+    print(f"\n{'problem':<32}{'x margin':>10}{'spread/marg':>13}  selection-only wrapper")
     for row in rows:
-        verdict = "can reach CONTRIBUTES" if row["reachable"] else "NULL by construction"
         print(
-            f"{row['problem']:<34}{row['ceiling']:>12.4g}{row['margin']:>12.4g}"
-            f"{row['ratio']:>10.2f}x  {verdict}"
+            f"{row['problem']:<32}{row['ratio']:>9.2f}x{row['spread_ratio']:>12.2f}x  "
+            f"{explanation[row['null_because']]}"
         )
+
+    tied = [row for row in rows if row["null_because"] == "tied"]
+    faithful = [row for row in rows if row["null_because"] == "faithful"]
     print(
         f"\n[ceiling] {len(reachable)} of {len(rows)} problems leave any room at all "
         f"for a selection-only wrapper to be credited."
+    )
+    print(
+        f"[ceiling] of the {len(rows) - len(reachable)} that do not: {len(faithful)} because "
+        f"the pipeline's own rule already picks the best candidate, {len(tied)} because the "
+        f"restarts tie and there is nothing to pick between."
     )
     print(f"[ceiling] wrote {args.out / 'ceiling.json'} and {args.out / 'ceiling.csv'}")
     return 0
