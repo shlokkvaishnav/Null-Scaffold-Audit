@@ -37,24 +37,21 @@ data/cache/
 # directories are opened up one level at a time and only the two artifact
 # filenames are let through. Everything else under results/ stays ignored.
 results/*
-!results/null_scaffold_audit/
-results/null_scaffold_audit/*
-!results/null_scaffold_audit/summary.md
-!results/null_scaffold_audit/summary.csv
-!results/null_scaffold_audit/*/
-results/null_scaffold_audit/*/*
-!results/null_scaffold_audit/*/audit.json
-!results/null_scaffold_audit/*/audit.csv
-!results/selection_ceiling/
-results/selection_ceiling/*
-!results/selection_ceiling/ceiling.json
-!results/selection_ceiling/ceiling.csv
-!results/calibration/
-results/calibration/*
-!results/calibration/*/
-results/calibration/*/*
-!results/calibration/*/audit.json
-!results/calibration/*/audit.csv
+!results/*/
+results/*/*
+!results/*/audit.json
+!results/*/audit.csv
+!results/*/ceiling.json
+!results/*/ceiling.csv
+!results/*/summary.md
+!results/*/summary.csv
+!results/*/*/
+results/*/*/*
+!results/*/*/audit.json
+!results/*/*/audit.csv
+# Scratch runs from wiring a flag are not results. Named rather than
+# deleted, so the pattern above stays the simple one.
+results/*smoke*/
 wandb/
 mlruns/
 
