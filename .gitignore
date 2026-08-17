@@ -45,6 +45,16 @@ results/null_scaffold_audit/*
 results/null_scaffold_audit/*/*
 !results/null_scaffold_audit/*/audit.json
 !results/null_scaffold_audit/*/audit.csv
+!results/selection_ceiling/
+results/selection_ceiling/*
+!results/selection_ceiling/ceiling.json
+!results/selection_ceiling/ceiling.csv
+!results/calibration/
+results/calibration/*
+!results/calibration/*/
+results/calibration/*/*
+!results/calibration/*/audit.json
+!results/calibration/*/audit.csv
 wandb/
 mlruns/
 
