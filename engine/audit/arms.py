@@ -370,6 +370,52 @@ def _holm_correct(
     return corrected
 
 
+def _guard_vacuous_comparison(
+    per_metric: Mapping[str, MetricVerdict], arms: ArmOutcomes
+) -> tuple[dict[str, MetricVerdict], bool]:
+    """Refuse to report a verdict when the two arms were the same computation.
+
+    If every seed produced an identical representation in both arms, there was no
+    comparison to analyse. Every paired difference is exactly zero, the interval
+    collapses to a point, a point lies inside any margin, and the audit reports
+    ``NULL`` with power 1.00 -- its strongest possible claim, from a run in which
+    nothing was compared.
+
+    This is not a hypothetical edge case. Running the audit under common random
+    numbers made the arms byte-identical on 20 of 20 seeds across all eight
+    problems: the scaffold derived iteration ``i``'s seed by the same rule the
+    control used for restart ``i``, so the two arms ran the same searches and
+    selected among them with the same rule. It returned ``NULL`` eight times out
+    of eight. Pairing is supposed to reduce the variance of the difference; here
+    it removed the difference, and the statistics could not tell those apart
+    because the statistics never see a representation.
+
+    Deliberately structural rather than statistical. A zero-variance difference
+    is *not* on its own a defect -- two genuinely different pipelines can tie on
+    a metric across every seed, and establishing that is a real finding. What is
+    a defect is the arms being the same arm, and that is visible here, in the
+    representations, and nowhere else.
+
+    Nothing is deleted: each verdict keeps its interval, its p-value and its
+    margin, and gains a ``test`` string saying why it was withdrawn.
+    """
+    if not arms.seeds or arms.identical_representation_rate < 1.0:
+        return dict(per_metric), False
+
+    withdrawn = {
+        name: dataclasses.replace(
+            verdict,
+            verdict=Verdict.INCONCLUSIVE,
+            test=(
+                "withdrawn: both arms returned an identical result on every seed, "
+                "so there was no comparison to analyse"
+            ),
+        )
+        for name, verdict in per_metric.items()
+    }
+    return withdrawn, True
+
+
 def _overall(per_metric: Mapping[str, MetricVerdict]) -> Verdict:
     """Collapse per-metric verdicts into one.
 
@@ -449,8 +495,18 @@ def audit(
         )
 
     per_metric = _holm_correct(per_metric, alpha=(1.0 - confidence) / 2.0)
+    per_metric, vacuous = _guard_vacuous_comparison(per_metric, arms)
 
-    limitations = [
+    limitations = []
+    if vacuous:
+        limitations.append(
+            "VACUOUS: both arms returned an identical result on every seed, so "
+            "this run compared the scaffold with itself. Every per-metric verdict "
+            "has been withdrawn to INCONCLUSIVE. The usual cause is the scaffold "
+            "and the control arm deriving their seeds by the same rule, which "
+            "common random numbers makes easy to do by accident."
+        )
+    limitations += [
         (
             "Per-metric verdicts are Holm-corrected across the metrics audited "
             "together, and the correction is recorded on each verdict; a claim that "

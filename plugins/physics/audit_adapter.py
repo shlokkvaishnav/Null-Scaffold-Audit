@@ -31,6 +31,7 @@ from engine.audit import (
     OracleScaffold,
     SearchOutcome,
     WastefulScaffold,
+    paired_seed,
 )
 from engine.evaluation.equivalence import check_equivalence
 from engine.evaluation.metrics import compute_fit_metrics
@@ -206,6 +207,72 @@ class SymbolicRestartSearcher:
 
     def select(self, outcomes: Sequence[SearchOutcome]) -> SearchOutcome:
         return max(outcomes, key=lambda o: o.metrics["selection_score"])
+
+
+@dataclass
+class ConcentratedSearchScaffold:
+    """Spend the whole budget on one long search instead of several short ones.
+
+    Every scaffold audited here so far can only win by *selecting* better among
+    the candidates its searcher produced, and `engine.audit.calibration
+    .selection_ceiling` puts a hard upper bound on what that is worth -- a bound
+    measured below a twentieth of the margin on most of this domain's problems.
+    A wrapper that cannot exceed the ceiling is null however clever it is.
+
+    This one is not bounded by it, because it changes which candidates get
+    produced: the same total evaluations, spent as a single run of
+    `generations * factor` rather than as `factor` independent restarts. That
+    makes it the first scaffold here whose verdict is genuinely open. It is an
+    experiment, not a calibration, and either answer is worth having --
+    concentration winning would say the searcher is still improving when a
+    normal run stops, and losing would be direct evidence for the restart
+    baseline that this whole audit leans on.
+
+    Budget matching is exact rather than approximate: one fit of
+    `population_size * generations * factor` against `unwrap()`'s restart cost
+    of `population_size * generations` gives the control exactly `factor`
+    restarts, with no remainder for the flooring rule to discard.
+    """
+
+    name: str = "ConcentratedSearch"
+    factor: int = 3
+    population_size: int = DEFAULT_POPULATION_SIZE
+    generations: int = DEFAULT_GENERATIONS
+
+    def unwrap(self) -> SymbolicRestartSearcher:
+        return SymbolicRestartSearcher(
+            population_size=self.population_size, generations=self.generations
+        )
+
+    def run(self, problem: AuditProblem, seed: int) -> SearchOutcome:
+        # Derived through `paired_seed` so that under common random numbers this
+        # run shares its stream with the control's first restart. The two are not
+        # the same search -- one runs `factor` times as long -- but they start
+        # from the same draw, which is exactly the pairing that makes the
+        # difference between them attributable to the extra generations.
+        concentrated = SymbolicRestartSearcher(
+            population_size=self.population_size,
+            generations=self.generations * self.factor,
+        )
+        return concentrated.search(problem, paired_seed(seed, 0))
+
+
+def concentrated_search(
+    *,
+    max_iters: int = 3,
+    population_size: int = DEFAULT_POPULATION_SIZE,
+    generations: int = DEFAULT_GENERATIONS,
+) -> ConcentratedSearchScaffold:
+    """Runner seam for `ConcentratedSearchScaffold`.
+
+    The runner constructs every scaffold with the same three keyword arguments,
+    and `max_iters` is the one that means "how many searches would this have
+    been". Here that number becomes the concentration factor, so the same
+    command line describes the same budget whichever scaffold it names.
+    """
+    return ConcentratedSearchScaffold(
+        factor=max_iters, population_size=population_size, generations=generations
+    )
 
 
 def _calibration_searcher(population_size: int, generations: int) -> SymbolicRestartSearcher:

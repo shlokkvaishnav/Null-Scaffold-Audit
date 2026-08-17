@@ -267,3 +267,84 @@ def test_mixed_result_is_reported_by_its_harm() -> None:
     assert report.per_metric["loss"].verdict is Verdict.HARMFUL
     assert report.per_metric["size"].verdict is Verdict.CONTRIBUTES
     assert report.verdict is Verdict.HARMFUL
+
+
+# --------------------------------------------------------------------------
+# A comparison that never happened
+# --------------------------------------------------------------------------
+
+
+class MirrorScaffold:
+    """A scaffold that reproduces the control arm exactly, seeds included.
+
+    This is what common random numbers turned the real scaffold into: it derived
+    iteration `i`'s seed by the same rule the control used for restart `i`, so
+    both arms ran the same searches and selected among them with the same rule.
+    """
+
+    def __init__(self, base: FakeBase, fits: int = 3) -> None:
+        self.name = "MirrorScaffold"
+        self._base = base
+        self.fits = fits
+
+    def unwrap(self) -> FakeBase:
+        return self._base
+
+    def run(self, problem: object, seed: int) -> SearchOutcome:
+        outcomes = [
+            self._base.search(problem, seed * 1_000_003 + restart) for restart in range(self.fits)
+        ]
+        best = self._base.select(outcomes)
+        return SearchOutcome(
+            metrics=best.metrics,
+            evaluations_used=sum(o.evaluations_used for o in outcomes),
+            representation=best.representation,
+        )
+
+
+def test_arms_that_agree_on_every_seed_report_no_verdict() -> None:
+    """Identical output on every seed is not equivalence -- it is not a comparison.
+
+    Left alone this is the audit's strongest possible claim reached by its
+    weakest possible evidence: every paired difference is exactly zero, the
+    interval collapses to a point, a point sits inside any margin, and NULL falls
+    out with power 1.00. A real sweep produced exactly this on eight problems out
+    of eight.
+    """
+    base = FakeBase()
+    report = audit(MirrorScaffold(base), problem=None, seeds=list(range(8)), margins=MARGINS)
+
+    assert report.arms.identical_representation_rate == 1.0
+    assert report.verdict is Verdict.INCONCLUSIVE
+    assert all(v.verdict is Verdict.INCONCLUSIVE for v in report.per_metric.values())
+
+
+def test_a_vacuous_comparison_says_so_in_its_limitations() -> None:
+    """The reason must travel with the report, not be inferred from a rate."""
+    report = audit(MirrorScaffold(FakeBase()), problem=None, seeds=list(range(8)), margins=MARGINS)
+    assert any("VACUOUS" in limitation for limitation in report.limitations)
+    assert all("withdrawn" in (v.test or "") for v in report.per_metric.values())
+
+
+def test_withdrawing_a_verdict_keeps_the_evidence_behind_it() -> None:
+    """Downgrading must be auditable, so the interval and margin are retained."""
+    report = audit(MirrorScaffold(FakeBase()), problem=None, seeds=list(range(8)), margins=MARGINS)
+    loss = report.per_metric["loss"]
+    assert loss.margin == MARGINS["loss"]
+    assert loss.n == 8
+    assert loss.ci_low == loss.ci_high == 0.0
+
+
+def test_partial_agreement_does_not_trigger_the_guard() -> None:
+    """Only *total* agreement is vacuous; agreeing often is an ordinary finding.
+
+    A scaffold that lands on the control's answer most of the time is telling us
+    something real about itself, and suppressing that would throw away the
+    finding the guard exists to protect.
+    """
+    base = FakeBase()
+    report = audit(
+        FakeScaffold(base, loss=0.3), problem=None, seeds=list(range(8)), margins=MARGINS
+    )
+    assert report.arms.identical_representation_rate < 1.0
+    assert not any("VACUOUS" in limitation for limitation in report.limitations)

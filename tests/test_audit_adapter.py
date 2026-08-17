@@ -12,7 +12,9 @@ import numpy as np
 
 from engine.audit import AuditProblem
 from plugins.physics.audit_adapter import (
+    ConcentratedSearchScaffold,
     _outcome_metrics,
+    concentrated_search,
     score_like_the_pipeline,
 )
 
@@ -80,3 +82,40 @@ def test_scoring_helper_prefers_the_better_candidate() -> None:
     good = score_like_the_pipeline("x0*x1", observation)
     bad = score_like_the_pipeline("x0 + 1000000.0", observation)
     assert good > bad
+
+
+# --------------------------------------------------------------------------
+# Budget matching for the concentration scaffold
+# --------------------------------------------------------------------------
+
+
+def test_concentrated_scaffold_matches_its_control_exactly() -> None:
+    """One long run must cost exactly `factor` of the control's restarts.
+
+    This is the property that makes the comparison mean anything, and it is
+    arithmetic rather than measurement, so it can be checked without fitting
+    anything. `_budget_matched_restarts` floors, so a treatment spend that was
+    not an exact multiple would silently hand the control one restart fewer and
+    quietly flatter the scaffold -- the direction of error this audit is least
+    entitled to make.
+    """
+    scaffold = ConcentratedSearchScaffold(factor=3, population_size=100, generations=5)
+    treatment_cost = scaffold.population_size * scaffold.generations * scaffold.factor
+    assert treatment_cost % scaffold.unwrap().restart_cost == 0
+    assert treatment_cost // scaffold.unwrap().restart_cost == 3
+
+
+def test_concentrated_scaffold_unwraps_to_the_unconcentrated_primitive() -> None:
+    """The control must run the *normal* searcher, not the long one.
+
+    Unwrapping to the concentrated searcher would make both arms identical and
+    the audit vacuous -- it would be comparing one long run against restarts of
+    that same long run, at four times the budget.
+    """
+    scaffold = ConcentratedSearchScaffold(factor=4, population_size=100, generations=5)
+    assert scaffold.unwrap().generations == 5
+
+
+def test_the_runner_seam_maps_max_iters_onto_the_factor() -> None:
+    """`load_scaffold` passes every scaffold the same three keywords."""
+    assert concentrated_search(max_iters=5, population_size=100, generations=5).factor == 5
