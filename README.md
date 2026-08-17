@@ -50,7 +50,6 @@ the full test/CI breakdown, and reproducing paper benchmark results.
 ```bash
 sde list-plugins                                    # what's registered
 sde run configs/run/coulomb_symbolic.yaml           # run one domain+algorithm plugin pair
-sde benchmark configs/paper/benchmark_minimal.yaml  # validated paper-style multi-model comparison
 ```
 
 ## The physics plugin API
@@ -74,8 +73,8 @@ engine/CLI path above.
 engine/             the platform: plugin contract, registry, orchestrator, config schemas
 cli/                 the `sde` command-line entry point
 plugins/physics/    the first domain plugin: the DiscoveryAgent loop, Feynman data, FastAPI service
-configs/            run/ (single orchestrator runs) and paper/ (benchmark comparison tables)
-scripts/             standalone entry points (reproduce_benchmarks, run_ablations, ...)
+configs/run/         single orchestrator runs
+scripts/             audit runner, selection-ceiling runner, summariser
 tests/               pytest suite
 docs/                architecture, plugin guide, development guide
 ```

@@ -123,31 +123,30 @@ No science, no metric computation, no equation validity logic lives in
 `engine/` — that discipline is what keeps a second plugin from requiring
 engine changes.
 
-## Two config shapes, on purpose (`engine/config.py`)
+## One config shape (`engine/config.py`)
 
 - **`RunConfig`** — one orchestrator run (one domain + one algorithm). See
   `configs/run/coulomb_symbolic.yaml`. This is what `sde run <path>` loads.
-- **`BaselineExperimentConfig`** — mirrors the pre-existing
-  `configs/paper/*.yaml` shape: a multi-model, multi-seed comparison with
-  ablations and paired-significance testing, used for the actual paper
-  benchmark tables (`scripts/reproduce_benchmarks.py`,
-  `engine/experiments/contract.py`). `sde benchmark <path>`
-  validates against `BaselineExperimentConfig` (which re-checks the same
-  shared contract `validate_baseline_contract` already enforces) and then
-  runs `scripts/reproduce_benchmarks.run(...)`.
 
-These are deliberately *not* unified into one schema: they drive different
-things (a single plugin run vs. a full paper-reproducibility comparison), and
-forcing one shape onto both would make the paper pipeline's contract
-(`engine/experiments/contract.py`) harder to reason about, not
-easier.
+There used to be a second, `BaselineExperimentConfig`, mirroring a
+`configs/paper/*.yaml` shape for multi-model multi-seed comparisons with
+ablations and paired-significance testing. It, its contract module
+(`engine/experiments/`), its configs and its runner were removed together: they
+served a paper framing this project retracted, and one of the configs keyed a
+figure on the belief-entropy of the agent loop the audit refuted. By the end
+nothing outside its own tests referenced the package.
+
+What replaced it is not a config schema at all. The experiment protocol lives in
+`docs/rfc/RFC-0001-null-scaffold-audit.md` and the pre-registered margins at the
+top of `scripts/run_null_scaffold_audit.py`. That is a better home: a margin
+agreed in advance is a claim about method, and keeping it in a YAML file anyone
+can edit between runs is the loophole the RFC exists to close.
 
 ## The CLI (`cli/main.py`)
 
 ```bash
 sde list-plugins                                  # what's registered
 sde run configs/run/coulomb_symbolic.yaml          # one orchestrator run
-sde benchmark configs/paper/benchmark_minimal.yaml # paper-style comparison
 ```
 
 `_default_registry()` in `cli/main.py` builds an empty `PluginRegistry` and

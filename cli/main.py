@@ -3,7 +3,14 @@
 Usage:
     sde list-plugins
     sde run configs/run/coulomb_symbolic.yaml
-    sde benchmark configs/paper/benchmark_minimal.yaml
+
+A `benchmark` command used to live here, wrapping a paper-reproduction script
+over `configs/paper/*.yaml`. It was removed along with that script: the figures
+it produced belonged to a framing this project retracted, and one of its configs
+keyed a figure on the belief-entropy of the agent loop the audit refuted. The
+audit runner under `scripts/` is the entry point that survived, and it stays a
+script rather than a subcommand -- it takes a pre-registered margin set and
+writes artifacts, which suits a recorded command line better than a one-liner.
 """
 
 from __future__ import annotations
@@ -56,7 +63,6 @@ def list_plugins() -> None:
 # mutable. These are immutable metadata objects, so the hazard does not apply;
 # hoisting them to module scope satisfies the rule without disguising anything.
 _RUN_CONFIG_ARGUMENT = typer.Argument(..., help="Path to a RunConfig YAML file.")
-_BENCHMARK_CONFIG_ARGUMENT = typer.Argument(..., help="Path to a configs/paper-style YAML file.")
 
 
 @app.command("run")
@@ -67,22 +73,6 @@ def run(config_path: Path = _RUN_CONFIG_ARGUMENT) -> None:
     orchestrator = DiscoveryOrchestrator(registry)
     result = orchestrator.run(config.to_experiment_config())
     typer.echo(json.dumps(asdict(result), indent=2))
-
-
-@app.command("benchmark")
-def benchmark(config_path: Path = _BENCHMARK_CONFIG_ARGUMENT) -> None:
-    """Validate a paper-style benchmark config and run it via scripts.reproduce_benchmarks."""
-    # Imported here, not at module scope, because both the schema and the runner
-    # belong to a domain plugin rather than to the engine. The
-    # `run` and `list-plugins` commands stay plugin-agnostic; this one does not,
-    # and confining the coupling to the one command that has it keeps that visible.
-    from engine.experiments.config import load_baseline_experiment_config
-    from scripts.reproduce_benchmarks import run as run_benchmark_script
-
-    load_baseline_experiment_config(config_path)  # raises on contract violation
-
-    outputs = run_benchmark_script(config_path)
-    typer.echo(json.dumps(outputs, indent=2))
 
 
 if __name__ == "__main__":

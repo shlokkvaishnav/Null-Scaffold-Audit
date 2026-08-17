@@ -13,9 +13,8 @@ Three models are compared per equation:
 - "symbolic_regression": the raw symbolic-regression generator, called directly.
 - "discovery_agent": the full DiscoveryAgent loop (observe->retrieve->reason->
   verify->learn), using a single-regime config profile appropriate for a
-  dataset with one global equation (no regime-switching structure) -- the
-  same agent_cfg pattern `scripts/run_submission_suite.py::_run_discovery_agent`
-  uses for its own multi-regime variants, simplified to num_regimes=1.
+  dataset with one global equation (no regime-switching structure), which is
+  the multi-regime agent config simplified to num_regimes=1.
 - "gbm_baseline": a gradient-boosted-tree baseline with no symbolic structure.
 """
 

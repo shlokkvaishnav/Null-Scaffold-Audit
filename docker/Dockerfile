@@ -2,13 +2,13 @@
 #
 # Reproducible runtime image for the Scientific Discovery Engine.
 #
-# BOOTSTRAP.md section 11.1 requires base images pinned by digest rather than
-# by tag. A tag is a mutable pointer: `python:3.11-slim-bookworm` resolves to a
+# Base images are pinned by digest rather than by tag, because a tag is a
+# mutable pointer: `python:3.11-slim-bookworm` resolves to a
 # different image after every upstream security rebuild, so a build that is
 # byte-identical in every other respect silently stops being reproducible. The
 # digest is the image.
 #
-# Refreshing a pin is a deliberate act, recorded in an ADR:
+# Refreshing a pin is a deliberate act. Resolve the current digests with:
 #
 #     docker buildx imagetools inspect python:3.11-slim-bookworm
 #     docker buildx imagetools inspect ghcr.io/astral-sh/uv:0.12.1

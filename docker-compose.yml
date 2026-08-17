@@ -1,6 +1,12 @@
 services:
   api:
-    build: .
+    # The repository root held a second, thinner Dockerfile until it was removed
+    # as a duplicate. docker/Dockerfile is the one that survived -- it pins its
+    # base images by digest -- so the path is named explicitly, and the context
+    # stays the repository root because the build copies uv.lock and the packages.
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
     ports:
       - "8000:8000"
     environment:

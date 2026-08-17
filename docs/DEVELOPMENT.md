@@ -16,7 +16,6 @@ runs inside the container.
 docker compose run --rm api pytest tests/ -v
 docker compose run --rm api sde list-plugins
 docker compose run --rm api sde run configs/run/coulomb_symbolic.yaml
-docker compose run --rm api sde benchmark configs/paper/benchmark_minimal.yaml
 docker compose run --rm api python -m plugins.physics.benchmark_runner --subset smoke
 ```
 
@@ -54,10 +53,8 @@ sde list-plugins
 engine/             the platform: plugin contract, registry, orchestrator, config schemas
 cli/                 the `sde` command-line entry point
 plugins/physics/    the first domain plugin: the DiscoveryAgent loop, Feynman data, FastAPI service
-configs/
-  run/               engine.config.RunConfig YAML files (one orchestrator run)
-  paper/             engine.config.BaselineExperimentConfig YAML files (paper benchmark tables)
-scripts/             standalone entry points (reproduce_benchmarks, run_ablations, run_baselines, ...)
+configs/run/         engine.config.RunConfig YAML files (one orchestrator run)
+scripts/             the audit runner, the selection-ceiling runner, and the summariser
 tests/               pytest suite -- engine tests use fakes, plugin tests use real code
 docs/                this directory
 ```
@@ -91,19 +88,28 @@ Two other workflows: `docker-build.yml` (builds the image on push/PR) and
 `full-benchmark.yml` (the full, slower Feynman benchmark — not run on every
 PR).
 
-## Reproducing paper benchmark results
+## Reproducing the audit results
 
 ```bash
-python scripts/reproduce_benchmarks.py --config configs/paper/benchmark_minimal.yaml
-# or, equivalently, via the CLI once configs pass validation:
-sde benchmark configs/paper/benchmark_minimal.yaml
+python scripts/measure_selection_ceiling.py --domain physics   --scaffold plugins.physics.audit_adapter:DiscoveryAgentScaffold --subset all --seeds 10
+
+python scripts/run_null_scaffold_audit.py --domain physics   --scaffold plugins.physics.audit_adapter:DiscoveryAgentScaffold --subset smoke --seeds 20
+
+python scripts/summarize_audit.py
 ```
 
-Use `configs/paper/benchmark_full.yaml` for the full 10-seed run. Both
-compute real metrics (RMSE, MAE, calibration error, symbolic complexity) from
-actual model fits against `engine/experiments/contract.py`'s
-shared baseline contract — no placeholder numbers. Results land in
-`results/reproducibility/`.
+Run the ceiling first. It costs one arm and reports, per problem, whether any
+selection-only wrapper could clear the pre-registered margin at all -- so it can
+rule a problem out before a two-arm sweep spends hours discovering the same thing
+one INCONCLUSIVE at a time.
+
+Margins are pre-registered at the top of `scripts/run_null_scaffold_audit.py`
+and are not to be adjusted after seeing an interval. Artifacts land in
+`results/null_scaffold_audit/` and `results/selection_ceiling/`, and those are
+tracked in git: every number this project reports is read from them.
+
+A `reproduce_benchmarks.py` / `configs/paper/` path used to be documented here.
+It was removed along with the paper framing it served; see ARCHITECTURE.md.
 
 ## Symbolic regression backend
 
@@ -121,7 +127,7 @@ Add it to `dependencies` (always needed) or the appropriate
 `pyproject.toml`. If a new top-level package needs to be importable (like
 `engine`, `cli`, `algorithms`, `validators`, `plugins` today), add its glob to
 `[tool.setuptools.packages.find].include` and to the relevant `COPY` lines in
-`Dockerfile` (both the `builder` and `runtime` stages).
+`docker/Dockerfile` (both the `builder` and `runtime` stages).
 
 To add a *plugin* rather than a dependency of this repo, you generally don't
 edit this repo at all -- see [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md). This repo's
