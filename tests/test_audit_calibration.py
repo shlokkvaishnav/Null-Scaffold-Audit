@@ -364,3 +364,42 @@ def test_metric_spread_is_never_negative() -> None:
             FakeSearcher(proxy_noise=noise), None, SEEDS, metric="rmse", restarts=3
         )
         assert result["metric_spread"] >= 0.0
+
+
+def test_the_upper_bound_never_sits_below_the_mean() -> None:
+    """It is a bound, so it has to bound. Cheap, and catches a sign slip."""
+    for noise in (0.0, 1.0, 12.0):
+        result = selection_ceiling(
+            FakeSearcher(proxy_noise=noise), None, SEEDS, metric="rmse", restarts=3
+        )
+        assert result["ceiling_upper"] >= result["ceiling"]
+
+
+def test_the_bound_collapses_to_the_estimate_when_every_seed_agrees() -> None:
+    """No sampling variation means nothing to extrapolate from.
+
+    Widening here would invent uncertainty; the honest bound is the observation.
+    This is the same degenerate case the verdict statistics handle, and it is handled
+    the same way -- as a limit on what can be claimed, not a licence for extra
+    confidence.
+    """
+    result = selection_ceiling(
+        FakeSearcher(proxy_noise=0.0, quality_sd=0.0), None, SEEDS, metric="rmse", restarts=3
+    )
+    assert result["ceiling_sd"] == pytest.approx(0.0, abs=1e-12)
+    assert result["ceiling_upper"] == pytest.approx(result["ceiling"], abs=1e-12)
+
+
+def test_fewer_seeds_give_a_looser_bound() -> None:
+    """The bound has to pay for a small sample, or it is not doing its job.
+
+    A closure claim from three seeds must be harder to make than one from forty. If
+    this failed, the instrument would let a thin run assert the same guarantee as a
+    thorough one.
+    """
+    searcher = FakeSearcher(proxy_noise=ORACLE_PROXY_NOISE)
+    thin = selection_ceiling(searcher, None, SEEDS[:4], metric="rmse", restarts=3)
+    thorough = selection_ceiling(searcher, None, SEEDS, metric="rmse", restarts=3)
+    assert (thin["ceiling_upper"] - thin["ceiling"]) > (
+        thorough["ceiling_upper"] - thorough["ceiling"]
+    )

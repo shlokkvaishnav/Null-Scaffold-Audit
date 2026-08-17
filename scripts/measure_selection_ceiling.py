@@ -53,6 +53,16 @@ from engine.audit.calibration import selection_ceiling
 CEILING_METRIC = "rmse"
 
 
+def _status(result: dict[str, float], margin: float) -> str:
+    """closed / open / undetermined, from the interval rather than the mean."""
+    lower = 2.0 * result["ceiling"] - result["ceiling_upper"]
+    if result["ceiling_upper"] < margin:
+        return "closed"
+    if lower > margin:
+        return "open"
+    return "undetermined"
+
+
 @dataclass(frozen=True)
 class _Probe:
     """One problem's ceiling, as a picklable callable.
@@ -113,7 +123,12 @@ class _Probe:
             # How much of the margin the best possible selection rule could use
             # up. Below 1.0, no selection-only wrapper can reach CONTRIBUTES.
             "ratio": result["ceiling"] / margin if margin else float("inf"),
-            "reachable": bool(result["ceiling"] > margin),
+            "ceiling_upper": result["ceiling_upper"],
+            "upper_ratio": result["ceiling_upper"] / margin if margin else float("inf"),
+            # Three-way, because "we could not establish closure" is not closure.
+            # `closed` needs the upper bound under the margin; `open` needs the lower
+            # bound over it; anything straddling is undetermined and wants more seeds.
+            "status": _status(result, margin),
             "metric_spread": result["metric_spread"],
             "spread_ratio": result["metric_spread"] / margin if margin else float("inf"),
             # Why a low ceiling is low. "tied" means the restarts landed in the

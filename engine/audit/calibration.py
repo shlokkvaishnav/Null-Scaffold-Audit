@@ -44,11 +44,13 @@ never inspects, so the same calibration runs against any plugin's primitive.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+from scipy import stats
 
 from engine.audit.arms import BaseSearcher, SearchOutcome, paired_seed
 
@@ -61,6 +63,13 @@ __all__ = ["NullScaffold", "OracleScaffold", "WastefulScaffold", "selection_ceil
 # that never happened. Offsetting the arm seed into a disjoint region keeps the
 # draws independent while leaving them identically distributed.
 _CALIBRATION_OFFSET = 1_500_450_271
+
+_CEILING_ALPHA = 0.05
+"""One-sided error rate for the ceiling's upper bound.
+
+Matches the per-side alpha of the two-sided 90% intervals the verdicts use, so a
+ceiling and a verdict are quoted at the same confidence and can be read together.
+"""
 
 
 def selection_ceiling(
@@ -108,8 +117,15 @@ def selection_ceiling(
     twice the pre-registered margin while the ceiling sat at three hundredths of
     it, which is the second case in its sharpest form.
 
-    Returns the mean ceiling, its spread across seeds, that within-seed metric
-    spread, and the design it was measured under. Deliberately not a verdict: the
+    ``ceiling_upper`` is the number to compare against a margin. The claim this
+    quantity supports is a *bound* -- "no selection-only wrapper can clear the margin
+    here" -- and asserting a bound from a point estimate is precisely the error the rest
+    of this subsystem refuses. Measured on one benchmark the distinction moved a single
+    problem of thirty-six, which is small but is the difference between an average and
+    a guarantee.
+
+    Returns the mean ceiling, that upper bound, the spread across seeds, the within-seed
+    metric spread, and the design it was measured under. Deliberately not a verdict: the
     margin lives with the caller that pre-registered it, and this module has no
     business deciding what counts as a practically interesting gain in someone
     else's domain.
@@ -138,9 +154,29 @@ def selection_ceiling(
         spreads.append(float(np.std(values, ddof=1)))
 
     array = np.asarray(gains, dtype=float)
+    mean = float(array.mean())
+    deviation = float(array.std(ddof=1)) if len(array) > 1 else 0.0
+
+    # An upper confidence bound, because the claim this quantity is used to make is a
+    # bound: "no selection-only wrapper can clear the margin here". Comparing a *mean*
+    # to a margin would assert that on a point estimate, which is the error this whole
+    # subsystem exists to refuse -- and one this module committed until it was caught.
+    #
+    # One-sided at 5%, matching the per-side alpha of the two-sided 90% intervals the
+    # verdicts use, so a ceiling and a verdict are quoted at the same confidence.
+    if len(array) > 1 and deviation > 0.0:
+        critical = float(stats.t.ppf(1.0 - _CEILING_ALPHA, len(array) - 1))
+        upper = mean + critical * deviation / math.sqrt(len(array))
+    else:
+        # Every seed agreed exactly. There is no sampling variation to extrapolate
+        # from, so the bound is the observation -- the same degenerate case the
+        # statistics layer handles, and equally not a licence for extra confidence.
+        upper = mean
+
     return {
-        "ceiling": float(array.mean()),
-        "ceiling_sd": float(array.std(ddof=1)) if len(array) > 1 else 0.0,
+        "ceiling": mean,
+        "ceiling_sd": deviation,
+        "ceiling_upper": float(upper),
         "metric_spread": float(np.mean(spreads)),
         "seeds": float(len(array)),
         "restarts": float(restarts),
