@@ -36,6 +36,7 @@ from engine.audit import (
 from engine.evaluation.equivalence import check_equivalence
 from engine.evaluation.metrics import compute_fit_metrics
 from engine.expressions.hypothesis import Hypothesis
+from engine.expressions.refit import refit_constants
 from engine.scoring import HypothesisScorer
 from plugins.physics.scaffold.agent import DiscoveryAgent
 from validators.equation_validity import EquationValidator
@@ -188,7 +189,7 @@ class SymbolicRestartSearcher:
             }
         )
         model.fit(problem.x_train, problem.y_train)
-        equation = str(model.equation)
+        equation = self._postprocess(str(model.equation), problem)
 
         metrics = _outcome_metrics(problem, equation, seed)
         # Selection uses the TRAINING set, via the pipeline's own scorer. The
@@ -205,8 +206,47 @@ class SymbolicRestartSearcher:
             representation=equation,
         )
 
+    def _postprocess(self, equation: str, problem: AuditProblem) -> str:
+        """What the searcher emits, before anything is measured about it.
+
+        Identity here. It exists so a variant can change the candidate itself without
+        copying the fifteen lines above it -- and, more importantly, so that when one
+        does, both the metrics and the selection score are computed from the same
+        post-processed string. Refitting a candidate and then scoring the original
+        would be a silent inconsistency of exactly the kind this audit exists to catch.
+        """
+        return equation
+
     def select(self, outcomes: Sequence[SearchOutcome]) -> SearchOutcome:
         return max(outcomes, key=lambda o: o.metrics["selection_score"])
+
+
+@dataclass
+class RefittingRestartSearcher(SymbolicRestartSearcher):
+    """The same searcher, with the inner optimiser it does not have.
+
+    gplearn is a one-level searcher: it evolves structures, and the constants inside
+    them are random terminals shuffled by crossover like any other leaf. There is no
+    parameter fit anywhere in it -- `const_range` appears twenty-three times in
+    `gplearn.genetic`, and not one optimiser, least-squares or curve fit does.
+
+    That matters for what this project measures. The selection ceiling came out near
+    zero on twenty-six of thirty-six problems, which was read as "the training signal
+    ranks candidates faithfully". But with no constants fitted, training error and
+    held-out error are both dominated by the same quantity -- structural misfit plus
+    whatever the constants happened to land on -- so the two ranks agreeing is close to
+    mechanical. The ceiling might be measuring the absence of an optimiser rather than
+    a property of the problems.
+
+    This subclass is how that gets tested rather than argued: the ceiling measured
+    through it, against the ceiling measured through its parent, on the same problems
+    and seeds. Refitting uses the TRAIN split only, because the ceiling is a held-out
+    quantity and fitting against the split it is scored on would manufacture the very
+    advantage being measured.
+    """
+
+    def _postprocess(self, equation: str, problem: AuditProblem) -> str:
+        return refit_constants(equation, problem.x_train, problem.y_train)
 
 
 @dataclass
@@ -272,6 +312,67 @@ def concentrated_search(
     """
     return ConcentratedSearchScaffold(
         factor=max_iters, population_size=population_size, generations=generations
+    )
+
+
+@dataclass
+class RefitScaffold:
+    """Restarts, then fits the constants of what they found, then selects.
+
+    The one scaffold here whose verdict is not capped by the selection ceiling, because
+    it changes the candidates rather than the choice among them -- and the one whose
+    sign the literature actually predicts, since fitting parameters is reported to move
+    correct-but-badly-scored structures up the ranking.
+
+    **Its budget is not matched, and that has to be said rather than buried.** Refitting
+    spends optimiser evaluations, and this audit counts budget in the searcher's own
+    candidate evaluations, which do not include them. The control arm gets neither the
+    refit nor compensating compute. So a CONTRIBUTES here answers "what does adding an
+    inner optimiser buy?" and not "does this wrapper earn its budget?" -- it is an upper
+    bound on the second, reported as such.
+
+    The fair version of the same question is the ceiling measured through
+    `RefittingRestartSearcher`, where both sides of the comparison are refitted.
+    """
+
+    name: str = "RefitScaffold"
+    max_iters: int = 3
+    population_size: int = DEFAULT_POPULATION_SIZE
+    generations: int = DEFAULT_GENERATIONS
+
+    def unwrap(self) -> SymbolicRestartSearcher:
+        # The plain searcher, so the control arm is identical to every other
+        # scaffold's here and the verdicts stay comparable across scaffolds.
+        return SymbolicRestartSearcher(
+            population_size=self.population_size, generations=self.generations
+        )
+
+    def run(self, problem: AuditProblem, seed: int) -> SearchOutcome:
+        refitting = RefittingRestartSearcher(
+            population_size=self.population_size, generations=self.generations
+        )
+        outcomes = [
+            refitting.search(problem, paired_seed(seed, restart))
+            for restart in range(self.max_iters)
+        ]
+        best = refitting.select(outcomes)
+        return SearchOutcome(
+            metrics=best.metrics,
+            evaluations_used=sum(outcome.evaluations_used for outcome in outcomes),
+            representation=best.representation,
+            intermediate_representations=tuple(o.representation or "" for o in outcomes),
+        )
+
+
+def refit_scaffold(
+    *,
+    max_iters: int = 3,
+    population_size: int = DEFAULT_POPULATION_SIZE,
+    generations: int = DEFAULT_GENERATIONS,
+) -> RefitScaffold:
+    """Runner seam for `RefitScaffold`."""
+    return RefitScaffold(
+        max_iters=max_iters, population_size=population_size, generations=generations
     )
 
 

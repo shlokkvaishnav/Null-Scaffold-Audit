@@ -73,6 +73,7 @@ class _Probe:
     restarts: int
     population_size: int
     generations: int
+    refit: bool = False
 
     def __call__(self, problem_id: str) -> dict[str, Any]:
         source = default_registry().build_problem_source(self.domain)
@@ -83,6 +84,15 @@ class _Probe:
             population_size=self.population_size,
             generations=self.generations,
         ).unwrap()
+        if self.refit:
+            # Imported here rather than at module scope: supplying a searcher with an
+            # inner optimiser it lacks is one domain's business, and this script names
+            # no domain anywhere else.
+            from plugins.physics.audit_adapter import RefittingRestartSearcher
+
+            base = RefittingRestartSearcher(
+                population_size=self.population_size, generations=self.generations
+            )
 
         result = selection_ceiling(
             base,
@@ -157,6 +167,13 @@ def main() -> int:
     parser.add_argument("--population-size", type=int, default=500)
     parser.add_argument("--generations", type=int, default=20)
     parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument(
+        "--refit-constants",
+        action="store_true",
+        help="Fit each candidate's constants by least squares on the TRAIN split "
+        "before measuring. Tests whether a near-zero ceiling reflects the problem or "
+        "the searcher's lack of an inner optimiser.",
+    )
     parser.add_argument("--out", type=Path, default=REPO_ROOT / "results" / "selection_ceiling")
     args = parser.parse_args()
 
@@ -187,10 +204,11 @@ def main() -> int:
         restarts=args.restarts,
         population_size=args.population_size,
         generations=args.generations,
+        refit=args.refit_constants,
     )
 
     print(
-        f"[ceiling] domain={args.domain} problems={len(problem_ids)} "
+        f"[ceiling] domain={args.domain} problems={len(problem_ids)} refit={args.refit_constants} "
         f"seeds={args.seeds} restarts={args.restarts} workers={args.workers}",
         flush=True,
     )
@@ -205,6 +223,7 @@ def main() -> int:
         "population_size": args.population_size,
         "generations": args.generations,
         "evaluations_per_fit": args.population_size * args.generations,
+        "refit": args.refit_constants,
     }
 
     pool = multiprocessing.Pool(args.workers) if args.workers > 1 else None
