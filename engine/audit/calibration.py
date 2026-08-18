@@ -304,9 +304,23 @@ class OracleScaffold(_RestartScaffold):
     say so? A calibration suite without this is a suite that has only ever been
     asked to confirm the absence of something.
 
-    Expected verdict: ``CONTRIBUTES`` on ``metric``. ``INCONCLUSIVE`` means the
-    design lacks the power to see even a deliberately inflated effect, and every
-    ``NULL`` in the record should be read in that light.
+    Expected verdict: ``CONTRIBUTES`` **on ``metric``, not overall.** That
+    distinction was learned the hard way. Run against a real searcher this
+    scaffold returned ``CONTRIBUTES`` on rmse at nine times the margin -- exactly
+    as designed -- and ``HARMFUL`` overall, because selecting purely on held-out
+    error picks bloated expressions and the complexity metric caught it. The
+    overall rule reports harm over help by design, so a scaffold that cheats on
+    one pre-registered metric while losing another is *correctly* harmful.
+
+    Read the per-metric verdict on ``metric`` when calibrating. An
+    ``INCONCLUSIVE`` there means the design lacks the power to see even a
+    deliberately inflated effect, and every ``NULL`` in the record should be read
+    in that light.
+
+    The bloat is worth noticing rather than working around: it is a small piece
+    of evidence for registering a complexity metric at all, and it agrees with
+    the symbolic-regression model-selection literature, where description-length
+    criteria beat plain held-out error.
 
     **Its headroom is a property of the problem, and must be checked first.**
     This cheats by exploiting the disagreement between the rule a pipeline

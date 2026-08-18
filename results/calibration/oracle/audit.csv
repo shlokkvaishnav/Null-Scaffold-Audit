@@ -1,0 +1,10 @@
+domain,equation_id,metric,verdict,observed_difference,ci_low,ci_high,margin,power,n,higher_is_better
+physics,rc_discharge,rmse,INCONCLUSIVE,0.056059827088392175,-0.16900550940378023,0.22368580714164998,0.12209687804424403,0.0,20,False
+physics,rc_discharge,symbolic_complexity,HARMFUL,-14.95,-25.65,-3.75,2.0,0.0,20,False
+physics,rc_discharge,exact_recovery,INCONCLUSIVE,0.0,-0.11915783736096497,0.11915783736096497,0.1,0.0,20,True
+physics,coulomb_force,rmse,CONTRIBUTES,0.05062575626745229,0.038429626733753365,0.06247929496494013,0.005658116703171748,0.0,20,False
+physics,coulomb_force,symbolic_complexity,HARMFUL,-7.35,-9.6,-5.65,2.0,0.0,20,False
+physics,coulomb_force,exact_recovery,INCONCLUSIVE,0.05,-0.07511572922901255,0.1960072367740162,0.1,0.21058606820008086,20,True
+physics,boltzmann_factor,rmse,CONTRIBUTES,0.008803795950202776,0.006460335872023017,0.011112593548583608,0.0013127013656863903,0.0,20,False
+physics,boltzmann_factor,symbolic_complexity,HARMFUL,-7.15,-9.2,-5.15,2.0,0.0,20,False
+physics,boltzmann_factor,exact_recovery,INCONCLUSIVE,0.0,-0.11915783736096497,0.11915783736096497,0.1,0.0,20,True
