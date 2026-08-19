@@ -197,6 +197,87 @@ def feasibility_command(args: argparse.Namespace, calibration: Path, out: Path) 
     ]
 
 
+def ceiling_command(args: argparse.Namespace, problems: list[str], out: Path) -> list[str]:
+    return [
+        sys.executable,
+        str(REPO_ROOT / "scripts" / "measure_selection_ceiling.py"),
+        "--domain",
+        args.domain,
+        # Any selection-only scaffold's `unwrap()` yields the same base primitive at
+        # the budget in force, so the choice of `--scaffold` here is a picklable seam
+        # and not a decision -- the null calibration is already imported for the gate.
+        "--scaffold",
+        NULL_SCAFFOLD,
+        "--problems",
+        *problems,
+        "--seeds",
+        str(args.ceiling_seeds),
+        "--n-samples",
+        str(args.n_samples),
+        "--population-size",
+        str(args.population_size),
+        "--generations",
+        str(args.generations),
+        "--workers",
+        str(args.workers),
+        "--out",
+        str(_within_results(out)),
+    ]
+
+
+def resolve_ceilings(args: argparse.Namespace, state: dict[str, Any]) -> None:
+    """Measure a bound for every queued problem that does not already have one.
+
+    Where ``measure_selection_ceiling.py`` pools over seeds, this one pools over
+    *problems* -- 36 independent searches at one seed count each, rather than one
+    problem repeated. That is the one CPU-bound job in this project where a fan-out
+    pays: a single-problem ceiling run pins one core and idles the rest of a 4-core
+    machine, measured. So this issues exactly one subprocess call for every problem
+    that needs a bound, never one call per problem, or the fan-out this stage exists
+    for would be undone by the loop calling it.
+
+    A problem's bound is asked for only if some queued, selection-only cell on it could
+    still use the shortcut. A problem with no such cell -- everything on it already
+    terminal, or every scaffold on it declared unbounded -- costs nothing here.
+    """
+    pending = sorted(
+        {
+            cell["problem"]
+            for cell in state["cells"]
+            if cell["stage"] == "QUEUED"
+            and cell.get("selection_only")
+            and state.get("ceilings", {}).get(cell["problem"], {}).get("ceiling_upper") is None
+        }
+    )
+    if not pending:
+        return
+
+    out = QUEUE / "ceiling"
+    log = QUEUE / "ceiling.log"
+    print(f"[queue] ceiling: {len(pending)} problem(s), fanned out over --workers", flush=True)
+    code, seconds = run_stage(
+        ceiling_command(args, pending, out), dry=args.dry_run, log=None if args.dry_run else log
+    )
+    if args.dry_run:
+        return
+    if code != 0:
+        # A missing bound must cost a sweep, never a verdict: leaving the cells at
+        # QUEUED with no `ceiling_upper` recorded is exactly what already disables the
+        # CLOSED shortcut, so nothing further has to happen here for that to hold.
+        print(f"[queue] ceiling measurement failed (exit {code}); see {log.name}", file=sys.stderr)
+        return
+
+    payload = json.loads((out / "ceiling.json").read_text(encoding="utf-8"))
+    state.setdefault("ceilings", {})
+    for row in payload["rows"]:
+        state["ceilings"][row["problem"]] = {
+            "ceiling_upper": row["ceiling_upper"],
+            "margin": row["margin"],
+            "status": row["status"],
+        }
+    state.setdefault("ceiling_seconds", {})[",".join(pending)] = round(seconds, 1)
+
+
 def read_verdict(out: Path, problem: str) -> str | None:
     path = out / "audit.json"
     if not path.exists():
@@ -439,6 +520,12 @@ def main() -> int:
         type=Path,
         default=[RESULTS / "selection_ceiling", RESULTS / "selection_ceiling_rest"],
     )
+    parser.add_argument(
+        "--ceiling-seeds",
+        type=int,
+        default=10,
+        help="Seed count for `resolve_ceilings`'s own measurement, independent of --seeds.",
+    )
     parser.add_argument("--only", default=None, help="Restrict this pass to one problem.")
     parser.add_argument(
         "--max-cells", type=int, default=None, help="Stop after this many cells advance."
@@ -463,6 +550,13 @@ def main() -> int:
     if not state["cells"]:
         print("[queue] nothing queued; run --seed-queue first", file=sys.stderr)
         return 2
+
+    # Run once, before any cell, and fanned out over every problem that needs it in a
+    # single call -- the reason it exists at all rather than being folded into the
+    # per-cell loop, where it would degrade back into one subprocess per problem.
+    resolve_ceilings(args, state)
+    if not args.dry_run:
+        save_state(state)
 
     advanced = 0
     for cell in state["cells"]:

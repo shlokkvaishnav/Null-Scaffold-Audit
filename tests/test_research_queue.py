@@ -238,3 +238,82 @@ def test_writes_outside_results_are_refused(sandbox: Path, escape: str) -> None:
 def test_results_itself_and_its_children_are_allowed(sandbox: Path) -> None:
     assert queue._within_results(queue.RESULTS) == queue.RESULTS.resolve()
     assert queue._within_results(queue.QUEUE / "cell") == (queue.QUEUE / "cell").resolve()
+
+
+def _stub_ceiling(
+    monkeypatch: pytest.MonkeyPatch, rows: list[dict[str, object]], *, code: int = 0
+) -> list[list[str]]:
+    """Record every command issued, and write the ceiling table it would have produced."""
+    issued: list[list[str]] = []
+
+    def fake_run(command: list[str], *, dry: bool, log: Path | None = None) -> tuple[int, float]:
+        issued.append(command)
+        if code == 0 and "--out" in command:
+            out = Path(command[command.index("--out") + 1])
+            out.mkdir(parents=True, exist_ok=True)
+            (out / "ceiling.json").write_text(json.dumps({"rows": rows}), encoding="utf-8")
+        return code, 1.0
+
+    monkeypatch.setattr(queue, "run_stage", fake_run)
+    return issued
+
+
+def test_a_problem_with_a_bound_already_is_not_remeasured(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    issued = _stub_ceiling(monkeypatch, rows=[])
+    state = {
+        "gates": {},
+        "ceilings": {"boltzmann_factor": {"ceiling_upper": 0.001, "margin": 0.05}},
+        "cells": [_cell(selection_only=True)],
+    }
+    queue.resolve_ceilings(_args(ceiling_seeds=10), state)
+
+    assert issued == []
+
+
+def test_ceiling_is_measured_once_for_every_pending_problem_not_once_each(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The fan-out is the reason this stage exists; a per-problem loop would undo it."""
+    issued = _stub_ceiling(
+        monkeypatch,
+        rows=[
+            {
+                "problem": "boltzmann_factor",
+                "ceiling_upper": 0.001,
+                "margin": 0.05,
+                "status": "closed",
+            },
+            {"problem": "coulomb_force", "ceiling_upper": 0.02, "margin": 0.05, "status": "closed"},
+        ],
+    )
+    state = {
+        "gates": {},
+        "ceilings": {},
+        "cells": [
+            _cell(selection_only=True),
+            _cell(selection_only=True, problem="coulomb_force"),
+        ],
+    }
+    queue.resolve_ceilings(_args(ceiling_seeds=10), state)
+
+    assert len(issued) == 1, "one subprocess call must cover every pending problem"
+    command = issued[0]
+    assert "boltzmann_factor" in command
+    assert "coulomb_force" in command
+    assert state["ceilings"]["boltzmann_factor"]["ceiling_upper"] == 0.001
+    assert state["ceilings"]["coulomb_force"]["ceiling_upper"] == 0.02
+
+
+def test_a_failed_ceiling_measurement_leaves_cells_queued_with_the_shortcut_disabled(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A missing bound must cost a sweep, never a verdict."""
+    issued = _stub_ceiling(monkeypatch, rows=[], code=1)
+    state = {"gates": {}, "ceilings": {}, "cells": [_cell(selection_only=True)]}
+    queue.resolve_ceilings(_args(ceiling_seeds=10), state)
+
+    assert len(issued) == 1
+    assert state["cells"][0]["stage"] == "QUEUED"
+    assert "boltzmann_factor" not in state["ceilings"]
