@@ -73,7 +73,9 @@ archive/physics_equation_discovery/  the original research direction (equation d
 
 ```bash
 docker compose up --build          # no local Python install, no host pip install
-docker compose run --rm api pytest tests/ -v
+docker compose run --rm --entrypoint pytest api tests/ -v   # the image's ENTRYPOINT is
+                                                              # `sde`, so pytest needs an
+                                                              # explicit override to run
 docker compose run --rm api sde list-plugins   # currently empty -- see below
 ```
 

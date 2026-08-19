@@ -13,8 +13,12 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - name: Build image
         run: docker compose build
+      # docker/Dockerfile sets ENTRYPOINT ["sde"], so `docker compose run --rm
+      # api pytest ...` without an override actually executes `sde pytest ...`
+      # -- Docker doesn't drop the entrypoint just because a command follows.
+      # --entrypoint replaces it for this one invocation only.
       - name: Run tests inside container
-        run: docker compose run --rm api pytest tests/ -v
+        run: docker compose run --rm --entrypoint pytest api tests/ -v
       # TODO(nas_search): replace with the NAS smoke audit once plugins/nas_search/
       # exists. Physics benchmark runner archived -- see
       # archive/physics_equation_discovery/README.md.

@@ -42,8 +42,16 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-install-project
 
 COPY . .
+# --no-editable is load-bearing, not a style choice: an editable install
+# records a path reference back to /build, the source tree as it exists in
+# *this* stage. The runtime stage below copies that tree to /app, a
+# different path -- so an editable install's reference silently stops
+# resolving, and `from cli.main import app` fails with "No module named
+# 'cli'" despite the file being physically present. --no-editable copies
+# the package into site-packages instead of referencing it by path, which
+# is the only form of install that survives being copied to a new location.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+    uv sync --frozen --no-dev --no-editable
 
 # ---------------------------------------------------------------------------
 # Runtime: the virtualenv and the source, without the build toolchain.
