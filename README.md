@@ -1,9 +1,9 @@
 <div align="center">
 
-# Scientific Discovery Engine
+# Null-Scaffold-Audit
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![Build](https://img.shields.io/github/actions/workflow/status/shlokkvaishnav/scientific-discovery-engine/ci.yml?style=flat-square&label=build)](https://github.com/shlokkvaishnav/scientific-discovery-engine/actions)
+[![Build](https://img.shields.io/github/actions/workflow/status/shlokkvaishnav/Null-Scaffold-Audit/ci.yml?style=flat-square&label=build)](https://github.com/shlokkvaishnav/Null-Scaffold-Audit/actions)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED?style=flat-square&logo=docker&logoColor=white)](docker-compose.yml)
 
