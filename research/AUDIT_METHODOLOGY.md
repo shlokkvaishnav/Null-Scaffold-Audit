@@ -1,21 +1,18 @@
-# RFC-0001: The null-scaffold audit
+# The null-scaffold audit: methodology
 
-| | |
-|---|---|
-| Number | `RFC-0001` |
-| Title | The null-scaffold audit |
-| Author | Shlok Vaishnav |
-| Status | Draft |
-| Created | 2026-08-09 |
-| Supersedes | — |
-| Superseded by | — |
-| Resulting ADR | [`ADR-0001`](../adr/ADR-0001-null-scaffold-audit-is-advisory.md) |
+Author: Shlok Vaishnav · First written: 2026-08-09
+
+Whether this audit should be advisory or a required merge gate is genuinely
+unresolved — see §10, "Unresolved questions." A prior version of this repo
+referenced a decision record for that question; no such decision was ever
+actually made, and this document should not be read as implying one was.
+Record it in [`DECISION_LOG.md`](DECISION_LOG.md) if and when it is.
 
 ---
 
 ## 1. Summary
 
-This RFC proposes that the platform be able to answer, mechanically, one
+This document proposes that the platform be able to answer, mechanically, one
 question about any discovery pipeline: **does the scaffolding around the search
 contribute anything that the search alone would not have produced at the same
 compute?**
@@ -160,7 +157,7 @@ its budget is meaningless, so the report always carries it.
 
 **Equivalence testing, not significance testing.** `p > 0.05` on a difference
 test does not license concluding there is no difference; it licenses concluding
-nothing. This is the single most important design decision in this RFC, and
+nothing. This is the single most important design decision in this document, and
 inverting it would make the audit worse than useless — it would let any
 underpowered comparison certify a scaffold as null.
 

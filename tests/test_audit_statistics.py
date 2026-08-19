@@ -2,7 +2,7 @@
 
 The module under test decides whether a wrapper contributed anything. Its
 dangerous failure is not crashing -- it is returning a confident, plausible,
-wrong verdict, which is the exact error RFC-0001 exists to prevent. Two
+wrong verdict, which is the exact error research/AUDIT_METHODOLOGY.md exists to prevent. Two
 properties therefore get the most attention here:
 
 * An underpowered comparison must never be certified ``NULL``. "We could not

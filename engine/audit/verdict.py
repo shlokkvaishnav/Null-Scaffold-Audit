@@ -84,7 +84,7 @@ class MetricVerdict:
     adjusted_p_value: float | None = None
     """``p_value`` after correcting across the metrics audited together.
 
-    RFC-0001 section 4.2 requires this. Three metrics tested at 0.05 each is not
+    AUDIT_METHODOLOGY.md §4.2 requires this. Three metrics tested at 0.05 each is not
     a 0.05 procedure, and the audit exists to refuse exactly that kind of
     quietly-inflated confidence.
     """

@@ -137,7 +137,7 @@ figure on the belief-entropy of the agent loop the audit refuted. By the end
 nothing outside its own tests referenced the package.
 
 What replaced it is not a config schema at all. The experiment protocol lives in
-`docs/rfc/RFC-0001-null-scaffold-audit.md` and the pre-registered margins at the
+`research/AUDIT_METHODOLOGY.md` and the pre-registered margins at the
 top of `scripts/run_null_scaffold_audit.py`. That is a better home: a margin
 agreed in advance is a claim about method, and keeping it in a YAML file anyone
 can edit between runs is the loophole the RFC exists to close.

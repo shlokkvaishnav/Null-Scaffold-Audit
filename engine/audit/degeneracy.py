@@ -1,4 +1,4 @@
-"""Intra-run degeneracy: is the wrapper exploring, or repeating? (RFC-0001 section 4.3)
+"""Intra-run degeneracy: is the wrapper exploring, or repeating? (AUDIT_METHODOLOGY.md §4.3)
 
 The statistical arms answer whether a wrapper *helped*. They cannot say why not.
 This check answers the why, costs one run rather than thirty, and catches the

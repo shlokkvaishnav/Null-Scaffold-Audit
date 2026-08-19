@@ -1,4 +1,4 @@
-"""Tests for the intra-run degeneracy pre-check (RFC-0001 section 4.3).
+"""Tests for the intra-run degeneracy pre-check (AUDIT_METHODOLOGY.md §4.3).
 
 The check exists to catch a loop that repeats itself instead of exploring. Its
 dangerous failure is the false positive: calling a wrapper degenerate when it is

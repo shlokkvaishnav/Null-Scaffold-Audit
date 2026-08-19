@@ -1,4 +1,4 @@
-"""Budget-matched two-arm execution for the null-scaffold audit (RFC-0001 section 4).
+"""Budget-matched two-arm execution for the null-scaffold audit (AUDIT_METHODOLOGY.md §4).
 
 The treatment arm is a wrapper as submitted. The control arm is that wrapper's
 own inner primitive, stripped out and given the *same* compute -- spent on
@@ -12,7 +12,7 @@ Budget is counted in the primitive's own work units, never wall-clock. Matching
 on wall-clock would measure implementation efficiency: the same wrapper rewritten
 in a faster language would appear to contribute more, and slowing the control's
 implementation would improve the treatment's verdict. That is backwards, and it
-is the failure mode RFC-0001 section 6 (Alternative B) rejects.
+is the failure mode AUDIT_METHODOLOGY.md §6 (Alternative B) rejects.
 
 Nothing here inspects what a candidate *is*. Outcomes are floats and an opaque
 representation string, so this module holds no subject-matter knowledge
@@ -40,7 +40,7 @@ _SEED_STRIDE = 1_000_003
 class NotSeparableError(RuntimeError):
     """Raised when a pipeline cannot expose the primitive its control arm needs.
 
-    This is a reportable finding, not an exemption: RFC-0001 section 7 is explicit
+    This is a reportable finding, not an exemption: AUDIT_METHODOLOGY.md §7 is explicit
     that a pipeline which cannot be decomposed is recorded as ``NOT_SEPARABLE``
     rather than quietly skipped.
     """
@@ -71,7 +71,7 @@ class SearchOutcome:
     representation: str | None = None
     # Every candidate the arm proposed internally, in order. Optional: a pipeline
     # that does not expose its internals is not penalised, it is simply reported
-    # as unassessed for degeneracy (RFC-0001 section 4.3).
+    # as unassessed for degeneracy (AUDIT_METHODOLOGY.md §4.3).
     intermediate_representations: tuple[str, ...] = ()
 
 
@@ -99,7 +99,7 @@ class BaseSearcher(Protocol):
         Supplied by the pipeline rather than fixed here on purpose: imposing a
         selection rule would let a badly chosen one disadvantage the control arm,
         making the audit unfair in the opposite direction to the one it guards
-        against (RFC-0001 section 10).
+        against (AUDIT_METHODOLOGY.md §10).
         """
         ...
 
@@ -296,7 +296,7 @@ class _RunControl:
 def _holm_correct(
     per_metric: Mapping[str, MetricVerdict], alpha: float
 ) -> dict[str, MetricVerdict]:
-    """Correct across the metrics audited together (RFC-0001 section 4.2).
+    """Correct across the metrics audited together (AUDIT_METHODOLOGY.md §4.2).
 
     Three metrics each tested at 0.05 is not a 0.05 procedure. Left uncorrected,
     the chance of at least one spurious claim grows with the number of metrics,

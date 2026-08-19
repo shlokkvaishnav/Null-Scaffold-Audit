@@ -23,7 +23,7 @@ A scaffolded method is usually published as a whole — a search procedure wrapp
 
 ## What we investigate
 
-`engine/audit/` runs two arms at matched compute — the pipeline as submitted, and its own base searcher given the same budget as independent restarts — and decides between them using two one-sided equivalence tests (TOST), not significance testing, because `p > 0.05` cannot license "the scaffold does nothing," only "we couldn't tell." A selection-ceiling measurement (`scripts/measure_selection_ceiling.py`) isolates how much of any gain could come from *selecting* the best of already-generated candidates rather than *generating* better ones, and a feasibility/minimum-detectable-effect pre-check (`scripts/audit_feasibility.py`) decides, before a sweep runs, whether the design could resolve anything at all. Full statistical design: [`docs/rfc/RFC-0001-null-scaffold-audit.md`](docs/rfc/RFC-0001-null-scaffold-audit.md).
+`engine/audit/` runs two arms at matched compute — the pipeline as submitted, and its own base searcher given the same budget as independent restarts — and decides between them using two one-sided equivalence tests (TOST), not significance testing, because `p > 0.05` cannot license "the scaffold does nothing," only "we couldn't tell." A selection-ceiling measurement (`scripts/measure_selection_ceiling.py`) isolates how much of any gain could come from *selecting* the best of already-generated candidates rather than *generating* better ones, and a feasibility/minimum-detectable-effect pre-check (`scripts/audit_feasibility.py`) decides, before a sweep runs, whether the design could resolve anything at all. Full statistical design: [`research/AUDIT_METHODOLOGY.md`](research/AUDIT_METHODOLOGY.md).
 
 ## Current findings
 
@@ -47,11 +47,17 @@ A scaffolded method is usually published as a whole — a search procedure wrapp
 - **The margin is pre-registered, per metric**, in code (`scripts/run_null_scaffold_audit.py`), not in an editable config file anyone could tune after seeing results.
 - **Paired-binary metrics use a different interval** (Tango score, not the bootstrap) — a metric like exact-recovery rate can produce a collapsed, all-agreeing sample that would otherwise report false certainty; this project's own statistics module documents the bug this fixes.
 
-Full statistical design and every alternative considered: [`docs/rfc/RFC-0001-null-scaffold-audit.md`](docs/rfc/RFC-0001-null-scaffold-audit.md).
+Full statistical design and every alternative considered: [`research/AUDIT_METHODOLOGY.md`](research/AUDIT_METHODOLOGY.md).
 
 ## Repository structure
 
 ```
+research/                          the research, not the code that runs it -- see below
+  AUDIT_METHODOLOGY.md             full statistical design and every alternative considered
+  GIT_WORKFLOW.md                  how branches, merges, and history work in this repository
+  DECISION_LOG.md                  why things are the way they are, newest first
+  SPEC_TEMPLATE.md                 the spec a research branch fills in before implementation
+
 engine/                          the platform: plugin contract, registry, orchestrator,
                                   config schemas -- and the audit mechanism, engine/audit/
                                   (arms, statistics, calibration, degeneracy, verdict)
@@ -61,8 +67,7 @@ plugins/nas_search/              NOT YET IMPLEMENTED -- the current research dir
 scripts/                          audit runner, selection-ceiling runner, feasibility
                                   pre-check, autonomous research queue, summariser
 tests/                            pytest suite for the active tree (165 tests)
-docs/                              architecture, plugin guide, development guide, the
-                                  RFC/ADR for the audit's statistical design
+docs/                              architecture, plugin guide, development guide
 results/                          fresh output for this study -- currently empty
 archive/physics_equation_discovery/  the original research direction (equation discovery
                                   via symbolic regression, AI-Feynman benchmark), preserved
@@ -95,7 +100,7 @@ The **established** finding above comes from the archived physics pipeline's aud
 
 ## Limitations
 
-Single audit design, validated pre-pivot on exactly two in-house domains (physics, one synthetic problem) — not yet shown to generalize to a pipeline this team didn't build, which is the single biggest open question (see Related work). The pre-registered margin is a judgement call that requires domain knowledge the engine itself does not have (RFC-0001 §7); a poorly chosen margin produces confident nonsense in either direction. `unwrap()` — exposing a scaffold's bare base searcher — is a genuine structural constraint some pipelines cannot satisfy; those report `NOT_SEPARABLE` rather than being silently exempted, but a determined author could still hide scaffold work inside a nominal "base" searcher. NASLib itself is ~2 years stale (last push 2024-11-11) and currently fails to install via its documented method, independent of anything in this repository.
+Single audit design, validated pre-pivot on exactly two in-house domains (physics, one synthetic problem) — not yet shown to generalize to a pipeline this team didn't build, which is the single biggest open question (see Related work). The pre-registered margin is a judgement call that requires domain knowledge the engine itself does not have (AUDIT_METHODOLOGY.md §7); a poorly chosen margin produces confident nonsense in either direction. `unwrap()` — exposing a scaffold's bare base searcher — is a genuine structural constraint some pipelines cannot satisfy; those report `NOT_SEPARABLE` rather than being silently exempted, but a determined author could still hide scaffold work inside a nominal "base" searcher. NASLib itself is ~2 years stale (last push 2024-11-11) and currently fails to install via its documented method, independent of anything in this repository.
 
 ## Open research questions / next experiments
 

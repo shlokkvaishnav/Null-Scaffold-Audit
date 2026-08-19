@@ -7,7 +7,7 @@ Reads every `budget_*/audit.json` under the results directory and writes
 it only arranges what the sweeps recorded, so the summary cannot disagree with
 its sources.
 
-RFC-0001 section 4.1 makes nullity indexed by budget: a wrapper may be null at
+AUDIT_METHODOLOGY.md §4.1 makes nullity indexed by budget: a wrapper may be null at
 one budget and contribute at another, and a verdict reported without its budget
 means nothing. This script exists to make that indexing visible rather than
 leaving three separate files for a reader to reconcile.
