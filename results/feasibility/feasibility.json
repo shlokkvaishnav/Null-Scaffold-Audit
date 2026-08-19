@@ -1,0 +1,61 @@
+{
+  "config": {
+    "domain": "physics",
+    "ceiling": "[WindowsPath('results/selection_ceiling'), WindowsPath('results/selection_ceiling_rest')]",
+    "null_calibration": "results\\calibration\\null",
+    "n_samples": "500",
+    "alpha": "0.05",
+    "power": "0.8",
+    "out": "C:\\Users\\shlok\\OneDrive\\Documents\\Projects\\climate-equation-discovery\\results\\feasibility"
+  },
+  "rows": [
+    {
+      "domain": "physics",
+      "problem": "boltzmann_factor",
+      "metric": "rmse",
+      "ceiling": 0.010702957736895845,
+      "null_spread": 0.0013525232692642027,
+      "seeds_measured": 20,
+      "mde_at_measured_n": 0.0007519930389280868,
+      "mde_at_20": 0.0007519930389280868,
+      "mde_at_40": 0.0005317393772311296,
+      "mde_at_100": 0.00033630151072996955,
+      "mde_at_500": 0.00015039860778561737,
+      "ceiling_over_mde": 14.23278831430695,
+      "feasible": true,
+      "seeds_to_feasible": 20
+    },
+    {
+      "domain": "physics",
+      "problem": "coulomb_force",
+      "metric": "rmse",
+      "ceiling": 0.05114460169274868,
+      "null_spread": 0.043169010551306716,
+      "seeds_measured": 20,
+      "mde_at_measured_n": 0.024001653923230563,
+      "mde_at_20": 0.024001653923230563,
+      "mde_at_40": 0.016971732248809032,
+      "mde_at_100": 0.010733865948953612,
+      "mde_at_500": 0.004800330784646113,
+      "ceiling_over_mde": 2.130878224322999,
+      "feasible": true,
+      "seeds_to_feasible": 20
+    },
+    {
+      "domain": "physics",
+      "problem": "rc_discharge",
+      "metric": "rmse",
+      "ceiling": 6.0216887385540385,
+      "null_spread": 13.32642773470232,
+      "seeds_measured": 20,
+      "mde_at_measured_n": 7.409396287670637,
+      "mde_at_20": 7.409396287670637,
+      "mde_at_40": 5.239234359510339,
+      "mde_at_100": 3.3135827542932264,
+      "mde_at_500": 1.4818792575341273,
+      "ceiling_over_mde": 0.8127097680784374,
+      "feasible": false,
+      "seeds_to_feasible": 40
+    }
+  ]
+}

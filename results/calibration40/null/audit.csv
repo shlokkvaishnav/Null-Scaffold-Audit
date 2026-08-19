@@ -1,0 +1,4 @@
+domain,equation_id,metric,verdict,observed_difference,ci_low,ci_high,margin,power,n,higher_is_better
+physics,boltzmann_factor,rmse,NULL,0.00022998940479552528,-8.543404746792776e-05,0.0005533641615862359,0.0013127013656863903,0.9999862865035118,40,False
+physics,boltzmann_factor,symbolic_complexity,NULL,-0.15,-0.375,0.0,2.0,1.0,40,False
+physics,boltzmann_factor,exact_recovery,NULL,0.0,-0.06335344864545878,0.06335344864545878,0.1,0.46408102820637565,40,True

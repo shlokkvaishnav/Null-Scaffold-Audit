@@ -45,6 +45,9 @@ results/*/*
 !results/*/ceiling.csv
 !results/*/summary.md
 !results/*/summary.csv
+!results/*/feasibility.json
+!results/*/feasibility.csv
+!results/*/state.json
 !results/*/*/
 results/*/*/*
 !results/*/*/audit.json
