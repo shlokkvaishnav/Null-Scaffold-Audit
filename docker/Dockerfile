@@ -38,8 +38,11 @@ WORKDIR /build
 # change does not invalidate the dependency layer. --no-install-project is what
 # makes that split possible.
 COPY pyproject.toml uv.lock .python-version ./
+# --extra dev, not --no-dev: docker-compose.yml and the README both document
+# `docker compose run --rm api pytest tests/ -v` as the intended workflow,
+# so pytest (a dev dependency) must actually be present in the built image.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-project
+    uv sync --frozen --extra dev --no-install-project
 
 COPY . .
 # --no-editable is load-bearing, not a style choice: an editable install
@@ -51,7 +54,7 @@ COPY . .
 # the package into site-packages instead of referencing it by path, which
 # is the only form of install that survives being copied to a new location.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-editable
+    uv sync --frozen --extra dev --no-editable
 
 # ---------------------------------------------------------------------------
 # Runtime: the virtualenv and the source, without the build toolchain.
