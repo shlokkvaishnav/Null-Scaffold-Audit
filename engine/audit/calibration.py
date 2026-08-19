@@ -196,6 +196,10 @@ class _RestartScaffold:
     base: BaseSearcher
     restarts: int = 3
     name: str = "calibration"
+    # All three keep one of the restarts they ran, so all three are bounded by the
+    # selection ceiling -- including the oracle, whose licence to cheat buys it
+    # nothing on a problem where the restarts had nothing to choose between.
+    selection_only: bool = True
     failures: list[str] = field(default_factory=list)
 
     def unwrap(self) -> BaseSearcher:

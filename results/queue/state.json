@@ -1,0 +1,110 @@
+{
+  "gates": {},
+  "cells": [
+    {
+      "domain": "physics",
+      "problem": "boltzmann_factor",
+      "scaffold": "plugins.physics.audit_adapter:null_calibration",
+      "selection_only": true,
+      "stage": "QUEUED",
+      "n_star": null,
+      "seconds": null,
+      "detail": null
+    },
+    {
+      "domain": "physics",
+      "problem": "boltzmann_factor",
+      "scaffold": "plugins.physics.audit_adapter:wasteful_calibration",
+      "selection_only": true,
+      "stage": "QUEUED",
+      "n_star": null,
+      "seconds": null,
+      "detail": null
+    },
+    {
+      "domain": "physics",
+      "problem": "boltzmann_factor",
+      "scaffold": "plugins.physics.audit_adapter:oracle_calibration",
+      "selection_only": true,
+      "stage": "QUEUED",
+      "n_star": null,
+      "seconds": null,
+      "detail": null
+    },
+    {
+      "domain": "physics",
+      "problem": "coulomb_force",
+      "scaffold": "plugins.physics.audit_adapter:null_calibration",
+      "selection_only": true,
+      "stage": "QUEUED",
+      "n_star": null,
+      "seconds": null,
+      "detail": null
+    },
+    {
+      "domain": "physics",
+      "problem": "coulomb_force",
+      "scaffold": "plugins.physics.audit_adapter:wasteful_calibration",
+      "selection_only": true,
+      "stage": "QUEUED",
+      "n_star": null,
+      "seconds": null,
+      "detail": null
+    },
+    {
+      "domain": "physics",
+      "problem": "coulomb_force",
+      "scaffold": "plugins.physics.audit_adapter:oracle_calibration",
+      "selection_only": true,
+      "stage": "QUEUED",
+      "n_star": null,
+      "seconds": null,
+      "detail": null
+    },
+    {
+      "domain": "physics",
+      "problem": "rc_discharge",
+      "scaffold": "plugins.physics.audit_adapter:null_calibration",
+      "selection_only": true,
+      "stage": "QUEUED",
+      "n_star": null,
+      "seconds": null,
+      "detail": null
+    },
+    {
+      "domain": "physics",
+      "problem": "rc_discharge",
+      "scaffold": "plugins.physics.audit_adapter:wasteful_calibration",
+      "selection_only": true,
+      "stage": "QUEUED",
+      "n_star": null,
+      "seconds": null,
+      "detail": null
+    },
+    {
+      "domain": "physics",
+      "problem": "rc_discharge",
+      "scaffold": "plugins.physics.audit_adapter:oracle_calibration",
+      "selection_only": true,
+      "stage": "QUEUED",
+      "n_star": null,
+      "seconds": null,
+      "detail": null
+    }
+  ],
+  "ceilings": {
+    "boltzmann_factor": {
+      "ceiling_upper": null,
+      "margin": 0.0013127013656863903
+    },
+    "coulomb_force": {
+      "ceiling_upper": null,
+      "margin": 0.005658116703171748
+    },
+    "rc_discharge": {
+      "ceiling_upper": null,
+      "margin": 0.12209687804424403
+    }
+  },
+  "seeded": "2026-08-19T12:26:04+00:00"
+}

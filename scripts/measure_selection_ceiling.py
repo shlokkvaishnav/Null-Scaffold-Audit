@@ -268,7 +268,10 @@ def main() -> int:
     rows.sort(key=lambda row: row["ratio"], reverse=True)
     write_artifacts(args.out, config, rows)
 
-    reachable = [row for row in rows if row["reachable"]]
+    # `null_because`, not a `reachable` key: that key stopped being emitted when the
+    # row gained `status` and `null_because`, and this line went on reading it -- so
+    # every fresh run died here on a KeyError while the stale artifacts kept working.
+    reachable = [row for row in rows if row["null_because"] == "reachable"]
     explanation = {
         "reachable": "can reach CONTRIBUTES",
         "faithful": "NULL: rule already picks the best",

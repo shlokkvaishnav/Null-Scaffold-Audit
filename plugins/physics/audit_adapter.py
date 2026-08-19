@@ -275,6 +275,9 @@ class ConcentratedSearchScaffold:
     """
 
     name: str = "ConcentratedSearch"
+    # Not bounded by the selection ceiling: it changes which candidates exist
+    # rather than the choice among them, which is the whole point of it.
+    selection_only: bool = False
     factor: int = 3
     population_size: int = DEFAULT_POPULATION_SIZE
     generations: int = DEFAULT_GENERATIONS
@@ -336,6 +339,9 @@ class RefitScaffold:
     """
 
     name: str = "RefitScaffold"
+    # Not bounded by the selection ceiling, for the reason above: refitting moves
+    # the candidates, so the gap between chosen and best is not its limit.
+    selection_only: bool = False
     max_iters: int = 3
     population_size: int = DEFAULT_POPULATION_SIZE
     generations: int = DEFAULT_GENERATIONS
@@ -440,6 +446,11 @@ class DiscoveryAgentScaffold:
     """The full agent loop, as submitted."""
 
     name: str = "DiscoveryAgent"
+    # Every mechanism this wraps -- memory, belief, verification, reasoning -- acts
+    # on which candidate is kept, never on which are generated. So the selection
+    # ceiling is a hard upper bound on it and a closed ceiling settles it without
+    # a sweep.
+    selection_only: bool = True
     backend: str = "gplearn"
     max_iters: int = 3
     num_regimes: int = 1

@@ -106,7 +106,16 @@ class BaseSearcher(Protocol):
 
 @runtime_checkable
 class Scaffold(Protocol):
-    """Logic wrapped around a base searcher."""
+    """Logic wrapped around a base searcher.
+
+    Implementations may also declare ``selection_only: bool``, saying whether the
+    scaffold can only reorder or filter the candidates its searcher produced. Where
+    it is true, `engine.audit.calibration.selection_ceiling` is a hard upper bound
+    on the scaffold and a ceiling below the margin settles the verdict without a
+    sweep. It is deliberately not part of this protocol: a scaffold that does not
+    declare it is treated as unbounded, so the omission costs compute rather than
+    licensing a claim nobody made.
+    """
 
     name: str
 
