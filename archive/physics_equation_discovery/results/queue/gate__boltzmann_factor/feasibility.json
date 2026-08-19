@@ -1,0 +1,29 @@
+{
+  "config": {
+    "domain": "physics",
+    "ceiling": "[WindowsPath('C:/Users/shlok/OneDrive/Documents/Projects/climate-equation-discovery/results/selection_ceiling'), WindowsPath('C:/Users/shlok/OneDrive/Documents/Projects/climate-equation-discovery/results/selection_ceiling_rest')]",
+    "null_calibration": "C:\\Users\\shlok\\OneDrive\\Documents\\Projects\\climate-equation-discovery\\results\\queue\\gate__boltzmann_factor",
+    "n_samples": "500",
+    "alpha": "0.05",
+    "power": "0.8",
+    "out": "C:\\Users\\shlok\\OneDrive\\Documents\\Projects\\climate-equation-discovery\\results\\queue\\gate__boltzmann_factor"
+  },
+  "rows": [
+    {
+      "domain": "physics",
+      "problem": "boltzmann_factor",
+      "metric": "rmse",
+      "ceiling": 0.010702957736895845,
+      "null_spread": 0.0012473121137936533,
+      "seeds_measured": 40,
+      "mde_at_measured_n": 0.0004903760117652529,
+      "mde_at_20": 0.0006934964065008491,
+      "mde_at_40": 0.0004903760117652529,
+      "mde_at_100": 0.00031014102141754514,
+      "mde_at_500": 0.0001386992813001698,
+      "ceiling_over_mde": 21.826022236217053,
+      "feasible": true,
+      "seeds_to_feasible": 20
+    }
+  ]
+}

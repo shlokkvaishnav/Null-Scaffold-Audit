@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "scientific-discovery-engine"
 version = "0.1.0"
-description = "Scientific Discovery Engine (SDE): a domain-agnostic engine (engine/) that orchestrates swappable algorithm/domain plugins behind stable interfaces, plus a CLI (cli/) and the first plugin, physics_discovery -- an agentic hypothesize-test-refine system for closed-form equation discovery via symbolic regression, benchmarked on the AI-Feynman physics equation set."
+description = "Scientific Discovery Engine (SDE): a domain-agnostic engine (engine/) that orchestrates swappable algorithm/domain plugins behind stable interfaces, plus a CLI (cli/) and engine/audit -- a budget-matched, equivalence-tested audit of whether a search pipeline's scaffold contributes anything over its own base searcher. Current research direction, 'Does the Scaffold Earn Its Keep': auditing Neural Architecture Search controllers (via NASLib) against budget-matched random-search restarts (via NATS-Bench). The original plugin, physics_discovery -- an agentic symbolic-regression system benchmarked on AI-Feynman -- is archived under archive/physics_equation_discovery/; it motivated engine/audit/ and is kept for provenance, not active development."
 authors = [{ name = "Shlok Vaishnav" }]
 readme = "README.md"
 requires-python = ">=3.11"
@@ -13,13 +13,8 @@ dependencies = [
     "numpy",
     "scipy",
     "scikit-learn",
-    "gplearn",
-    "sympy",
     "pandas",
-    "fastapi",
-    "uvicorn[standard]",
     "pydantic",
-    "python-multipart",
     "typer",
     "pyyaml",
 ]
@@ -31,21 +26,41 @@ sde = "cli.main:app"
 # entry points in this same group in its own pyproject.toml -- see
 # engine/discovery.py and docs/PLUGIN_GUIDE.md. This repo's own plugins are
 # registered the same way, not special-cased anywhere in engine/ or cli/.
+#
+# Empty for now: feynman_physics and synthetic_regression were removed here
+# when their code moved to archive/physics_equation_discovery/ (their entry
+# points pointed at a module path that no longer exists in the active tree).
+# nas_search is the next entry to add, once plugins/nas_search/ exists.
 [project.entry-points."sde.plugins"]
-feynman_physics = "plugins.physics.plugin:register"
-synthetic_regression = "plugins.synthetic.plugin:register"
 
 [project.optional-dependencies]
-pysr = ["pysr"]
-torch = ["torch"]
-gbm = ["xgboost", "lightgbm"]
+# naslib is NOT in this extra yet -- verified blocked, not just unlisted.
+# It has no PyPI release (last push 2024-11-11, ~2 years stale as of this
+# pivot) and installing it as a git dependency fails outright:
+# `git submodule update --init` errors on a broken submodule reference
+# (sphinx_source_code has no URL in .gitmodules), which `uv lock` triggers
+# automatically. No open upstream issue found for this specific failure.
+# Resolving this -- fork-and-fix, a manual non-recursive clone, or an
+# alternative NAS-controller library -- is the first concrete task for
+# plugins/nas_search/, not a restructuring-phase problem. See the migration
+# report for this pivot.
+#
+# nats-bench has a normal PyPI release and resolves cleanly on its own.
+nas = ["nats-bench"]
 dev = ["pytest", "pytest-cov", "ruff", "mypy", "black", "jupyterlab", "matplotlib", "httpx"]
 
 [tool.setuptools.packages.find]
-include = ["engine*", "cli*", "algorithms*", "validators*", "plugins*"]
+include = ["engine*", "cli*", "plugins*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Without this, `uv run pytest` (no -m) does not add the repo root to
+# sys.path, so `import scripts.research_queue` in tests/test_research_queue.py
+# fails -- `uv run python -m pytest` masked this because `python -m` adds cwd
+# to sys.path itself. Found during the "Does the Scaffold Earn Its Keep" pivot
+# validation, invocation-sensitive rather than introduced by that pivot: it
+# depends on how pytest is invoked, not on which plugin code exists.
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 100
@@ -68,6 +83,10 @@ target-version = "py311"
 extend-exclude = [
     "results",
     "docs",
+    "archive",
+    # Skill packages installed via skills.sh (npx skills add) -- documentation
+    # with embedded code samples, not this project's source.
+    ".agents",
 ]
 
 [tool.ruff.lint]

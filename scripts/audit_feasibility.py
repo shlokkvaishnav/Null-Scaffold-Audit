@@ -52,8 +52,6 @@ if str(REPO_ROOT) not in sys.path:
 
 from run_null_scaffold_audit import default_registry
 
-from engine.expressions.hypothesis import Hypothesis
-
 METRIC = "rmse"
 SEED_COUNTS = (20, 40, 100, 500)
 
@@ -69,13 +67,22 @@ def minimum_detectable_effect(spread: float, n: int, alpha: float, power: float)
 
 
 def test_rmse(problem: Any, equation: str) -> float | None:
-    """Re-evaluate a recorded candidate on the held-out split.
+    """Re-evaluate a recorded symbolic candidate on the held-out split.
 
     Recomputed from the stored representation rather than read from the report,
     because reports keep aggregate verdicts and not per-seed values. Both arms go
     through this same path, so any evaluation quirk cancels in the difference.
+
+    Symbolic-domain specific: assumes ``equation`` is an expression string, as
+    the archived physics/synthetic plugins produced. Imported here rather than
+    at module scope, matching the convention in measure_selection_ceiling.py --
+    a domain that has no equation strings (e.g. NAS, where a candidate is an
+    architecture encoding) has no use for this function and should not need
+    engine.expressions importable to import this module at all.
     """
     try:
+        from engine.expressions.hypothesis import Hypothesis
+
         predicted = np.asarray(
             Hypothesis(equation=equation, regime_id=0, iteration=0).evaluate(problem.x_test),
             dtype=float,

@@ -1,0 +1,32 @@
+{
+  "config": {
+    "domain": "physics",
+    "scaffold": "plugins.physics.audit_adapter:DiscoveryAgentScaffold",
+    "metric": "rmse",
+    "seeds": 3,
+    "restarts": 3,
+    "n_samples": 200,
+    "population_size": 100,
+    "generations": 5,
+    "evaluations_per_fit": 500,
+    "refit": true,
+    "problems_completed": 1
+  },
+  "rows": [
+    {
+      "domain": "physics",
+      "problem": "ideal_gas_law",
+      "metric": "rmse",
+      "ceiling": 34.480043763083586,
+      "ceiling_sd": 59.72118764485916,
+      "margin": 88.32901500710676,
+      "ratio": 0.3903592014505018,
+      "reachable": false,
+      "metric_spread": 144.67997909051482,
+      "spread_ratio": 1.6379666305446086,
+      "null_because": "faithful",
+      "seeds": 3,
+      "restarts": 3
+    }
+  ]
+}

@@ -15,5 +15,6 @@ jobs:
         run: docker compose build
       - name: Run tests inside container
         run: docker compose run --rm api pytest tests/ -v
-      - name: Run smoke benchmark inside container
-        run: docker compose run --rm api python -m plugins.physics.benchmark_runner --subset smoke --backend gplearn
+      # TODO(nas_search): replace with the NAS smoke audit once plugins/nas_search/
+      # exists. Physics benchmark runner archived -- see
+      # archive/physics_equation_discovery/README.md.

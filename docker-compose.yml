@@ -7,9 +7,8 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    ports:
-      - "8000:8000"
-    environment:
-      - SYMBOLIC_BACKEND=gplearn
+    # Port 8000 and SYMBOLIC_BACKEND served plugins/physics/api/, now archived
+    # under archive/physics_equation_discovery/ -- see its README. No active
+    # plugin serves an HTTP API today; re-add a ports mapping if/when one does.
     volumes:
       - ./results:/app/results

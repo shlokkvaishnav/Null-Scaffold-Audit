@@ -1,0 +1,29 @@
+{
+  "config": {
+    "domain": "physics",
+    "ceiling": "[WindowsPath('C:/Users/shlok/OneDrive/Documents/Projects/climate-equation-discovery/results/selection_ceiling'), WindowsPath('C:/Users/shlok/OneDrive/Documents/Projects/climate-equation-discovery/results/selection_ceiling_rest')]",
+    "null_calibration": "C:\\Users\\shlok\\OneDrive\\Documents\\Projects\\climate-equation-discovery\\results\\queue\\gate__coulomb_force",
+    "n_samples": "500",
+    "alpha": "0.05",
+    "power": "0.8",
+    "out": "C:\\Users\\shlok\\OneDrive\\Documents\\Projects\\climate-equation-discovery\\results\\queue\\gate__coulomb_force"
+  },
+  "rows": [
+    {
+      "domain": "physics",
+      "problem": "coulomb_force",
+      "metric": "rmse",
+      "ceiling": 0.05114460169274868,
+      "null_spread": 0.039324746264008,
+      "seeds_measured": 40,
+      "mde_at_measured_n": 0.015460374370913044,
+      "mde_at_20": 0.021864271114710634,
+      "mde_at_40": 0.015460374370913044,
+      "mde_at_100": 0.009777999298195617,
+      "mde_at_500": 0.004372854222942127,
+      "ceiling_over_mde": 3.3081088766499405,
+      "feasible": true,
+      "seeds_to_feasible": 20
+    }
+  ]
+}

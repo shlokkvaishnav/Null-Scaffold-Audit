@@ -1,24 +1,41 @@
 {
-  "gates": {},
+  "gates": {
+    "boltzmann_factor": {
+      "stage": "READY",
+      "seconds": 663.4,
+      "calibration_verdict": "NULL",
+      "null_spread": 0.0012473121137936533,
+      "ceiling": 0.010702957736895845,
+      "n_star": 40
+    },
+    "coulomb_force": {
+      "stage": "READY",
+      "seconds": 888.7,
+      "calibration_verdict": "INCONCLUSIVE",
+      "null_spread": 0.039324746264008,
+      "ceiling": 0.05114460169274868,
+      "n_star": 40
+    }
+  },
   "cells": [
     {
       "domain": "physics",
       "problem": "boltzmann_factor",
       "scaffold": "plugins.physics.audit_adapter:null_calibration",
       "selection_only": true,
-      "stage": "QUEUED",
-      "n_star": null,
+      "stage": "NULL",
+      "n_star": 40,
       "seconds": null,
-      "detail": null
+      "detail": "adopted from the gate; the calibration at n=40 is this cell"
     },
     {
       "domain": "physics",
       "problem": "boltzmann_factor",
       "scaffold": "plugins.physics.audit_adapter:wasteful_calibration",
       "selection_only": true,
-      "stage": "QUEUED",
-      "n_star": null,
-      "seconds": null,
+      "stage": "HARMFUL",
+      "n_star": 40,
+      "seconds": 590.1,
       "detail": null
     },
     {
@@ -26,9 +43,9 @@
       "problem": "boltzmann_factor",
       "scaffold": "plugins.physics.audit_adapter:oracle_calibration",
       "selection_only": true,
-      "stage": "QUEUED",
-      "n_star": null,
-      "seconds": null,
+      "stage": "HARMFUL",
+      "n_star": 40,
+      "seconds": 939.6,
       "detail": null
     },
     {
@@ -36,19 +53,19 @@
       "problem": "coulomb_force",
       "scaffold": "plugins.physics.audit_adapter:null_calibration",
       "selection_only": true,
-      "stage": "QUEUED",
-      "n_star": null,
+      "stage": "INCONCLUSIVE",
+      "n_star": 40,
       "seconds": null,
-      "detail": null
+      "detail": "adopted from the gate; the calibration at n=40 is this cell"
     },
     {
       "domain": "physics",
       "problem": "coulomb_force",
       "scaffold": "plugins.physics.audit_adapter:wasteful_calibration",
       "selection_only": true,
-      "stage": "QUEUED",
-      "n_star": null,
-      "seconds": null,
+      "stage": "HARMFUL",
+      "n_star": 40,
+      "seconds": 714.5,
       "detail": null
     },
     {
@@ -56,9 +73,9 @@
       "problem": "coulomb_force",
       "scaffold": "plugins.physics.audit_adapter:oracle_calibration",
       "selection_only": true,
-      "stage": "QUEUED",
-      "n_star": null,
-      "seconds": null,
+      "stage": "HARMFUL",
+      "n_star": 40,
+      "seconds": 622.7,
       "detail": null
     },
     {

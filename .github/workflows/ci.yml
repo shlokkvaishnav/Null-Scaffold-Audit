@@ -61,8 +61,8 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-      - run: uv sync --frozen --extra dev --extra gbm
-      - run: uv run mypy engine algorithms validators plugins cli tools
+      - run: uv sync --frozen --extra dev
+      - run: uv run mypy engine plugins cli tools
 
   test:
     name: Tests
@@ -73,7 +73,7 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-      - run: uv sync --frozen --extra dev --extra gbm
+      - run: uv sync --frozen --extra dev
       # The coverage floor covers the code written against an RFC, not the
       # tree awaiting migration. It widens as each subsystem is rebuilt; a
       # floor averaged over code that is being replaced measures nothing
@@ -101,12 +101,9 @@ jobs:
           python-version-file: .python-version
       - name: Check engine/ for scientific content
         run: python tools/check_domain_independence.py --path engine
-      # algorithms/ is gated too: a search algorithm naming a domain has
-      # stopped being reusable across them. validators/ deliberately is not,
-      # and cannot be -- constraint rules encode domain knowledge by
-      # definition. See validators/__init__.py.
-      - name: Check algorithms/ for scientific content
-        run: python tools/check_domain_independence.py --path algorithms
+      # algorithms/ and validators/ moved to archive/physics_equation_discovery/
+      # with the physics plugin; nothing domain-specific remains in the active
+      # tree outside plugins/ to gate here until plugins/nas_search/ exists.
 
   smoke-benchmark:
     name: Smoke benchmark
@@ -118,5 +115,9 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-      - run: uv sync --frozen --extra dev --extra gbm
-      - run: uv run python -m plugins.physics.benchmark_runner --subset smoke --backend gplearn
+      - run: uv sync --frozen --extra dev
+      # TODO(nas_search): replace with `uv run python -m scripts.run_null_scaffold_audit
+      # --domain nas_search --subset smoke` once plugins/nas_search/ exists.
+      # Physics benchmark runner archived with the rest of plugins/physics/ --
+      # see archive/physics_equation_discovery/README.md.
+      - run: echo "smoke-benchmark: no active domain plugin yet -- placeholder until plugins/nas_search/ lands"

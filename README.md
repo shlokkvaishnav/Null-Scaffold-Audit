@@ -3,27 +3,61 @@
 SDE is a small, domain-agnostic engine (`engine/`) that orchestrates a fixed
 workflow — load data, split, fit, predict, validate, score — while
 delegating every step that touches actual scientific content to a plugin.
-The engine doesn't know what a "physics equation" is; it only knows the
-shapes of a dataset and of an algorithm/domain plugin. Plugins are found at
-runtime via Python packaging entry points (`engine/discovery.py`), not
-hardcoded into the engine or CLI — anyone can add a plugin for their own
-domain by installing a package that declares one, with no change to this
-repo. See [docs/PLUGIN_GUIDE.md](docs/PLUGIN_GUIDE.md).
+The engine doesn't know what a "physics equation" or a "neural architecture"
+is; it only knows the shapes of a dataset and of an algorithm/domain plugin.
+Plugins are found at runtime via Python packaging entry points
+(`engine/discovery.py`), not hardcoded into the engine or CLI — anyone can
+add a plugin for their own domain by installing a package that declares one,
+with no change to this repo. See [docs/PLUGIN_GUIDE.md](docs/PLUGIN_GUIDE.md).
 
-**`plugins/physics/`** is the first plugin: an agentic system that
-automates the scientist's hypothesize → test → refine loop for closed-form
-equation discovery, using symbolic regression as the hypothesis-generation
-engine. Given any tabular dataset (features → target), it proposes candidate
-equations, scores them for fit and validity, tracks confidence across
-competing hypotheses, and iteratively refines until the hypothesis set
-converges. It's evaluated against the **AI-Feynman symbolic regression
-benchmark** — 36 real physics equations with known ground truth — reporting
-equation-rediscovery rate alongside predictive accuracy (RMSE) against
-standard ML baselines (gradient-boosted trees, small neural ensembles).
+**`engine/audit/`** is the platform's other half, and the current research
+direction: a budget-matched, pre-registered audit of whether a search
+pipeline's scaffold contributes *anything* that its own bare base searcher
+would not have produced at the same compute. It compares a wrapped pipeline
+against independent restarts of its own unwrapped searcher, using two
+one-sided equivalence tests (TOST) rather than significance testing — because
+`p > 0.05` cannot license "the scaffold does nothing," only "we couldn't
+tell." An oracle-ceiling measurement and a feasibility/minimum-detectable-effect
+pre-check decide, before a sweep runs, whether the design can resolve
+anything at all. See
+[docs/rfc/RFC-0001-null-scaffold-audit.md](docs/rfc/RFC-0001-null-scaffold-audit.md)
+for the full statistical design.
 
-Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the engine and
+## Current study: Does the Scaffold Earn Its Keep
+
+Applying that audit to Neural Architecture Search: do NAS controllers (via
+[NASLib](https://github.com/automl/NASLib) — `DARTSOptimizer`,
+`GDASOptimizer`, `RegularizedEvolution`, `BANANAS`, and others) actually beat
+budget-matched independent restarts of random search, on real (non-uniform)
+NAS-Bench-style benchmark distributions
+([NATS-Bench](https://arxiv.org/abs/2009.00437))? This question goes back to
+Li & Talwalkar's *"Random Search and Reproducibility for Neural Architecture
+Search"* (2019) and is still actively contested. Zero training compute is
+required — NATS-Bench is a tabular lookup of precomputed architecture
+accuracies, so the whole study runs from downloaded tables, not GPUs.
+
+`plugins/nas_search/` is not yet implemented — see the migration report for
+this pivot for current status and next steps.
+
+## The archived direction: physics equation discovery
+
+The project's original plugin, `plugins/physics/` — an agentic
+hypothesize→verify→refine loop wrapping symbolic regression, benchmarked
+against the 36-equation AI-Feynman set — is preserved under
+[`archive/physics_equation_discovery/`](archive/physics_equation_discovery/README.md),
+not deleted. It's kept because it's the reason `engine/audit/` exists: its
+scaffold was found, by accident, to produce character-identical output across
+all three of its "refine" iterations (a fixed random seed meant the loop
+never actually looped), and nothing in the pipeline would have noticed
+without the audit that was subsequently built to catch exactly that failure
+mode. That finding — and the audit results showing the scaffold was
+statistically indistinguishable from, or worse than, plain restarts — is the
+one piece of verified evidence this project has produced to date. It is not
+under active development.
+
+Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the engine and a
 plugin fit together, and [docs/PLUGIN_GUIDE.md](docs/PLUGIN_GUIDE.md) if
-you're adding a new algorithm or scientific domain.
+you're adding a new algorithm or domain.
 
 ## Quick start
 
@@ -31,52 +65,37 @@ you're adding a new algorithm or scientific domain.
 docker compose up --build
 ```
 
-No local Python install, no host `pip install` — everything (symbolic
-regression backend, ML baselines, API server, CLI) runs inside the
-container. The physics plugin's API is then available at
-`http://localhost:8000` (interactive docs at `/docs`).
+No local Python install, no host `pip install` — everything runs inside the
+container.
 
 ```bash
 docker compose run --rm api pytest tests/ -v
 docker compose run --rm api sde list-plugins
-docker compose run --rm api sde run configs/run/coulomb_symbolic.yaml
 ```
 
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for local (non-Docker) setup,
-the full test/CI breakdown, and reproducing paper benchmark results.
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for local (non-Docker) setup
+and the full test/CI breakdown.
 
 ## The `sde` CLI
 
 ```bash
-sde list-plugins                                    # what's registered
-sde run configs/run/coulomb_symbolic.yaml           # run one domain+algorithm plugin pair
+sde list-plugins    # what's registered -- currently empty until plugins/nas_search/ lands
+sde run <config>    # run one domain+algorithm plugin pair
 ```
-
-## The physics plugin API
-
-The FastAPI service is a separate, direct way to drive the physics plugin's
-plugin (upload a CSV, get back a discovered equation) — independent of the
-engine/CLI path above.
-
-| Endpoint | Description |
-|---|---|
-| `POST /datasets` | Upload a CSV (multipart `file`, optional `target_column` form field, defaults to the last column) |
-| `GET /datasets/{id}` | Dataset metadata (feature names, row count) |
-| `POST /jobs` | Submit a discovery job for a dataset (runs in the background) |
-| `GET /jobs/{id}` | Poll job status; once done, returns the discovered equation, RMSE, and a confidence score |
-| `GET /benchmark/feynman?subset=smoke` | Run a quick Feynman rediscovery check synchronously and return the results table |
-| `GET /health` | Liveness check |
 
 ## Repository layout
 
 ```
-engine/             the platform: plugin contract, registry, orchestrator, config schemas
-cli/                 the `sde` command-line entry point
-plugins/physics/    the first domain plugin: the DiscoveryAgent loop, Feynman data, FastAPI service
-configs/run/         single orchestrator runs
-scripts/             audit runner, selection-ceiling runner, summariser
-tests/               pytest suite
-docs/                architecture, plugin guide, development guide
+engine/                          the platform: plugin contract, registry, orchestrator,
+                                  config schemas, and the audit mechanism (engine/audit/)
+cli/                              the `sde` command-line entry point
+plugins/nas_search/              NOT YET IMPLEMENTED -- the current research direction
+scripts/                          audit runner, selection-ceiling runner, feasibility
+                                  pre-check, research queue, summariser
+tests/                            pytest suite
+docs/                              architecture, plugin guide, development guide, RFC/ADR
+archive/physics_equation_discovery/  the original, now-archived research direction --
+                                  see its own README for what's there and why
 ```
 
 Full breakdown in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

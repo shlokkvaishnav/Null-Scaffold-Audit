@@ -1,4 +1,13 @@
-name: Full Feynman Benchmark
+name: NAS Scaffold Audit Benchmark
+
+# "Does the Scaffold Earn Its Keep" -- the full null-scaffold audit (TOST
+# equivalence testing, budget-matched random-search restarts, oracle-ceiling
+# feasibility gate) run against NAS controllers via NASLib, over NATS-Bench
+# lookup tables. Replaces the archived Feynman physics-equation benchmark --
+# see archive/physics_equation_discovery/README.md for that history.
+#
+# TODO(nas_search): the run step below is a placeholder until
+# plugins/nas_search/ exists and is registered as an sde.plugins entry point.
 
 on:
   workflow_dispatch:
@@ -13,9 +22,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -e ".[dev,gbm]"
-      - run: python -m plugins.physics.benchmark_runner --subset all --backend gplearn
+      - run: pip install -e ".[dev,nas]"
+      - name: NAS scaffold audit (placeholder)
+        run: echo "plugins/nas_search/ not yet implemented -- see README.md and the migration report for this pivot"
       - uses: actions/upload-artifact@v4
         with:
-          name: feynman-benchmark-results
-          path: results/feynman_benchmark/
+          name: nas-audit-results
+          path: results/

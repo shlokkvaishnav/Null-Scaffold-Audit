@@ -1,0 +1,52 @@
+{
+  "config": {
+    "domain": "physics",
+    "scaffold": "plugins.physics.audit_adapter:DiscoveryAgentScaffold",
+    "metric": "rmse",
+    "seeds": 3,
+    "restarts": 3,
+    "n_samples": 200,
+    "population_size": 100,
+    "generations": 5,
+    "evaluations_per_fit": 500,
+    "problems_completed": 3
+  },
+  "rows": [
+    {
+      "domain": "physics",
+      "problem": "coulomb_force",
+      "metric": "rmse",
+      "ceiling": 0.03295016370942216,
+      "ceiling_sd": 0.022811077964955014,
+      "margin": 0.004381262751192173,
+      "ratio": 7.520700213758278,
+      "reachable": true,
+      "seeds": 3,
+      "restarts": 3
+    },
+    {
+      "domain": "physics",
+      "problem": "snells_law",
+      "metric": "rmse",
+      "ceiling": 0.053119088412376995,
+      "ceiling_sd": 0.04617099802158383,
+      "margin": 0.0177206211021318,
+      "ratio": 2.9975861515365705,
+      "reachable": true,
+      "seeds": 3,
+      "restarts": 3
+    },
+    {
+      "domain": "physics",
+      "problem": "kinetic_energy",
+      "metric": "rmse",
+      "ceiling": 0.0,
+      "ceiling_sd": 0.0,
+      "margin": 83.99520401675193,
+      "ratio": 0.0,
+      "reachable": false,
+      "seeds": 3,
+      "restarts": 3
+    }
+  ]
+}
