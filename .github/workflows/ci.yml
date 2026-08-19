@@ -120,4 +120,5 @@ jobs:
       # --domain nas_search --subset smoke` once plugins/nas_search/ exists.
       # Physics benchmark runner archived with the rest of plugins/physics/ --
       # see archive/physics_equation_discovery/README.md.
-      - run: echo "smoke-benchmark: no active domain plugin yet -- placeholder until plugins/nas_search/ lands"
+      - run: |
+          echo "smoke-benchmark: no active domain plugin yet -- placeholder until plugins/nas_search/ lands"
