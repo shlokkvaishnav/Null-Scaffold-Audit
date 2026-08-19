@@ -80,10 +80,17 @@ target-version = "py311"
 # inside them are illustrations chosen by their author -- reflowing those to
 # satisfy a formatter would edit someone's argument to suit a tool. The code
 # they describe is formatted; the description of it is not.
+#
+# research/*.md gets the same treatment for the same reason -- ruff format
+# reformats Python code fences embedded in Markdown, and research/ carries
+# governance docs (AUDIT_METHODOLOGY.md, etc.) with illustrative snippets,
+# not this project's actual source. Excluded by pattern, not by directory:
+# a future research/*.py analysis script should still be linted normally.
 extend-exclude = [
     "results",
     "docs",
     "archive",
+    "research/*.md",
     # Skill packages installed via skills.sh (npx skills add) -- documentation
     # with embedded code samples, not this project's source.
     ".agents",
