@@ -2,6 +2,8 @@
 
 `main` is the validated research state, not just working code. Branches are where uncertainty gets explored. This document says how those two things stay separate on purpose.
 
+This document is the policy. [`AGENT_PIPELINE.md`](AGENT_PIPELINE.md) is how three separate Claude Code sessions (researcher, implementer, reviewer) carry it out, coordinating through GitHub issues/PRs/labels instead of live messaging.
+
 A branch is not merged because it works or produces a better number. It is merged when it is validated, reproducible, documented, and useful to the research — and a branch that disproves a hypothesis, rules out a mechanism, or produces a negative result can satisfy all four of those without ever changing a line of the implementation. `engine/audit/`'s own verdict enum makes exactly this distinction at the statistical level (`NULL` is a positive finding, not a failure) — this document makes the same distinction at the workflow level.
 
 ## Branch types

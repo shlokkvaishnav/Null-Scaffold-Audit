@@ -57,6 +57,8 @@ research/                          the research, not the code that runs it -- se
   GIT_WORKFLOW.md                  how branches, merges, and history work in this repository
   DECISION_LOG.md                  why things are the way they are, newest first
   SPEC_TEMPLATE.md                 the spec a research branch fills in before implementation
+  AGENT_PIPELINE.md                how three Claude Code sessions (researcher, implementer,
+                                    reviewer) carry the above out via GitHub issues/PRs/labels
 
 engine/                          the platform: plugin contract, registry, orchestrator,
                                   config schemas -- and the audit mechanism, engine/audit/
