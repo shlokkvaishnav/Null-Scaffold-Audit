@@ -215,12 +215,146 @@ Same as PR #16/#18 -- budget-matched independent restarts of the identical
 
 ## Results
 
-*(Filled in after the experiment runs.)*
+Full artifacts:
+`results/basinhopping_audit_ackley_power/{audit.json,audit.csv}`. Seeds
+verified disjoint from every prior block (`tests/test_plugin_
+basinhopping_ackley_power_experiment.py`): this branch's pilot (3000-3014)
+and real sweep (20000+) share nothing with PR #16's pilot (1000-1014) /
+real sweep (0-59) or PR #18's pilot (2000-2014) / real sweep (10000-10059).
+
+**The fresh pilot's spread estimate differed substantially from PR #18's,
+exactly the discrepancy `ACKLEY_POWER_SPEC.md`'s "Confounds considered"
+anticipated as possible:** PR #18's 15-seed pilot (seeds 2000-2014)
+measured a paired-difference spread of 0.366, implying `n=135`; this
+branch's 15-seed pilot (seeds 3000-3014), on the *identical* configuration
+(same function, stepsize, niter), measured a spread of **1.090** -- roughly
+3x larger -- implying `n=1971`, not 135. Per the pre-registered rule, the
+fresh estimate was used as-is, uncapped: the real sweep ran at **n=1971**,
+not PR #18's number and not any hardcoded ceiling.
+
+**Result: `HARMFUL`, decisively.**
+
+| | value |
+|---|---|
+| observed difference (ctrl - treat, oriented) | -0.876 |
+| 90% CI | [-0.917, -0.830] |
+| margin | ±0.072 |
+| n | 1971 |
+| p-value | 5.76e-165 |
+| power (TOST-for-NULL, see note below) | 0.708 |
+| degeneracy | not degenerate (0/1971, mean distinct ratio 0.988) |
+| selection ceiling | 0.0 |
+| identical-representation rate | 0.0 (not vacuous) |
+
+The effect (-0.876) is ~12x the margin (0.072), and the CI's nearer bound
+(-0.830) still clears the margin by more than 11x. The `p-value` of
+5.76e-165 leaves essentially no room for this being a sampling artifact.
+The reported `power=0.708` is, as with PR #16's Rastrigin row, the
+probability of establishing *equivalence* if the true effect were zero --
+not the strength of this `HARMFUL` claim, which the CI position and
+p-value already establish overwhelmingly. `n_for_target_power=2320` (only
+~18% more than the 1971 actually run) confirms this was already close to
+fully powered for the NULL question too, for what that number is worth
+here.
 
 ## Interpretation
 
-*(Filled in after the experiment runs.)*
+**Ackley's verdict is now determinate: `HARMFUL`, not `NULL` as this
+branch's own directional hypothesis predicted.** SPEC.md explicitly
+anticipated this as a live, equally valuable alternative outcome ("Null
+(would contradict the hypothesis): at adequate power, the verdict is
+`HARMFUL` or `CONTRIBUTES`"), and that is what happened -- the hypothesis
+being wrong does not make this branch's result less complete or less
+useful. PR #18's `INCONCLUSIVE` (60 seeds, underpowered) is now resolved:
+it was not a coin-flip between `NULL`, `HARMFUL`, and `CONTRIBUTES` that
+happened to land on the fence -- the true effect was a real, substantial,
+harmful one that 60 seeds simply could not resolve from noise.
+
+**This closes the basinhopping-audit line of research (issues #15, #17,
+#19) with all three functions now determinate and well-evidenced:**
+Rastrigin `CONTRIBUTES` (PR #16/#18, unchanged), Griewank `NULL` (PR #18,
+power ~1.00), Ackley `HARMFUL` (this branch, p=5.76e-165). Read together
+with issue #17's finding: the domain-scaled stepsize did genuinely resolve
+the *reliability* question for Ackley (PR #16's `HARMFUL` under a
+mismatched stepsize was not trustworthy evidence about the mechanism), but
+it did **not** resolve to "no harm" -- it resolved to a *different*,
+well-evidenced `HARMFUL` verdict under the corrected, domain-scaled
+stepsize. Basin-hopping's step-taking mechanism, even scaled to Ackley's
+domain width in the same proportion that produces a strong `CONTRIBUTES`
+on Rastrigin, measurably underperforms blind restarts on Ackley at this
+budget. Whatever is different about Ackley's landscape (its many, uniformly
+small-amplitude local minima packed across a much larger domain, versus
+Rastrigin's more localized bowl-and-ripple structure) apparently makes this
+scaffold's specific mechanism a poor fit, not merely under-tuned.
+
+**Also notable and worth flagging explicitly, per the issue's own framing:**
+the pilot-based feasibility approach used throughout this line of work is
+fragile for Ackley specifically -- two independent 15-seed pilots on the
+literal same configuration produced spread estimates (0.366 vs 1.090) that
+implied required sample sizes differing by ~15x (135 vs 1971). This is not
+a bug in `required_sample_size` or in either pilot's execution; it reflects
+genuine sampling variance in estimating a standard deviation from only 15
+observations, made worse if the underlying paired-difference distribution
+is heavy-tailed or occasionally produces an outlier run (plausible for a
+stochastic global-search method on a landscape with many local minima).
+This is exactly the generalizable observation `STEPSIZE_SPEC.md`/this
+issue flagged as worth a possible future `method/` issue (a 15-seed pilot
+may simply be too small to reliably estimate `n` for some designs) -- noted
+here, not chased further, per this branch's own scope.
+
+**What this does NOT establish:**
+
+- Why Ackley specifically resists this scaffold's mechanism even under a
+  correctly-scaled stepsize -- this branch resolves *that* it is `HARMFUL`
+  at adequate power, not the underlying reason.
+- Whether a different stepsize (not derived from Rastrigin's ratio),
+  different `niter`, or different local minimizer would change Ackley's
+  verdict -- all held fixed by design, per `STEPSIZE_SPEC.md`'s original
+  scope, unrevisited here.
+- Whether 15-seed pilots are generally too small for this project's
+  feasibility-probe convention across other problems/domains -- one
+  documented instance of high pilot-to-pilot variance on one function is
+  not a general claim about the convention.
+- Anything about ScaffoldSafety/GAIA or `naslib`-blocked README item 3.
 
 ## Decision
 
-*(Filled in after the experiment runs.)*
+**MERGE.** Checked against `GIT_WORKFLOW.md`'s nine criteria:
+
+- **Scientific relevance:** resolves the last open thread in the
+  basinhopping-audit line of research (issues #15, #17), completing all
+  three functions with determinate, well-evidenced verdicts.
+- **Correctness:** seed disjointness from all four prior blocks verified
+  by test, not just claimed; the uncapped seed-count logic
+  (`MIN_SEEDS` as a floor, no ceiling) verified by test to have no
+  `MAX_SEEDS`-style attribute.
+- **Experimental validity:** fresh feasibility probe on this exact
+  configuration used as-is, not reverted to PR #18's smaller estimate for
+  convenience, per the pre-registered rule -- even though the resulting
+  seed count (1971) was far larger than expected.
+- **Reproducibility:** deterministic given fixed seeds; full config,
+  including the fresh-vs-prior probe comparison, travels with the result.
+- **Documentation:** this file; the module docstring states the exact
+  defect being corrected (PR #18's `MAX_SEEDS` cap silently overriding its
+  own feasibility probe) and why it doesn't apply here.
+- **Interpretation:** stated above, including the explicit acknowledgment
+  that the directional hypothesis was wrong and what the pilot-variance
+  finding does and does not establish.
+- **Research integrity:** the hypothesis (`NULL`) was not confirmed, and
+  this is reported as the actual, more informative result rather than
+  reframed or downplayed; the substantial pilot-to-pilot spread
+  discrepancy is surfaced rather than smoothed over.
+- **Integration:** additive; new script and results directory only, does
+  not touch or overwrite PR #16's or PR #18's `SPEC.md`/`STEPSIZE_SPEC.md`,
+  code, or results artifacts.
+- **Evidence:** a real, very well-powered sweep (1971 seeds, p=5.76e-165)
+  against real `scipy` code -- among the most decisive single-metric
+  results this project has produced.
+
+Follow-up for the researcher, not this branch: whether the pilot-spread
+instability observed here (15 seeds insufficient to reliably estimate `n`
+for this configuration) warrants a `method/` issue about
+`plugins/basinhopping_audit`'s (or the project's general) feasibility-probe
+convention; and whether investigating *why* Ackley resists basin-hopping's
+mechanism (distinct from confirming *that* it does) is worth a further
+`research/`-scale question.
