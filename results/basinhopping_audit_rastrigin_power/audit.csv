@@ -1,0 +1,2 @@
+function,stepsize,verdict,observed_difference,ci_low,ci_high,margin,power,n,ceiling,ceiling_upper,degenerate
+rastrigin,0.5,CONTRIBUTES,17.94402534728368,16.973945266829055,18.904156495521388,1.3020182276829784,0.43741198267969317,200,0.0,0.0,False
