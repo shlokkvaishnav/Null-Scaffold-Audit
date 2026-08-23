@@ -287,12 +287,124 @@ other baseline is used.
 
 ## Results
 
-*(Filled in after the experiment runs.)*
+Full artifacts: `results/nas_search_self_audit/audit.json`,
+`results/nas_search_self_audit/audit.csv`. Config: NATS-Bench-tss "simple"
+file (v1.0-3ffb9), dataset `cifar10-valid`, hp `200` (full 200-epoch
+training record), `is_random=False` (mean over recorded training seeds).
+`RandomSearch(budget=50)`, `IdentityRestartScaffold(restarts=3)`, 30 seeds,
+90% confidence.
+
+**Pre-registered margin** (fixed before the 30-seed sweep below ran, from a
+separate 20-seed feasibility probe on this exact problem/searcher pair):
+`valid_accuracy` margin = 0.3 percentage points. That probe measured a
+paired-difference spread of 0.315pp, giving a minimum detectable effect of
+0.143pp at n=30 (alpha=0.05 one-sided, power=0.80) -- comfortably resolvable
+at the chosen margin. See `plugins/nas_search/run_self_audit.py`'s module
+docstring for the full derivation.
+
+**Selection ceiling** (`scripts/measure_selection_ceiling.py`'s underlying
+`engine.audit.calibration.selection_ceiling`, 10 seeds, 3 restarts): ceiling
+= 0.0 exactly (`ceiling_upper` = 0.0), against a metric spread of 0.36pp
+within a seed's sampled candidates -- the "faithful" case
+(`measure_selection_ceiling.py`'s own classification), not "tied": restarts
+land on genuinely different architectures, and `RandomSearch.select()`
+already picks the best of what it sampled every time, so there is no
+selection-only headroom available for any wrapper at this budget. This
+matches the expected outcome stated above exactly.
+
+**Audit** (30 seeds, budget=50/restart, restarts=3 -> 4500 evaluations per
+arm, matched exactly):
+
+| metric | verdict | observed diff | 90% CI | margin | power | p |
+|---|---|---|---|---|---|---|
+| valid_accuracy | **NULL** | -0.100pp | [-0.197, -0.008] | ±0.3pp | 0.998 | 0.00092 |
+
+- **Overall verdict: NULL.**
+- **Degeneracy pre-check: not degenerate.** 0/30 runs produced a single
+  distinct proposal; mean distinct ratio 1.00 (every one of the 3 restarts
+  within every one of the 30 scaffold invocations landed on a different
+  architecture). This directly rules out the founding-incident failure mode
+  (a fixed/unthreaded seed collapsing "independent" restarts to the same
+  output) for this plugin's `RandomSearch` implementation.
+- **Identical-representation rate: 0.000** (0/30 seeds). The comparison is
+  not vacuous (`AuditReport`'s vacuous-comparison guard did not fire, and
+  did not need to: `audit.json`'s `arms.treatment_representations` and
+  `arms.control_representations` show no seed where the two arms picked the
+  same architecture index).
+- **Exact-architecture-match rate** (SPEC.md's declared paired-binary
+  metric): reported via `arms.identical_representation_rate` rather than
+  a second Holm-corrected margin verdict -- see
+  `plugins/nas_search/run_self_audit.py`'s module docstring for why this
+  metric's shape (a comparison *between* the two arms' outcomes) does not
+  fit `engine.audit.arms.audit()`'s `margins`/`paired_binary` machinery,
+  which tests two independent *per-arm* success rates. This is an
+  implementation-level finding from writing this branch, not a silent
+  substitution: the rate is 0.000, which answers what SPEC.md asked
+  ("did the two arms' best-found architecture ID match") directly, just not
+  through the TOST/Tango pathway the issue anticipated.
 
 ## Interpretation
 
-*(Filled in after the experiment runs.)*
+This establishes what the issue asked for and nothing more. `RandomSearch`
+and `IdentityRestartScaffold` -- the first `BaseSearcher`/`Scaffold`
+implementations wired to a real external benchmark rather than a synthetic
+or in-house problem -- produce the verdict the audit's statistical
+machinery is supposed to produce for a scaffold that is null by
+construction, at a budget the feasibility probe confirmed could resolve an
+effect at the pre-registered margin if one existed. The `RandomSearch`
+seeding bug this issue was specifically checking for (a fixed/unthreaded
+random state collapsing independent restarts to identical output --
+this project's own founding incident) does not reproduce here: the
+degeneracy pre-check found genuine variety on every single run.
+
+This does **not** establish that NAS controllers can or cannot beat
+budget-matched random search (README item 3) -- no controller was audited
+here, only `RandomSearch` against itself. It also does not establish
+anything about the `sss` (size) search space, other datasets, other hp
+settings, or other budgets; nullity is indexed by budget and by problem
+per `AUDIT_METHODOLOGY.md` §4.1, and this run covers exactly one point in
+that space. The paired-binary "exact architecture match" metric SPEC.md
+declared was not run through the audit's Holm-corrected margin pathway, for
+the structural reason given above -- this is a genuine gap between what the
+issue anticipated and what `engine.audit.arms.audit()` currently supports
+for a between-arm comparison metric, worth a researcher-filed issue of its
+own if that shape is wanted generally, but out of this branch's scope to
+add unilaterally.
 
 ## Decision
 
-*(Filled in after the experiment runs.)*
+**MERGE.** All nine `GIT_WORKFLOW.md` merge criteria are met:
+
+- **Scientific relevance:** directly answers README item 2's explicit
+  next step and unblocks item 3.
+- **Correctness:** implementation matches SPEC.md's design; no shortcuts
+  taken (real 1.1GB NATS-Bench data, not a mock, for the actual sweep --
+  `tests/test_plugin_nas_search.py` uses a fake only for the unit suite,
+  documented as such).
+- **Experimental validity:** budget-matched control (not "no scaffold"),
+  feasibility checked before the sweep, margin pre-registered before the
+  sweep ran.
+- **Reproducibility:** `results/nas_search_self_audit/audit.json` carries
+  full config (dataset, hp, budget, restarts, seeds, margin); re-running
+  `plugins.nas_search.run_self_audit` with the same NATS-Bench file and the
+  fixed seeds 0-29 is deterministic (`np.random.default_rng(seed)`,
+  `is_random=False` lookups).
+- **Documentation:** this file plus module-level docstrings throughout
+  `plugins/nas_search/`.
+- **Interpretation:** stated above, including what this run does not
+  establish.
+- **Research integrity:** the paired-binary metric gap is recorded here
+  rather than glossed over or silently dropped.
+- **Integration:** `plugins/nas_search/` is additive; `register()` is a
+  no-op without `NATS_BENCH_TSS_SIMPLE_PATH` set, so it changes nothing for
+  anyone who has not opted in (CI included -- the `nas` extra and this env
+  var are both absent there by design).
+- **Evidence:** a real 30-seed sweep against real benchmark data, not a
+  simulated or mocked result.
+
+Follow-up, for the researcher session, not this branch: file the
+README-item-3 issue (real NAS controller vs. budget-matched random search)
+once the `naslib` blocker is resolved -- this branch's `RandomSearch` is
+its control arm. Also worth a researcher's judgment: whether
+`engine.audit.arms.audit()` should grow a metric shape for between-arm
+paired-binary comparisons (the gap noted above), as a `method/` issue.
