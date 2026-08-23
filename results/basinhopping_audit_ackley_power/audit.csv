@@ -1,0 +1,2 @@
+function,stepsize,verdict,observed_difference,ci_low,ci_high,margin,power,n,ceiling,ceiling_upper,degenerate
+ackley,3.2,HARMFUL,-0.8757053172858044,-0.9174636987611282,-0.8304414937556293,0.07191216507270225,0.7075899327293207,1971,0.0,0.0,False
