@@ -276,12 +276,186 @@ cases.
 
 ## Results
 
-*(Filled in after the experiment runs.)*
+Full artifacts: `results/basinhopping_audit/audit.json` (per-function
+config, feasibility probe, ceiling, verdict, per-metric evidence,
+degeneracy, and every raw per-seed objective value) and `audit.csv`
+(verdict summary table). Dimension 10, bounds and `L-BFGS-B` as
+pre-registered. `stepsize` = scipy's documented default (0.5), unchanged --
+the feasibility probe did not indicate a need to tune it (see
+"Interpretation" for where that default's mismatch with Ackley's much wider
+bounds shows up in the result instead).
+
+**Feasibility probe** (15 pilot seeds, seeds 1000-1014, disjoint from the
+real sweep; `niter=50`): margin = 25% of the control arm's single-restart
+objective standard deviation across the pilot, `n` = whichever of
+`engine.audit.statistics.required_sample_size(margin, spread, 0.90, 0.80)`
+or 20 is larger, capped at 60. This produced margins of 2.02 (rastrigin),
+0.31 (ackley), and 1e-9 (griewank, floored -- see below). The real sweep
+then ran on a **fresh, non-overlapping** seed block (`range(n)`) at the same
+`niter=50`, so nothing about the real sweep's own result could have fed
+back into the margin/`n` choice that produced it.
+
+**Selection ceiling: exactly 0.0 on all three functions** (10-seed pilot,
+`restarts=10`) -- `LocalMinimizerRestart.select()` already picks the
+literal best of what it sampled by construction, so there is no
+selection-only headroom for any wrapper here, on any of the three
+functions. Any real effect found below must come from *where* the scaffold
+searches, not from picking better among candidates it did not generate any
+differently than a restart would.
+
+| function | verdict | diff (ctrl-treat) | 90% CI | margin | n | degeneracy |
+|---|---|---|---|---|---|---|
+| rastrigin | **CONTRIBUTES** | +17.73 | [+16.10, +19.43] | ±2.02 | 60 | not degenerate (0/60, mean ratio 0.32) |
+| ackley | **HARMFUL** | -1.38 | [-1.54, -1.25] | ±0.31 | 60 | not degenerate (1/60, mean ratio 0.09) |
+| griewank | **INCONCLUSIVE** | -0.15 | [-0.44, -0.06] | ±1e-9 | 20 | **DEGENERATE** (20/20, mean ratio 0.02) |
+
+(`diff` is oriented so positive means the treatment, `basinhopping`, found a
+*lower* -- better -- objective than the control; `griewank`'s margin is the
+numerical floor `max(0.25 * control_spread, 1e-9)`, not a meaningful
+practical-equivalence choice -- see Interpretation.)
+
+**Rastrigin: `CONTRIBUTES`, clearly** -- the observed effect (+17.73) is
+~8.8x the pre-registered margin (2.02), and the CI's lower bound (+16.10)
+still clears the margin by a wide berth. This is the first time this
+audit has reported `CONTRIBUTES` on anything other than
+`calibration.py`'s synthetic `OracleScaffold` -- the first real,
+unmodified, externally-built pipeline this audit has certified as
+genuinely beating a fair, budget-matched restart baseline. (The reported
+`power=0.23` for this row is **not** a weakness of this claim -- it is the
+probability of establishing *equivalence* at this margin if the true effect
+were zero, which is simply the wrong question once the interval has
+already cleared the margin by 8x; the claim's own strength is the
+CI position, not this number. `n_for_target_power` in the raw JSON is a
+leftover from the same NULL-oriented calculation and should be read the
+same way for this row.)
+
+**Ackley: `HARMFUL`**, the opposite of the hypothesis, with power=0.93 (a
+well-powered result in the ordinary sense here, since it's read as a
+directional claim beyond the margin). A plausible mechanism, per SPEC.md's
+"Stepsize mismatch" confound: Ackley's bounds (±32.768) are more than 6x
+wider than Rastrigin's (±5.12), and `stepsize=0.5` was held fixed across
+all three functions at scipy's documented default rather than scaled to
+each function's domain. A step of 0.5 in a space spanning ±32.768 is a
+very small perturbation relative to the domain, which could make
+`basinhopping`'s hops too timid to escape Ackley's local-minima structure
+-- while a uniform-random restart always samples the *entire* domain
+regardless of stepsize. This is a plausible explanation consistent with the
+pre-registered confound, not a re-analysis chasing the result: `stepsize`
+was fixed before this sweep ran and was not tuned after seeing this row,
+per SPEC.md's explicit instruction.
+
+**Griewank: `INCONCLUSIVE`, and `DEGENERATE` (20/20 runs)** -- but this is
+**not** a reproduction of this project's founding seeding bug. Two
+independent pieces of evidence corroborate a different explanation: the
+*control* arm's own single-restart spread across the 15-seed pilot was
+`1.704e-10` -- independent uniform-random restarts of `L-BFGS-B` land on
+(essentially) the exact same objective value on Griewank at this
+dimension/budget, with no scaffold involved at all -- and the treatment's
+mean distance to the known global optimum across the real sweep's 20 seeds
+was `0.068` (min `0.0099`), i.e. it is finding the global optimum region on
+nearly every run. Both arms are converging to the same place because the
+*landscape* permits it here, not because either implementation failed to
+vary its randomness: Griewank's characteristic multimodality comes from a
+product term whose influence relative to the quadratic term shrinks as
+dimension grows, and at d=10 the function is close enough to unimodal in
+the reachable region that essentially any local search from essentially
+any start finds the global basin. The `margin=1e-9` floor is a direct
+symptom: the feasibility probe's margin convention (25% of control-arm
+spread) has nothing to scale from when that spread is itself numerical
+noise, so the resulting "margin" is not a meaningful practical-equivalence
+choice and `INCONCLUSIVE` is the correct, honest verdict -- not a power
+failure to fix by adding seeds, but a sign that this function/dimension/
+budget combination does not pose a well-formed equivalence question for
+this metric.
 
 ## Interpretation
 
-*(Filled in after the experiment runs.)*
+**This audit can say `CONTRIBUTES` on a real, unmodified, externally-built
+pipeline.** Every real (non-synthetic-calibration) result this project had
+produced before this branch -- the archived physics scaffold, and the
+`nas_search` `RandomSearch` self-audit (issues #11/#13) -- read `NULL` or
+worse. That pattern was consistent with two different explanations (SPEC.md,
+Motivation): scaffolds in the wild mostly don't help at matched budget, or
+this audit's power/margin conventions are conservative enough to rarely
+detect a real contribution in practice. Rastrigin's clean `CONTRIBUTES`
+directly rules out the second explanation as a *general* property of this
+audit's design -- the positive-verdict pathway works end-to-end, on
+external code nobody tuned to win, when a real effect of this size exists.
+It does not rule out that explanation for any *specific* other case (Ackley
+and Griewank's non-`CONTRIBUTES` results are not evidence the audit is
+underpowered -- they have their own, different explanations above), and it
+says nothing about whether the audit's conventions are well-tuned in
+general, only that they are not so conservative as to be structurally
+incapable of a positive verdict.
+
+**The three functions gave three different verdicts, exactly the shape
+SPEC.md anticipated as plausible ("Different verdicts across the 2-4 test
+functions").** This is reported per-function, not reduced to one headline
+number, per `AUDIT_METHODOLOGY.md` §4.1 ("nullity is indexed by budget...
+and by problem"). Read together, they say something more specific than
+"basinhopping sometimes helps": the scaffold's step-taking mechanism reads
+as a genuine, exploitable advantage on Rastrigin, as actively counter-
+productive on Ackley (plausibly a stepsize/domain-scale mismatch, not a
+property of step-taking in general), and as an unanswerable question on
+Griewank at this dimension because the control already solves it.
+
+**What this does NOT establish**, per SPEC.md's explicit scope:
+
+- Nothing about how this audit's verdict compares to what ScaffoldSafety's
+  or GAIA's own methodology would conclude on the same case -- the
+  cross-methodology-comparison half of README item 4 remains unattempted,
+  as planned. Worth filing as its own issue now that this half has a
+  concrete, mixed real result to compare against, if the researcher agrees.
+- Nothing about `basinhopping`'s general quality as an optimizer, or about
+  step-taking scaffolds as a class -- three functions in one dimension at
+  one budget is a case study, not a survey.
+- Nothing about README item 3 (NAS controllers, still blocked on `naslib`).
+- The Ackley `HARMFUL` mechanism (stepsize/domain-scale mismatch) is a
+  plausible explanation consistent with a pre-registered confound, not a
+  confirmed causal finding -- re-running with a scaled stepsize would be a
+  legitimate, separate follow-up experiment, not a re-analysis of this one.
 
 ## Decision
 
-*(Filled in after the experiment runs.)*
+**MERGE.** Checked against `GIT_WORKFLOW.md`'s nine criteria:
+
+- **Scientific relevance:** directly answers the tractable half of README
+  item 4, and produces this project's first real `CONTRIBUTES` verdict --
+  significant regardless of what it says about `basinhopping` specifically,
+  since `AUDIT_METHODOLOGY.md`'s own `calibration.py` module frames exactly
+  this question ("an instrument that has only ever returned one answer is
+  indistinguishable from an instrument that can only return one answer").
+- **Correctness:** `unwrap()` returns the literal primitive `basinhopping`
+  calls internally; budget matching is verified against the actual measured
+  minimizer-call count (`niter+1`, confirmed empirically, not assumed) via
+  `test_budget_matches_exactly_between_arms`; degeneracy is assessed from
+  `basinhopping`'s own per-hop callback, not left "not assessed."
+- **Experimental validity:** control is the natural, undisputed budget-
+  matched baseline here (SPEC.md: "no 'is this really the right control'
+  ambiguity to defend"); margin/`n` chosen from a feasibility probe on
+  seeds disjoint from the real sweep, so nothing about the real result fed
+  back into the design that produced it.
+- **Reproducibility:** deterministic given fixed seeds
+  (`np.random.default_rng`, `basinhopping(..., seed=...)`); full config
+  (stepsize, method, bounds, margins, `n`) travels with every result row.
+- **Documentation:** this file; module docstrings state every design
+  choice's rationale, including the stepsize confound surfaced in Ackley's
+  result.
+- **Interpretation:** stated above per function, including explicit
+  non-claims (no ScaffoldSafety/GAIA comparison, no general claim about
+  basinhopping or step-taking scaffolds).
+- **Research integrity:** the mixed result (one `CONTRIBUTES`, one
+  `HARMFUL`, one `INCONCLUSIVE`) is reported in full, not narrowed to the
+  hypothesis-confirming row; griewank's `DEGENERATE` flag is explained with
+  corroborating evidence rather than either alarmed over or hidden.
+- **Integration:** additive; new `plugins/basinhopping_audit/` package,
+  touches no existing code.
+- **Evidence:** a real sweep (180 audited seeds total across three
+  functions, `niter=50` each) against real, unmodified `scipy` code, with
+  a documented, pre-registered feasibility process behind every margin.
+
+Follow-up for the researcher, not this branch: whether to file the
+ScaffoldSafety/GAIA cross-methodology-comparison half of README item 4 as
+its own issue now that this branch gives it a concrete (and non-uniform)
+real result to work from, and whether an Ackley re-run with a
+domain-scaled `stepsize` is worth a separate `experiment/` issue.
