@@ -221,12 +221,122 @@ audit at δ = 0.3pp itself, which every swept result is compared back against.
 
 ## Results
 
-*(Filled in after the analysis runs.)*
+Full artifacts: `results/nas_margin_sensitivity/summary.csv` (the coarse
+margin -> verdict sweep, 0.001pp to 1.2pp in 0.001pp steps),
+`results/nas_margin_sensitivity/summary.md` (this section's source).
+`report.json` is written locally by the script but not committed (its
+content -- CI bounds, crossovers, distance -- already lives in `summary.md`
+and `summary.csv`; committing a third redundant artifact format wasn't
+worth extending `.gitignore`'s shared allowlist for this one branch).
+
+**Recomputed CI matches PR #12 exactly**, confirming this sweep is testing
+the same interval the original audit reported, not a different computation:
+90% BCa bootstrap CI on the paired `valid_accuracy` difference (n=30,
+resamples=10,000, seed=0) = **[-0.1970, -0.0081]** percentage points.
+
+**Pre-registered margin (±0.3pp) -> NULL**, matching PR #12's reported
+verdict exactly, as it must (same data, same margin, same procedure).
+
+**Two crossovers found**, exactly the shape the hypothesis predicted:
+
+| margin (pp) | verdict below | verdict at/above |
+|---|---|---|
+| 0.0081 | HARMFUL | INCONCLUSIVE |
+| 0.1970 | INCONCLUSIVE | NULL |
+
+- For δ < 0.0081pp: **HARMFUL** (the entire CI sits below -δ).
+- For 0.0081pp ≤ δ < 0.1970pp: **INCONCLUSIVE**.
+- For δ ≥ 0.1970pp: **NULL** (matches the observed 0.3pp pre-registration).
+- No `CONTRIBUTES` region exists anywhere in [0.001, 1.2]pp -- consistent
+  with the CI being entirely negative (`ci_low` never exceeds any positive
+  margin in this range).
+
+These boundary values are exact, not sweep-resolution artifacts: they equal
+`-ci_high` (0.008143933584611237) and `-ci_low` (0.1969507431838293) to
+machine precision, which follows directly from `_resolve`'s definition
+(`ci_high < -margin` for `HARMFUL`; `-margin < ci_low` for `NULL`) -- the
+bisection refinement (tolerance 1e-6) simply locates what the closed form
+already implies, and `tests/test_analysis_nas_margin_sensitivity.py` checks
+both directly against a hand-built interval.
+
+**Distance from the pre-registered margin (0.3pp) to the nearest crossover
+(0.1970pp): 0.1030pp, a ratio of 1.52x.** The pre-registered margin sits
+above the NULL boundary by just over half its own value again -- closer to
+a different conclusion than a factor of 2, further than a factor of 1.
 
 ## Interpretation
 
-*(Filled in after the analysis runs.)*
+**The `NULL` verdict from issue #11 / PR #12 is margin-sensitive, within a
+plausible pre-registration range.** Had the feasibility probe that set
+δ = 0.3pp instead landed on a value below ~0.197pp -- a margin roughly
+two-thirds the size actually chosen, not an extreme or cherry-picked one --
+the reported verdict would have read `INCONCLUSIVE` rather than `NULL`. A
+margin below ~0.008pp (an order of magnitude tighter) would have read
+`HARMFUL`, though a margin that tight is a less plausible pre-registration
+choice for this metric's observed spread.
+
+This does **not** retract or revise the original verdict. δ = 0.3pp was
+pre-registered from a genuine feasibility probe before the 30-seed sweep
+ran (PR #12), and `GIT_WORKFLOW.md`'s rule that "the pre-registered margin
+does not move" applies to that branch, not this one -- this branch is
+explicitly diagnostic, run after the fact on already-collected data, and is
+not a re-margining of issue #11's result. The original `NULL` stands.
+
+What this establishes: the specific margin choice in issue #11 was doing
+real work -- it was not so generous that any plausible alternative would
+have agreed, nor so tight that the result was fragile to sampling noise
+alone. A 1.52x margin of safety is closer to "worth checking before
+trusting" than to "obviously robust."
+
+What this does **not** establish, matching SPEC.md's confounds section:
+anything about margin sensitivity for other metrics, other NATS-Bench
+problems (the `sss` space, other datasets/hp settings), or the real
+controller audits planned for README item 3 -- this is one case study on
+one metric from one already-run audit. It is also not evidence that the
+original δ = 0.3pp was chosen badly: post-hoc proximity to a crossover is
+expected some of the time even when pre-registration is followed correctly,
+and nothing here suggests the feasibility probe that set it was flawed.
+
+**Closing recommendation for the researcher** (not filed as a new issue by
+this branch, per SPEC.md -- left for the researcher/reviewer to judge
+whether it's warranted): `scripts/audit_feasibility.py` could optionally
+emit a margin-sensitivity sweep like this one alongside its existing power
+calculation, so a crossover-distance check becomes routine input to setting
+δ rather than a one-off analysis branch run after the fact each time.
 
 ## Decision
 
-*(Filled in after the analysis runs.)*
+**MERGE.** Checked against `GIT_WORKFLOW.md`'s nine criteria:
+
+- **Scientific relevance:** directly answers README item 5, using real
+  audit data rather than a synthetic illustration, and gives README item
+  3's implementer a concrete precedent.
+- **Correctness:** the sweep is verified, not just run -- `main()` asserts
+  its recomputed CI matches PR #12's reported CI to 1e-9 before sweeping,
+  and the crossover values are checked against `_resolve`'s closed-form
+  boundaries in the test suite, not just eyeballed off a plot.
+- **Experimental validity:** no new arms comparison in the usual audit
+  sense (this is a re-analysis, per SPEC.md's "Baselines / controls"); the
+  CI is computed once and reused across the whole sweep specifically to
+  avoid the resampling-noise confound SPEC.md flags.
+- **Reproducibility:** deterministic given the committed
+  `results/nas_search_self_audit/audit.json` (fixed seed, fixed resample
+  count); `analysis/nas_margin_sensitivity/run_sweep.py` reruns
+  end-to-end with `python analysis/nas_margin_sensitivity/run_sweep.py`.
+- **Documentation:** this file, plus the module's own docstring explaining
+  why the CI is computed once rather than per swept margin.
+- **Interpretation:** stated above, including the explicit non-retraction
+  of the original verdict and what this branch does not generalize to.
+- **Research integrity:** the finding (margin-sensitive within a plausible
+  range) is reported even though it complicates, rather than simply
+  confirms, PR #12's clean `NULL` -- and is stated without overclaiming a
+  process failure in the original pre-registration.
+- **Integration:** additive; touches no existing code, only reads a
+  committed result file and adds a new `analysis/` package.
+- **Evidence:** real recomputation against the real committed data, with an
+  exact-match assertion against the original, not a re-derivation that
+  merely looks similar.
+
+Follow-up for the researcher, not this branch: whether to file the
+`scripts/audit_feasibility.py` margin-sensitivity-sweep enhancement noted
+above as its own `method/` issue.
