@@ -231,12 +231,133 @@ same functions, not a new control arm.
 
 ## Results
 
-*(Filled in after the experiment runs.)*
+Full artifacts:
+`results/basinhopping_audit_stepsize_scaling/{audit.json,audit.csv}`. Ratio
+derived from Rastrigin's PR #16 configuration: `0.5 / 10.24 = 0.048828125`.
+Derived stepsizes matched the issue's stated values exactly: rastrigin 0.5,
+ackley 3.2, griewank 58.59375. All seeds (pilot 2000-2014, real sweep
+10000+) confirmed disjoint from PR #16's blocks (pilot 1000-1014, real
+sweep 0-59) both by construction and by
+`tests/test_plugin_basinhopping_stepsize_experiment.py`.
+
+| function | stepsize | PR #16 verdict | this experiment's verdict | diff | 90% CI | margin | degenerate |
+|---|---|---|---|---|---|---|---|
+| rastrigin | 0.5 (unchanged) | CONTRIBUTES | **CONTRIBUTES** | +17.54 | [+15.84, +19.22] | ±1.84 | No |
+| ackley | 3.2 | HARMFUL | **INCONCLUSIVE** | -0.52 | [-0.78, +0.14] | ±0.093 | No |
+| griewank | 58.59 | INCONCLUSIVE, DEGENERATE | **NULL** | -1.1e-10 | [-2.0e-10, -4.6e-11] | ±1e-9 | **No** (was Yes) |
+
+**Rastrigin: `CONTRIBUTES` persisted**, as predicted -- effect size
+essentially unchanged (+17.54 vs. PR #16's +17.73), still ~9.5x the
+(re-derived, tighter) margin.
+
+**Ackley: shifted away from `HARMFUL`**, exactly the predicted direction,
+though not all the way to `NULL` or a clean `CONTRIBUTES` -- it landed at
+`INCONCLUSIVE`, with a CI ([-0.78, +0.14]) that now straddles zero rather
+than sitting entirely below it. This is a **partial** shift: the harm
+signal disappeared, but no positive contribution was established either.
+Power for this row is 0.00 for the same reason as PR #16's rastrigin row --
+this is TOST-for-NULL power, and it isn't the number that describes an
+`INCONCLUSIVE` verdict's own evidence; what matters is that the CI now
+spans zero.
+
+**Griewank: `DEGENERATE` flag cleared**, exactly as predicted -- 0/20 runs
+degenerate (mean distinct ratio 0.82, vs. PR #16's 20/20 degenerate, ratio
+0.02) -- and the verdict moved from `INCONCLUSIVE` to a clean `NULL`, with
+very high power (~1.00) at a margin still floored at `1e-9` (control spread
+remained near machine-epsilon: `1.356e-10`). The larger stepsize (58.59, vs
+0.5 before) let hops actually leave the immediate neighborhood of the
+optimum on some iterations (hence non-degenerate proposals) while both arms
+still converge to the same global optimum on this near-unimodal-at-d=10
+landscape (hence `NULL`, not `CONTRIBUTES` -- there was nothing to gain
+even once the mechanism was no longer artificially stuck).
 
 ## Interpretation
 
-*(Filled in after the experiment runs.)*
+**The stepsize/domain-scale confound is confirmed, but only partially --
+and differently on each function**, which is itself the finding: this
+supports the "single confound" explanation over "three functions
+genuinely differ," but not in an all-or-nothing way that would let PR
+#16's original labels be dismissed as pure artifact:
+
+- Rastrigin's result was never in question (stepsize essentially
+  unchanged); its persistence is the negative control confirming this
+  experiment measured a stepsize effect and not, say, a general
+  seed-block or implementation drift between the two runs (STEPSIZE_SPEC.md's
+  own confound check -- see "What confounds remain").
+- Griewank's confound story is now well supported: the `DEGENERATE` label
+  in PR #16 was a genuine artifact of a too-small stepsize relative to that
+  function's ×117 wider domain, not a property of the landscape's
+  multimodality. The corrected verdict (`NULL`, well-powered, non-
+  degenerate) is arguably the more trustworthy read of Griewank at this
+  dimension -- consistent with the mechanism proposed in PR #16's own
+  writeup (a near-unimodal effective landscape at d=10), now demonstrated
+  under a stepsize that actually lets the scaffold explore rather than
+  sit still.
+- Ackley's confound story is **only partially supported**. `HARMFUL`
+  disappeared, which is consistent with the stepsize explanation -- but the
+  result did not resolve to `NULL` or `CONTRIBUTES` either, so this
+  experiment cannot say whether a correctly-scaled `basinhopping` helps,
+  hurts, or does nothing on Ackley at this budget; it can only say that PR
+  #16's specific `HARMFUL` label was not a reliable read of that question,
+  because it was reached under a mismatched stepsize.
+
+**Revised reading of PR #16's result, per STEPSIZE_SPEC.md's own
+instruction (this branch does not retroactively edit that PR's verdicts or
+artifacts):** PR #16's `HARMFUL` on Ackley and `DEGENERATE` on Griewank
+should now be read as *substantially confounded by an unscaled stepsize*,
+not as reliable evidence about basin-hopping's mechanism on those two
+landscapes specifically. PR #16's `CONTRIBUTES` on Rastrigin stands
+uncontested -- this experiment's own Rastrigin row is further evidence for
+it, not against it.
+
+**What this does NOT establish:**
+
+- Whether `basinhopping` `CONTRIBUTES`, is `NULL`, or is `HARMFUL` on
+  Ackley under a properly-scaled stepsize -- the `INCONCLUSIVE` result
+  here answers "was PR #16's `HARMFUL` reliable" (no) but not "what is the
+  correct verdict" (unresolved; would need a higher-power re-run, a
+  separate follow-up).
+- That Rastrigin's original stepsize ratio (4.9% of width) is *the*
+  correct proportional standard in general -- it was chosen because it is
+  the one configuration already shown to work, per STEPSIZE_SPEC.md's own
+  "Confounds considered," not validated as optimal.
+- Anything about the deferred ScaffoldSafety/GAIA cross-methodology
+  comparison, or `naslib`-blocked README item 3.
 
 ## Decision
 
-*(Filled in after the experiment runs.)*
+**MERGE.** Checked against `GIT_WORKFLOW.md`'s nine criteria:
+
+- **Scientific relevance:** directly answers the follow-up PR #16's own
+  SPEC.md named, and materially changes how that PR's mixed result should
+  be read going forward.
+- **Correctness:** the derivation rule reproduces the issue's stated
+  values exactly (`tests/test_plugin_basinhopping_stepsize_experiment.py`);
+  seed disjointness from PR #16's two seed blocks is verified by test, not
+  merely asserted in a docstring.
+- **Experimental validity:** fresh feasibility probe per function under
+  the new stepsize (not reusing PR #16's margins, which STEPSIZE_SPEC.md
+  explicitly required); only `stepsize` varied, everything else held fixed.
+- **Reproducibility:** deterministic given fixed seeds; full config
+  (including the derivation ratio) travels with every result row.
+- **Documentation:** this file; the module docstring states the exact
+  derivation formula and its provenance (Rastrigin's own PR #16 value).
+- **Interpretation:** stated above per function, explicitly as a *partial*
+  confirmation -- not rounded up to "confound fully explains everything"
+  when Ackley's own result does not support that strong a claim.
+- **Research integrity:** the mixed, only-partial result is reported as
+  such; Ackley's unresolved verdict is not glossed over or quietly folded
+  into "confirmed."
+- **Integration:** additive; new script and results directory, does not
+  touch or overwrite PR #16's `SPEC.md`, code, or `results/
+  basinhopping_audit/` artifacts.
+- **Evidence:** a real second sweep (140 seeds across three functions)
+  against real `scipy` code, on seeds independently verified disjoint from
+  the first.
+
+Follow-up for the researcher, not this branch: whether a higher-power
+Ackley re-run (larger `n`, informed by this experiment's own achieved
+power) is worth its own `experiment/` issue to resolve the still-open
+`INCONCLUSIVE`; and whether `plugins/basinhopping_audit` should default new
+functions to a domain-scaled `stepsize` given this evidence, as a possible
+`method/` issue.
