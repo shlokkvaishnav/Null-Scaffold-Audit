@@ -27,11 +27,11 @@ sde = "cli.main:app"
 # engine/discovery.py and docs/PLUGIN_GUIDE.md. This repo's own plugins are
 # registered the same way, not special-cased anywhere in engine/ or cli/.
 #
-# Empty for now: feynman_physics and synthetic_regression were removed here
-# when their code moved to archive/physics_equation_discovery/ (their entry
-# points pointed at a module path that no longer exists in the active tree).
-# nas_search is the next entry to add, once plugins/nas_search/ exists.
+# feynman_physics and synthetic_regression were removed here when their code
+# moved to archive/physics_equation_discovery/ (their entry points pointed at
+# a module path that no longer exists in the active tree).
 [project.entry-points."sde.plugins"]
+nas_search = "plugins.nas_search:register"
 
 [project.optional-dependencies]
 # naslib is NOT in this extra yet -- verified blocked, not just unlisted.
