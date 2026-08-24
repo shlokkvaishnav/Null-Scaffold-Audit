@@ -348,6 +348,33 @@ def _resolve(ci_low: float, ci_high: float, margin: float) -> Verdict:
     return Verdict.INCONCLUSIVE
 
 
+def _boundary_clearance_ratio(
+    ci_low: float, ci_high: float, margin: float, verdict: Verdict
+) -> float | None:
+    """How many interval-widths past its margin a superiority verdict sits.
+
+    ``None`` for anything but ``CONTRIBUTES``/``HARMFUL`` -- see
+    ``MetricVerdict.boundary_clearance_ratio``'s docstring for why those are
+    the only two verdicts this describes, and for the full formula and its
+    provenance (issue #23).
+
+    Uses whichever bound ``_resolve`` actually checked to reach the verdict,
+    so this can never disagree with ``_resolve`` about which side mattered.
+    A zero-width interval (every paired difference identical) has no ratio
+    to report -- that case is also exactly what
+    ``arms.py``'s ``_guard_vacuous_comparison`` withdraws to
+    ``INCONCLUSIVE``, so a ``None`` here is never the only signal that
+    something is off.
+    """
+    if verdict not in (Verdict.CONTRIBUTES, Verdict.HARMFUL):
+        return None
+    width = ci_high - ci_low
+    if width <= 0.0:
+        return None
+    bound = ci_low if verdict is Verdict.CONTRIBUTES else -ci_high
+    return (bound - margin) / width
+
+
 def equivalence_verdict(
     treatment: Sequence[float],
     control: Sequence[float],
@@ -437,5 +464,6 @@ def equivalence_verdict(
         higher_is_better=higher_is_better,
         p_value=p_value,
         n_for_target_power=required_sample_size(margin, spread, confidence),
+        boundary_clearance_ratio=_boundary_clearance_ratio(ci_low, ci_high, margin, verdict),
         test=test,
     )

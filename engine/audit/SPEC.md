@@ -259,12 +259,147 @@ approach beats a different control arm in the usual audit sense.
 
 ## Results
 
-*(Filled in after the experiment runs.)*
+**Implemented:** `boundary_clearance_ratio` on `MetricVerdict`
+(`engine/audit/verdict.py`), computed by a new private
+`_boundary_clearance_ratio` helper in `engine/audit/statistics.py` and wired
+into `equivalence_verdict()`'s return. Formula exactly as proposed:
+`(bound - margin) / (ci_high - ci_low)`, where `bound` is `ci_low` for
+`CONTRIBUTES` and `-ci_high` for `HARMFUL` (whichever bound `_resolve`
+itself checks), `None` for `NULL`/`INCONCLUSIVE`, and `None` on a zero-width
+interval (division by zero, not a defect -- the vacuous-comparison guard
+already handles the case that most commonly produces one). Both
+Holm-correction and the vacuous-comparison guard in `engine/audit/arms.py`
+now explicitly clear the field to `None` when they downgrade a verdict to
+`INCONCLUSIVE`, so the "`None` unless `CONTRIBUTES`/`HARMFUL`" invariant
+holds after correction, not just at first computation -- this was a real gap
+found while implementing, not present in the original proposal.
+
+**Note on the formula's normalization:** the issue's prose describes "how
+many CI-half-widths past the decision boundary," but its own concrete
+formula divides by the full interval width (`ci_high - ci_low`), not the
+half-width. Implemented literally per the concrete formula (the "concretely,
+proposed as" language), not the looser prose -- documented explicitly in the
+field's own docstring rather than silently picking one reading. A reader
+wanting the half-width version multiplies the reported value by 2.
+
+**Retrospective recomputation against the four existing basinhopping-audit
+result artifacts** (SPEC.md's Metrics section):
+
+| source | function | verdict | n | power | boundary_clearance_ratio |
+|---|---|---|---|---|---|
+| PR #16 | rastrigin | CONTRIBUTES | 60 | 0.235 | **4.23** |
+| PR #16 | ackley | HARMFUL | 60 | 0.927 | **3.26** |
+| PR #16 | griewank | INCONCLUSIVE | 20 | 0.000 | None |
+| PR #18 | rastrigin | CONTRIBUTES | 60 | 0.076 | **4.14** |
+| PR #18 | ackley | INCONCLUSIVE | 60 | 0.000 | None |
+| PR #18 | griewank | NULL | 20 | 1.000 | None |
+| PR #20 (issue #19) | ackley | HARMFUL | 1971 | 0.708 | **8.72** |
+| PR #22 (issue #21) | rastrigin | CONTRIBUTES | 200 | 0.437 | **8.12** |
+
+Both hypothesis predictions confirmed on real data: Rastrigin's original
+60-seed `CONTRIBUTES` row (PR #16) reads decisively (4.23) despite low
+`power`/high `n_for_target_power` -- consistent with issue #21's finding
+that the re-run at n=200 confirmed rather than changed the verdict, and
+`boundary_clearance_ratio` would have said so *before* that re-run was
+spent. The one clean apples-to-apples comparison available (Rastrigin, same
+`stepsize=0.5` throughout) shows the ratio growing with `n` exactly as
+expected: 4.23/4.14 at n=60 (two independent runs) -> 8.12 at n=200.
+
+One nuance worth stating plainly: PR #16's Ackley `HARMFUL` row (under a
+stepsize later shown, in issue #17, to be mismatched to Ackley's domain
+width) *also* reads as decisively resolved (ratio 3.26) by this metric.
+`boundary_clearance_ratio` measures statistical decisiveness given the data
+actually collected -- it has no way to know the stepsize was wrong, and
+correctly does not claim to. It answers "is this verdict well-supported by
+its own sample," not "does this verdict describe the real world correctly
+under a better experimental design" -- the latter is what issue #17's
+stepsize-scaling experiment, a different and non-substitutable kind of
+check, actually answered.
+
+**Constructed near-boundary case** (`tests/test_audit_boundary_clearance.py
+::test_oracle_scaffold_ratio_grows_from_barely_resolved_to_decisive_with_n`,
+`calibration.py`'s `OracleScaffold` at `proxy_noise=12.0`, its own
+documented `ORACLE_PROXY_NOISE`): n=20 gives a `CONTRIBUTES` verdict with
+ratio **0.22**; n=200 gives `CONTRIBUTES` with ratio **0.40** -- both far
+below the real basinhopping rows' ratios (3-9), confirming the metric can
+and does report "barely resolved" on a case built to be borderline, not
+just "decisive" on cases already known to be robust (this branch's own
+"Confounds considered" requirement). `WastefulScaffold` (`HARMFUL`) and
+`NullScaffold` (`NULL`, ratio `None`) behave as expected too.
 
 ## Interpretation
 
-*(Filled in after the experiment runs.)*
+**The hypothesis holds: the proposed metric is genuinely useful, not
+redundant with the existing `power`/`n_for_target_power` fields, and
+distinguishes barely-resolved from decisively-resolved `CONTRIBUTES`/
+`HARMFUL` cases on both real and constructed data.** Every real
+`CONTRIBUTES`/`HARMFUL` row this project has produced reads as decisive
+(ratio 3-9), which is consistent with -- and now quantifies -- what manual
+CI-reading already suggested in each case. The constructed calibration case
+shows the metric is not simply agreeing with "yes" on everything: it
+correctly reports a small ratio on a case engineered to be near its margin.
+
+**This changes what gets reported on future audit runs, not any
+already-merged result.** `results/basinhopping_audit*/`'s `audit.json`
+files are not retroactively regenerated or edited -- the field is additive
+and computed fresh only by future `equivalence_verdict()` calls, per
+`GIT_WORKFLOW.md` and matching this branch's own stated scope.
+
+**What this does NOT establish:**
+
+- That `boundary_clearance_ratio`'s specific normalization (full CI width)
+  is provably optimal over alternatives (raw-unit distance, a formal
+  one-sided minimum-detectable-effect calculation) -- it is a reasonable,
+  stated design choice, implemented as literally proposed.
+- Anything about whether issue #21's Rastrigin re-run was *wasted* effort --
+  it wasn't: at the time it ran, no engine-reported number existed to
+  establish the 60-seed row was already decisive without spending the extra
+  seeds, which is exactly the gap this branch closes for the *next* such
+  case.
+- That `_tost_power`/`required_sample_size` are incorrect -- they are not;
+  this branch is about which of two correct-for-what-they-measure numbers
+  applies to which verdict type, per the issue's own explicit "Confounds
+  considered."
 
 ## Decision
 
-*(Filled in after the experiment runs.)*
+**MERGE.** Checked against `GIT_WORKFLOW.md`'s nine criteria:
+
+- **Scientific relevance:** closes a real, three-times-demonstrated gap
+  between what `AUDIT_METHODOLOGY.md` §9 promises ("achieved power... on
+  every verdict") and what `engine/audit/` actually reports for two of the
+  four verdict types.
+- **Correctness:** formula matches `_resolve`'s own boundary logic exactly
+  (uses the same bound `_resolve` checked, not a re-derived one); the
+  `None`-after-downgrade invariant is enforced at both correction sites
+  (Holm, vacuous guard), verified by test at each.
+- **Experimental validity:** validated the way `calibration.py` validates
+  the audit's own instruments -- known-answer constructions (`OracleScaffold`/
+  `WastefulScaffold`) at chosen `n`, not a new scientific claim about
+  scaffolds; retrospective recomputation against real, already-collected
+  data rather than synthetic-only.
+- **Reproducibility:** `_boundary_clearance_ratio` is a pure, deterministic
+  function of `(ci_low, ci_high, margin, verdict)`; the retrospective table
+  above is reproducible from the four committed result JSON files.
+- **Documentation:** `MetricVerdict.boundary_clearance_ratio`'s and
+  `power`'s docstrings, `AUDIT_METHODOLOGY.md` §4.2, and this file.
+- **Interpretation:** stated above, including the explicit limitation that
+  this metric cannot detect a wrong-stepsize-style confound (it answers a
+  different question than issue #17's experiment did).
+- **Research integrity:** the formula's prose-vs-concrete-formula
+  discrepancy (half-width vs. full width) is surfaced rather than quietly
+  resolved one way; the Ackley-under-wrong-stepsize nuance is stated
+  plainly rather than glossed over.
+- **Integration:** additive field, default `None`, on an existing frozen
+  dataclass; no existing field removed or repurposed; the two correction
+  sites in `arms.py` needed a small, directly-tested change to preserve the
+  field's own invariant.
+- **Evidence:** 18 new tests (`tests/test_audit_boundary_clearance.py`) plus
+  the full existing 228-test suite passing unchanged; retrospective
+  validation against real project data and a purpose-built calibration case.
+
+No `DECISION_LOG.md` entry: SPEC.md's own Interpretation plan reserves that
+for the "metric not useful" outcome, to prevent the gap being
+re-discovered and re-proposed unknowingly -- that outcome did not occur
+here, so there is nothing that needs recording as a considered-and-rejected
+option.

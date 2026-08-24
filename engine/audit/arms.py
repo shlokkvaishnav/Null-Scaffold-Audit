@@ -374,6 +374,12 @@ def _holm_correct(
             verdict=verdict.verdict if survives else Verdict.INCONCLUSIVE,
             adjusted_p_value=running_max,
             correction=f"holm(family={family_size}, alpha={alpha:g})",
+            # A downgrade to INCONCLUSIVE is no longer a superiority claim,
+            # so the ratio that described one must not survive it -- keeping
+            # MetricVerdict.boundary_clearance_ratio's own invariant (None
+            # unless verdict is CONTRIBUTES/HARMFUL) true after correction,
+            # not just at the moment equivalence_verdict() first computed it.
+            boundary_clearance_ratio=(verdict.boundary_clearance_ratio if survives else None),
         )
 
     return corrected
@@ -419,6 +425,9 @@ def _guard_vacuous_comparison(
                 "withdrawn: both arms returned an identical result on every seed, "
                 "so there was no comparison to analyse"
             ),
+            # Withdrawn to INCONCLUSIVE, so no longer a superiority claim --
+            # same invariant as the Holm-correction downgrade above.
+            boundary_clearance_ratio=None,
         )
         for name, verdict in per_metric.items()
     }

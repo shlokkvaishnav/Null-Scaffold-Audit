@@ -67,7 +67,22 @@ class MetricVerdict:
     """The pre-registered equivalence margin. Chosen before the data was seen."""
 
     power: float
-    """Achieved power against ``margin``, in [0, 1], at the observed variance."""
+    """Achieved power against ``margin``, in [0, 1], at the observed variance.
+
+    This answers one specific question: the probability of establishing
+    *equivalence* at this margin and spread, assuming the true effect is
+    zero (``_tost_power``'s own docstring). That is the right question for a
+    ``NULL`` or ``INCONCLUSIVE`` verdict, both of which are claims (or
+    non-claims) about equivalence. It is not the right question for
+    ``CONTRIBUTES``/``HARMFUL``, which are one-sided superiority/
+    inferiority claims -- a well-powered ``CONTRIBUTES`` row can report a
+    low ``power`` here (see issue #23) simply because the true effect is
+    not zero, which is exactly what a superiority claim asserts. Read
+    ``power``/``n_for_target_power`` on those two verdicts as "what this
+    row would need to also certify equivalence" -- an unrelated question --
+    not as evidence about the superiority claim actually made. Use
+    ``boundary_clearance_ratio`` for that.
+    """
 
     n: int
     higher_is_better: bool
@@ -96,6 +111,36 @@ class MetricVerdict:
 
     Present so ``INCONCLUSIVE`` carries an instruction rather than only a
     disappointment: "could not tell at 20 seeds, would need 96" is actionable.
+    """
+
+    boundary_clearance_ratio: float | None = None
+    """How decisively a ``CONTRIBUTES``/``HARMFUL`` verdict cleared its
+    margin, in units of the interval's own width. ``None`` for every other
+    verdict -- ``NULL``/``INCONCLUSIVE`` are equivalence questions, already
+    served by ``power``/``n_for_target_power`` (see that field's docstring).
+
+    Defined as ``(clearance - margin) / (ci_high - ci_low)``, where
+    ``clearance`` is whichever CI bound actually decided the verdict
+    (``ci_low`` for ``CONTRIBUTES``, ``-ci_high`` for ``HARMFUL`` --
+    matching ``_resolve``'s own boundary checks). A large value means the
+    bound sits many interval-widths past the margin -- decisive at this
+    ``n``; a value near zero means the bound only just cleared it, and a
+    re-run at higher ``n`` (which narrows the interval) is the number this
+    project's own practice used to reach for by hand before this field
+    existed (issue #23; see ``STEPSIZE_SPEC.md`` and issues #19/#21 for the
+    manual version of this reasoning). Undefined (``None``) on a
+    zero-width interval (every paired difference identical), where the
+    ratio's denominator vanishes and the vacuous-comparison guard
+    (``arms.py``'s ``_guard_vacuous_comparison``) already withdraws the
+    verdict to ``INCONCLUSIVE`` regardless.
+
+    Normalized by the interval's full width, not its half-width, despite
+    issue #23's prose describing "CI-half-widths" -- the issue's own
+    concrete formula divides by ``ci_high - ci_low`` (the full width), and
+    this implements that formula literally rather than the looser prose
+    description; the discrepancy is noted here rather than silently
+    resolved one way. A reader wanting the half-width version multiplies
+    this value by 2.
     """
 
     test: str | None = None
