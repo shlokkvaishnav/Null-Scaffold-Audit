@@ -35,14 +35,17 @@ def _real_sweep_range(offset: int, max_possible_n: int) -> range:
 
 
 def test_real_sweep_range_is_disjoint_from_pr16s_real_sweep_range() -> None:
+    # pr16 (run_audit.py) no longer defines MAX_SEEDS (removed by issue #25);
+    # 5000 is a generous ceiling far above any real seed count this
+    # project's feasibility probes have produced.
     this_experiment = _real_sweep_range(experiment.REAL_SWEEP_SEED_OFFSET, 5000)
-    pr16_possible = range(pr16.MAX_SEEDS)  # PR #16 used range(seed_count), seed_count <= MAX_SEEDS
+    pr16_possible = _real_sweep_range(pr16.REAL_SWEEP_SEED_OFFSET, 5000)
     assert set(this_experiment).isdisjoint(pr16_possible)
 
 
 def test_real_sweep_range_is_disjoint_from_pr18s_real_sweep_range() -> None:
     this_experiment = _real_sweep_range(experiment.REAL_SWEEP_SEED_OFFSET, 5000)
-    pr18_possible = _real_sweep_range(pr18.REAL_SWEEP_SEED_OFFSET, pr18.MAX_SEEDS)
+    pr18_possible = _real_sweep_range(pr18.REAL_SWEEP_SEED_OFFSET, 5000)
     assert set(this_experiment).isdisjoint(pr18_possible)
 
 

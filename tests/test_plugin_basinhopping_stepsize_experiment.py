@@ -58,19 +58,29 @@ def test_pilot_seeds_are_disjoint_from_the_original_runs_pilot_seeds() -> None:
     assert set(experiment.PILOT_SEEDS).isdisjoint(original.PILOT_SEEDS)
 
 
+SAFE_BOUND = 5000
+"""A generous ceiling on how large any single run's real sweep could
+plausibly be, for disjointness checks -- `run_audit.py` no longer defines
+`MAX_SEEDS` (removed by issue #25), so there is no fixed attribute to read
+its historical maximum from; this bound is chosen far above any seed count
+this project's feasibility probes have produced (the largest so far,
+issue #19's Ackley re-run, needed 1971)."""
+
+
 def test_real_sweep_seeds_are_disjoint_from_the_original_runs_seed_range() -> None:
-    """PR #16's real sweep used range(seed_count) with seed_count capped at
-    MAX_SEEDS=60, so 0-59 must never appear in this experiment's seed block."""
+    """PR #16's real sweep starts at `run_audit.REAL_SWEEP_SEED_OFFSET`."""
     this_experiment_seeds = range(
-        experiment.REAL_SWEEP_SEED_OFFSET, experiment.REAL_SWEEP_SEED_OFFSET + original.MAX_SEEDS
+        experiment.REAL_SWEEP_SEED_OFFSET, experiment.REAL_SWEEP_SEED_OFFSET + SAFE_BOUND
     )
-    original_possible_seeds = range(original.MAX_SEEDS)
+    original_possible_seeds = range(
+        original.REAL_SWEEP_SEED_OFFSET, original.REAL_SWEEP_SEED_OFFSET + SAFE_BOUND
+    )
     assert set(this_experiment_seeds).isdisjoint(original_possible_seeds)
 
 
 def test_real_sweep_seeds_are_also_disjoint_from_this_experiments_own_pilot() -> None:
     this_experiment_seeds = range(
-        experiment.REAL_SWEEP_SEED_OFFSET, experiment.REAL_SWEEP_SEED_OFFSET + original.MAX_SEEDS
+        experiment.REAL_SWEEP_SEED_OFFSET, experiment.REAL_SWEEP_SEED_OFFSET + SAFE_BOUND
     )
     assert set(this_experiment_seeds).isdisjoint(experiment.PILOT_SEEDS)
 

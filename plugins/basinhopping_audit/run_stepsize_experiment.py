@@ -15,13 +15,24 @@ own PR #16 configuration as the fixed proportional standard:
 This reproduces STEPSIZE_SPEC.md's stated values exactly: Rastrigin ~=0.5
 (unchanged, by construction), Ackley ~=3.20, Griewank ~=58.59.
 
-Seeds are chosen disjoint from *both* of PR #16's seed blocks (its pilot
-seeds 1000-1014 and its real-sweep seeds 0-59), not just disjoint from this
-experiment's own pilot -- so nothing here can be read as reusing or
-cherry-picking from the original run's randomness. Margins and seed counts
-are re-derived from a fresh feasibility probe under the new stepsize, per
-STEPSIZE_SPEC.md's explicit instruction not to reuse PR #16's margins (a
-different stepsize changes both arms' variance).
+Seeds are chosen disjoint from *both* of PR #16's seed blocks, not just
+disjoint from this experiment's own pilot -- so nothing here can be read as
+reusing or cherry-picking from the original run's randomness. Margins and
+seed counts are re-derived from a fresh feasibility probe under the new
+stepsize, per STEPSIZE_SPEC.md's explicit instruction not to reuse PR #16's
+margins (a different stepsize changes both arms' variance).
+
+Until issue #25, this script also capped its own real sweep's seed count at
+`MAX_SEEDS=60` regardless of what its feasibility probe recommended --
+this is the defect issue #19 found by comparing Ackley's `required_n=135`
+against the `seed_count=60` this cap enforced, and confirmed (PR #20) can
+change a verdict. That cap is removed here; see `SEED_CAP_FIX_SPEC.md` for
+the fix and a confirmatory re-run. `PILOT_SEEDS`/`REAL_SWEEP_SEED_OFFSET`
+moved to a fresh block at the same time, disjoint from every block used
+anywhere in this line of research (`SEED_CAP_FIX_SPEC.md`'s disjointness
+ledger) -- the historical `results/basinhopping_audit_stepsize_scaling/
+audit.json` committed by PR #18 is deliberately left untouched (its
+numbers are quoted in `STEPSIZE_SPEC.md`'s Results section).
 """
 
 from __future__ import annotations
@@ -59,14 +70,18 @@ def domain_scaled_stepsize(name: str) -> float:
     return STEPSIZE_RATIO * width
 
 
-# Disjoint from PR #16's pilot seeds (1000-1014) and real-sweep seeds
-# (0 through at most 59, since MAX_SEEDS there was 60).
-PILOT_SEEDS = list(range(2000, 2015))
-REAL_SWEEP_SEED_OFFSET = 10_000
+# Disjoint from every block used anywhere in plugins/basinhopping_audit/
+# (issue #25, SEED_CAP_FIX_SPEC.md) -- moved from range(2000, 2015) /
+# offset 10_000 when MAX_SEEDS was removed below, for the same reason
+# run_audit.py's blocks moved: a fresh, independently-drawn confirmation,
+# not an extension of the original capped run's own seed range.
+PILOT_SEEDS = list(range(8000, 8015))
+REAL_SWEEP_SEED_OFFSET = 50_000
 
 MARGIN_FRACTION = 0.25  # unchanged from PR #16
 MIN_SEEDS = 20
-MAX_SEEDS = 60
+# No MAX_SEEDS: removed by issue #25 (SEED_CAP_FIX_SPEC.md) -- see
+# run_audit.py's own comment at the same constant for why.
 CEILING_RESTARTS_CAP = 10
 
 
@@ -100,7 +115,7 @@ def main() -> int:
         margin = max(MARGIN_FRACTION * control_spread, 1e-9)
 
         needed_n = required_sample_size(margin, spread, confidence=0.90, target_power=0.80)
-        seed_count = MIN_SEEDS if needed_n is None else min(max(needed_n, MIN_SEEDS), MAX_SEEDS)
+        seed_count = MIN_SEEDS if needed_n is None else max(needed_n, MIN_SEEDS)
         print(
             f"[stepsize-experiment] {name}: probe spread={spread:.4g} "
             f"control_spread={control_spread:.4g} margin={margin:.4g} required_n={needed_n} "
