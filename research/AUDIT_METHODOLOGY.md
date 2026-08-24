@@ -203,6 +203,26 @@ move has to be read on its own.
 Each verdict records which procedure produced it, so two metrics tested unalike
 cannot be read as though they were tested alike.
 
+**Power and precision are not the same question, and `MetricVerdict` reports
+both, on different verdicts.** `power`/`n_for_target_power` answer "would this
+design reliably establish *equivalence* at this margin" — the TOST question,
+correct for `NULL` and `INCONCLUSIVE`, both of which are claims (or
+non-claims) about equivalence. A `CONTRIBUTES`/`HARMFUL` verdict is a
+one-sided superiority/inferiority claim instead, and a well-powered one can
+report low equivalence-power simply because the true effect is not zero —
+which is exactly what a superiority claim asserts, not a defect in it.
+`boundary_clearance_ratio` (issue #23) answers the question that verdict type
+actually needs: how many interval-widths past the margin the deciding bound
+sits, `None` on every `NULL`/`INCONCLUSIVE` row. This distinction was found
+the hard way, three times, before it was named here: `plugins/basinhopping_
+audit`'s issues #19 and #21 each re-ran a result at higher `n` reasoning from
+`n_for_target_power`, which is the right diagnostic for an `INCONCLUSIVE`
+row (issue #19's Ackley) but was, on inspection, the wrong one to have
+justified re-running a `CONTRIBUTES` row by (issue #21's Rastrigin) — it
+happened to be harmless there because the boundary was already cleared by a
+wide margin, which `boundary_clearance_ratio`, computed retrospectively
+against both runs, confirms directly (`engine/audit/SPEC.md`'s Results).
+
 ### 4.3 The degeneracy pre-check
 
 Before the statistical procedure runs at all, a cheap structural check:
