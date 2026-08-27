@@ -11,7 +11,7 @@ For each function in `functions.PROBLEM_SET` (rastrigin, ackley, griewank):
    smaller than a quarter of ordinary restart-to-restart variability is not
    practically interesting) and the seed count `engine.audit.statistics.
    required_sample_size` says is needed for 80% power at that margin,
-   capped to `[MIN_SEEDS, MAX_SEEDS]`.
+   floored at `MIN_SEEDS` (no upper cap -- see issue #25).
 2. **Selection ceiling** (`engine.audit.calibration.selection_ceiling`) on
    the same pilot seeds, reported per SPEC.md's requirement to check rather
    than assume it.
@@ -22,6 +22,17 @@ Margin, niter, and seed count are therefore chosen from the probe alone,
 never from the direction or size of the real sweep's own result -- the real
 sweep's seeds never overlap the probe's, so nothing about the final verdict
 could have leaked into the choices that produced it.
+
+Until issue #25, this script capped the real sweep's seed count at
+`MAX_SEEDS=60` regardless of what the feasibility probe recommended --
+confirmed (issue #19) to be able to change a verdict. That cap is removed;
+see `SEED_CAP_FIX_SPEC.md` for the fix and a confirmatory re-run of every
+row this script originally under-powered. The historical
+`results/basinhopping_audit/audit.json` committed by PR #16 is
+deliberately left untouched by that re-run (its own numbers are quoted in
+`SPEC.md`'s Results section) -- running this corrected script for real
+produces a new, larger-`n` result at fresh seeds, not a silent rewrite of
+what PR #16 reported.
 """
 
 from __future__ import annotations
@@ -53,7 +64,14 @@ PILOT_NITER = 50
 decided once, before any results existed, and held fixed across both so the
 probe's spread estimate applies to the sweep it informs."""
 
-PILOT_SEEDS = list(range(1000, 1015))  # 15 seeds, disjoint from the real sweep's
+PILOT_SEEDS = list(range(7000, 7015))
+"""15 seeds, disjoint from the real sweep's and from every other pilot
+block used anywhere in plugins/basinhopping_audit/ (issue #25,
+SEED_CAP_FIX_SPEC.md -- see that file for the full disjointness ledger).
+Moved here from range(1000, 1015) when the MAX_SEEDS cap below was
+removed: SEED_CAP_FIX_SPEC.md's design calls for a wholly fresh,
+independently-drawn confirmation rather than extending the original
+capped run's seed range."""
 MARGIN_FRACTION = 0.25
 """Practical-equivalence margin, as a fraction of the control arm's single-
 restart standard deviation across the pilot's seeds. A difference smaller
@@ -62,7 +80,17 @@ practically interesting -- pre-registered as a fixed convention here, not
 tuned per function after seeing an effect."""
 
 MIN_SEEDS = 20
-MAX_SEEDS = 60
+# No MAX_SEEDS: removed by issue #25 (SEED_CAP_FIX_SPEC.md). A silent
+# ceiling here truncated the real sweep below what the feasibility probe's
+# own power calculation required -- confirmed, empirically, to be able to
+# change a verdict (issue #19's Ackley reversal). See
+# run_ackley_power_experiment.py / run_rastrigin_power_experiment.py for
+# the pattern this now matches.
+REAL_SWEEP_SEED_OFFSET = 40_000
+"""Where the real sweep's seeds start. Was `range(seed_count)` (i.e.
+offset 0) before issue #25; moved off zero for the same reason PILOT_SEEDS
+moved -- a fresh, disjoint confirmation, not an extension of the original
+capped run's own seed range."""
 CEILING_RESTARTS_CAP = 10
 """selection_ceiling's `restarts` -- capped well below niter+1 (which would
 be 51): the ceiling only needs enough restarts to see whether there is a
@@ -90,7 +118,7 @@ def main() -> int:
         margin = max(MARGIN_FRACTION * control_spread, 1e-9)
 
         needed_n = required_sample_size(margin, spread, confidence=0.90, target_power=0.80)
-        seed_count = MIN_SEEDS if needed_n is None else min(max(needed_n, MIN_SEEDS), MAX_SEEDS)
+        seed_count = MIN_SEEDS if needed_n is None else max(needed_n, MIN_SEEDS)
         print(
             f"[basinhopping] {name}: probe spread={spread:.4g} control_spread={control_spread:.4g} "
             f"margin={margin:.4g} required_n={needed_n} -> seed_count={seed_count} "
@@ -115,7 +143,7 @@ def main() -> int:
         )
 
         # 3. Real audit, fresh disjoint seeds.
-        real_seeds = list(range(seed_count))
+        real_seeds = list(range(REAL_SWEEP_SEED_OFFSET, REAL_SWEEP_SEED_OFFSET + seed_count))
         t0 = time.time()
         report = audit(
             scaffold,
