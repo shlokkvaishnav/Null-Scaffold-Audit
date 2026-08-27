@@ -94,9 +94,10 @@ Claims one issue, answers it, opens a PR.
    "Decision (implementer's self-assessment)" honestly, including if the
    honest answer is REVISE or ABANDON — a self-assessed ABANDON is still a
    useful PR, it documents why an approach didn't pan out.
-7. Swap the issue's label to `stage:in-review` (or close the issue and
-   reference the PR, whichever the repo's convention ends up being — pick one
-   and stay consistent).
+7. Swap the issue's label to `stage:in-review` **and add the same label to
+   the PR itself** (`gh pr edit <n> --add-label stage:in-review`) — the
+   role-selection query below reads the PR's label, not the issue's, and a
+   PR with no label of its own is invisible to it.
 
 **Never:** invent scope beyond what the issue specifies (if the work reveals
 a bigger or different question, that's a new issue for the researcher, not a
@@ -123,12 +124,14 @@ generic code review.
 6. Post the decision: MERGE / ARCHIVE / REVISE / ABANDON / REPRODUCE, with
    the reasoning `research/DECISION_LOG.md`-style — specific enough that
    someone reading only this comment later understands why.
-7. If MERGE: label the PR `stage:approved-pending-merge` and stop. **Do not
-   merge.** A human merges.
-8. If ARCHIVE / ABANDON / REPRODUCE: label accordingly, and add an entry to
-   `research/DECISION_LOG.md` — the reviewer is the one who has just read the
-   full evidence, so this is the right point to record why, not something to
-   leave for later.
+7. If MERGE: label **both** the PR and its linked issue
+   `stage:approved-pending-merge` and stop. **Do not merge.** A human
+   merges — always, no exception, regardless of how confident the review
+   is; see "Why merge stays manual" below.
+8. If ARCHIVE / ABANDON / REPRODUCE: label accordingly (PR and issue both),
+   and add an entry to `research/DECISION_LOG.md` — the reviewer is the one
+   who has just read the full evidence, so this is the right point to
+   record why, not something to leave for later.
 
 **Never:** push a code change to the branch (comment instead); merge under
 any circumstance; wave a criterion through without checking it because the
@@ -136,18 +139,24 @@ result looked good.
 
 ## What the human still does
 
-Reads reviewer-approved PRs and clicks merge. Reads ARCHIVE/ABANDON
-decisions and can override them (nothing here removes human judgment, it
-just means the human isn't needed for every intermediate step).
+**Merges.** Nothing else in this pipeline requires the human anymore — see
+"Why merge stays manual," below, for why that one step doesn't collapse
+into the loop along with everything else. Reads ARCHIVE/ABANDON decisions
+and can override them; that's a read of something already recorded in
+`DECISION_LOG.md`, not a blocking step.
 
-## Role selection (one tick, one role)
+## Role selection (chain until idle, not one-role-per-tick)
 
-Each tick, before doing anything else, run these `gh` queries in order and
-play the **first** role whose condition is true. Stop after finishing that
-role's one unit of work (one PR reviewed, one issue implemented, one issue
-filed) — do not chain into a second role in the same tick, even if its
-condition also holds. This priority order clears the pipeline
-downstream-first, so work already in flight finishes before new work starts:
+Run these `gh` queries in order and play the **first** role whose condition
+is true. Unlike the pipeline's first design (one role, then stop for the
+next scheduled tick), a single loop iteration now **chains**: the moment a
+role's one unit of work finishes (a PR reviewed, an issue implemented, an
+issue filed), immediately re-run this same query list from the top and play
+whatever fires next — do not wait for the next scheduled wakeup. Only stop
+this iteration once condition 4 (idle) is reached, i.e. nothing fires two
+checks in a row for the same reason. This priority order clears the
+pipeline downstream-first, so work already in flight finishes before new
+work starts:
 
 1. **`gh pr list --label stage:in-review`** returns anything → play
    **Reviewer** on the oldest PR.
@@ -159,11 +168,42 @@ downstream-first, so work already in flight finishes before new work starts:
    that stale proposals don't pile up unimplemented) → play **Researcher**
    and file exactly one issue.
 4. Else, idle: log which condition was checked and why nothing fired, then
-   stop until next tick.
+   stop this iteration.
 
 Follow the matching role's numbered instructions above exactly — the role
 selection only decides *which* numbered list to execute, it does not change
 what's in them.
+
+**Chaining stops being safe to auto-continue past a MERGE-decided PR.**
+Reviewer step 7 labels a MERGE-approved PR `stage:approved-pending-merge`,
+which removes it from query 1 above — the chain correctly moves on to
+Implementer/Researcher instead of looping on the same PR. But nothing
+downstream of that label fires again until a human actually merges (see
+below). This is intentional, not a gap: it's what keeps "chain until idle"
+from quietly becoming "chain through a merge with no human ever looking."
+
+## Why merge stays manual
+
+Every other step in this pipeline collapsed into one auto-chaining loop
+because each one is independently checkable — CI is green or it isn't, the
+nine merge criteria are met or they're written up as not met, a spec was
+copied verbatim or it wasn't. Merge is different: it's the one step whose
+entire purpose is a check *external* to the process that produced the
+thing being checked. `GIT_WORKFLOW.md` already halves this problem by
+requiring the researcher/implementer/reviewer split in the first place, but
+this pipeline runs all three roles from one account now, and this session
+already hit direct evidence of what that costs: GitHub itself refused
+`gh pr review --approve` on PR #26 with "Can not approve your own pull
+request," because reviewer and implementer share one identity here. A
+human clicking merge is the last checkpoint that isn't also this same
+account grading its own homework. Auto-merging on a MERGE decision would
+remove it — and because this loop is meant to run continuously and
+unattended, a wrong MERGE wouldn't wait for anyone to notice before it
+compounded into `main`, which this project's own README calls "the
+validated research state." Keeping merge manual is a deliberate, revisited
+decision (not an oversight left over from the three-session design), made
+explicitly so the loop can run near-continuously everywhere else without
+that risk.
 
 ## Guarding role separation within one session
 
