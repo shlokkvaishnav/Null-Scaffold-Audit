@@ -1,26 +1,47 @@
-# The three-session research pipeline
+# The role-rotating research pipeline
 
 This describes how research/GIT_WORKFLOW.md's process runs in practice when
-three separate Claude Code sessions — researcher, implementer, reviewer —
-carry it out, coordinating only through GitHub state (issues, branches, PRs,
-labels), not through live messaging between sessions. Nothing here changes
-GIT_WORKFLOW.md's actual policy; it says how that policy gets executed by
-three independent parties who may never run at the same time.
+**one** Claude Code session carries it out, picking up whichever of three
+roles — researcher, implementer, reviewer — GitHub state says is next, and
+coordinating only through that state (issues, branches, PRs, labels), never
+through in-session memory of "what I decided as researcher an hour ago."
+Nothing here changes GIT_WORKFLOW.md's actual policy; it says how that
+policy gets executed by one party that plays three parts in rotation.
+
+This document originally described three separate sessions running these
+roles concurrently. That model is retired — see "Why one session now"
+below — but the role definitions and the loop-readiness decision logic were
+written to be role-agnostic from the start, so nothing about them changed.
 
 ## Why GitHub state instead of live coordination
 
 Every handoff between roles has to be a durable, auditable artifact — the
 same reason DECISION_LOG.md exists ("this prevents the repository from
-becoming dependent on the researcher's memory"). A live conversation between
-two sessions vanishes unless someone copies it into a PR anyway, so it never
-was the real coordination layer. Issues and PR comments are.
+becoming dependent on the researcher's memory"). This matters even more now
+that one session plays every role: without a hard rule to re-derive each
+role's state from GitHub rather than from what the session remembers writing
+as a different role minutes earlier, the roles quietly merge into one voice
+and the separation of concerns (proposer / builder / independent checker)
+stops meaning anything. Issues and PR comments are the coordination layer,
+full stop — not context carried over in the conversation.
 
 A consequence worth being explicit about: this also means no role needs the
-other two to be running right now. The researcher can file five issues today;
-the implementer can pick one up next week; the reviewer can process a PR
-whenever it's ready. The pipeline degrades gracefully to "whoever's turn it
-is next," which is also what makes it loop-ready later (see the bottom of
-this document).
+others to have "just run." The pipeline degrades gracefully to "whichever
+role GitHub state says is next," which is what makes the single-session
+rotation in this document possible, and what made the old three-session
+version possible before it.
+
+## Why one session now
+
+Three independent sessions were the safest way to get real role separation:
+a researcher session literally could not see the implementer's reasoning,
+so its issue-filing couldn't be biased by knowing how the fix would land.
+Running one session through all three roles trades that hard separation for
+operational simplicity — one thing to schedule, one context window, one
+place to look. The role instructions below are unchanged; what changes is
+**how the session decides which role to play this tick**, and an explicit
+rule against a role trusting its own prior-role reasoning (see "Guarding
+role separation within one session").
 
 ## Roles
 
@@ -117,24 +138,65 @@ result looked good.
 
 Reads reviewer-approved PRs and clicks merge. Reads ARCHIVE/ABANDON
 decisions and can override them (nothing here removes human judgment, it
-just means the human isn't needed for every intermediate step). Decides when
-to start a fresh researcher/implementer/reviewer cycle.
+just means the human isn't needed for every intermediate step).
 
-## Loop-readiness (design note, not built yet)
+## Role selection (one tick, one role)
 
-The label states above are exactly what a scheduled loop would poll:
+Each tick, before doing anything else, run these `gh` queries in order and
+play the **first** role whose condition is true. Stop after finishing that
+role's one unit of work (one PR reviewed, one issue implemented, one issue
+filed) — do not chain into a second role in the same tick, even if its
+condition also holds. This priority order clears the pipeline
+downstream-first, so work already in flight finishes before new work starts:
 
-- A researcher loop checks whether `stage:proposed` count is below some
-  threshold N; if so, look for the next gap and file one issue, then stop
-  until next tick.
-- An implementer loop checks for any `stage:proposed` issue with no
-  assignee; claims and works the oldest one; stops until next tick.
-- A reviewer loop checks `stage:in-review` PRs; processes the oldest one;
-  stops until next tick.
+1. **`gh pr list --label stage:in-review`** returns anything → play
+   **Reviewer** on the oldest PR.
+2. Else, **`gh issue list --label stage:proposed --assignee ""`** returns
+   anything → play **Implementer** on the oldest unclaimed issue.
+3. Else, **`gh issue list --label stage:proposed`**'s count is below
+   threshold N (default N = 3 — enough runway that the implementer role
+   never stalls waiting on the researcher role's next tick, small enough
+   that stale proposals don't pile up unimplemented) → play **Researcher**
+   and file exactly one issue.
+4. Else, idle: log which condition was checked and why nothing fired, then
+   stop until next tick.
 
-Each of those is a single `gh` query plus the same instructions already
-given to the manual sessions above — nothing about the label taxonomy,
-templates, or process needs to change to run this way later. Whether to
-actually schedule it (this harness's `/loop`, or a cron) is a separate,
-later decision — this section exists so that decision doesn't require a
-redesign when it's made.
+Follow the matching role's numbered instructions above exactly — the role
+selection only decides *which* numbered list to execute, it does not change
+what's in them.
+
+## Guarding role separation within one session
+
+The three roles used to be enforced by being different sessions that
+literally could not see each other's reasoning. One session rotating roles
+has to enforce that separation by rule instead of by architecture:
+
+- **Re-derive state from GitHub, not from this conversation's memory.**
+  When playing Reviewer, read the PR, the linked issue, and `SPEC.md` on the
+  branch as if seeing them for the first time — do not reuse
+  implementer-role reasoning from earlier in the same session as a shortcut.
+  If the implementer-role work happened this session, that is exactly the
+  case most likely to produce a rubber-stamp review, because the reviewer
+  role already "knows" the conclusion is right.
+- **Never review or approve your own PR**, regardless of which session
+  wrote it. If the PR under review at step 1 was opened by this same
+  session's implementer-role turn, the review still has to independently
+  re-derive MERGE / ARCHIVE / REVISE / ABANDON / REPRODUCE from the nine
+  merge criteria — an approval that amounts to "I already decided this was
+  good when I wrote it" is not a review.
+- **Never let the researcher role scope an issue around a solution the
+  session already has in mind.** The researcher role's job is to find a
+  real gap per README.md / DECISION_LOG.md, not to pre-stage easy work for
+  the implementer role it's about to become.
+- If a tick's role selection would have this session review its own
+  immediately-prior work (Implementer this tick, and next tick's Reviewer
+  query would pick up that same PR), that's expected and fine — the rules
+  above are what keep it honest, not avoiding the sequence.
+
+## Running this as a loop
+
+Role selection above is exactly what a scheduled loop polls each tick — see
+the harness's `/loop` skill (dynamic pacing, no fixed interval needed) or a
+cron. Nothing about the label taxonomy, templates, or role instructions
+needs to change to run this way; only the three separate per-role loops
+originally sketched here collapsed into the single decision tree above.
