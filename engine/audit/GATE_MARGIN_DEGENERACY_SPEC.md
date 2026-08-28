@@ -163,3 +163,115 @@ evidence. Changing `_resolve`'s output for even one already-published row
 is a real behavior change (unlike issue #27's purely additive field) -- must
 be called out prominently in the PR, not treated as equivalent in risk to
 adding a diagnostic.
+
+## Results
+
+**Outcome: the Alternative hypothesis, cleanly -- same pattern as issue #27
+itself.** Implemented Candidate 1 (gate): `arms.py`'s new
+`_guard_margin_degeneracy` withdraws a metric's verdict to `INCONCLUSIVE`
+whenever `margin_degeneracy.degenerate` is `True`, mirroring
+`_guard_vacuous_comparison`'s existing precedent exactly (interval/p-value/
+margin retained, a `test` string added, `boundary_clearance_ratio` cleared
+per that field's own documented invariant).
+
+**One design detail not anticipated in the issue's Experimental design:
+ordering relative to `_holm_correct` matters here in a way it didn't for
+`_guard_vacuous_comparison`.** `_guard_vacuous_comparison` withdraws every
+metric at once or none (it's a whole-arms condition), so running it after
+Holm correction is harmless. `_guard_margin_degeneracy` is per-metric --
+had it run after Holm correction instead, a margin-degenerate metric's own
+meaningless `CONTRIBUTES`/`HARMFUL` claim would still have counted toward
+the Holm family size for any other metric audited alongside it in the same
+`audit()` call, weakening that metric's correction for no real reason.
+Placed *before* `_holm_correct` instead, so a withdrawn metric is already
+`INCONCLUSIVE` (and excluded from `_holm_correct`'s own
+`v.verdict in {CONTRIBUTES, HARMFUL}` filter) by the time the correction
+family is built. No row in this project's current history has more than
+one metric per `audit()` call, so this had no effect on any already-
+published result -- but the ordering is still the correct general design,
+not an untested convenience.
+
+Retrospectively validated (`tests/test_audit_margin_degeneracy_gating.py`,
+same 14 rows as issue #27, no new searcher/scaffold runs): reconstructed
+each row's real `MetricVerdict` via `equivalence_verdict` +
+`assess_margin_degeneracy` from its own committed raw arm data, ran it
+through `_guard_margin_degeneracy`, and compared the result against
+`DECISION_LOG.md`'s established trust labels --
+
+| Row | Gated? | Resulting verdict | Matches DECISION_LOG.md? |
+|---|---|---|---|
+| `run_audit.py` Griewank, PR #16 | yes | `INCONCLUSIVE` | yes -- already `INCONCLUSIVE` |
+| `run_audit.py` Griewank, issue #25 | yes | `INCONCLUSIVE` (was `HARMFUL`) | yes -- entry explicitly says don't trust it |
+| every other row (12 total) | no | unchanged | yes -- none are margin-degenerate |
+
+Zero false positives, zero false negatives, against the full 14-row set --
+not just the two Griewank rows. Also confirmed live, not only
+retrospectively: `test_audit_withdraws_a_genuinely_margin_degenerate_live_run`
+runs a synthetic scaffold with a genuinely frozen control arm through
+`arms.audit()` end-to-end and checks the withdrawal fires through the real
+code path, not just the standalone helper.
+
+## Interpretation
+
+Closes the reporting half of the gap issue #27 closed the detection half
+of: a margin-degenerate row no longer ships a verdict a reader has to know
+to distrust. Concretely, this means a *future*, single, unaccompanied
+`run_audit.py` run on Griewank (no side-by-side comparison to prompt
+suspicion, the exact situation that let issue #25's incident go unnoticed
+at first) will report `INCONCLUSIVE` mechanically, not `HARMFUL` or
+`INCONCLUSIVE` decided by which seeds happened to be drawn.
+
+**What this does NOT establish.** That `1e-4` (`DEFAULT_RATIO_THRESHOLD`,
+issue #27) is the right threshold in general -- this branch validates
+gating's *logic* given that threshold's existing output, not the threshold
+itself, which was already validated on the same 14 rows in issue #27 and is
+unchanged here. Also does not retroactively rewrite any committed
+`audit.json` artifact: `results/basinhopping_audit_seed_cap_fix/run_audit/
+audit.json` still shows Griewank's row as `HARMFUL` on disk, exactly as PR
+#26 committed it, because regenerating it would require an actual re-run
+(out of scope, per this branch's own "no new searcher/scaffold runs"
+design, same as issue #27's). The gate applies to `audit()` going forward,
+not to historical artifacts already on record -- readers of that specific
+file should cross-reference `DECISION_LOG.md`, same as before this branch,
+until a future run regenerates it.
+
+Does not change the project's research thesis ("Does the Scaffold Earn Its
+Keep") -- pure audit-infrastructure hardening, no new scaffold-contribution
+claim, matching issue #27's own conclusion.
+
+## Decision (implementer's self-assessment)
+
+- [x] MERGE
+- [ ] ARCHIVE
+- [ ] REVISE
+- [ ] ABANDON
+- [ ] REPRODUCE
+
+Why: all nine `GIT_WORKFLOW.md` criteria are met. Scientific relevance:
+closes the one deliberately-deferred question from issue #27/PR #28.
+Correctness: retrospectively validated against the full 14-row set with
+zero false positives/negatives, plus a live end-to-end confirmation, not
+only the standalone helper. Experimental validity: both candidate designs
+from the issue were genuinely considered; gating was chosen because it
+matched retrospective judgment exactly, not by default. Reproducibility:
+the ordering rationale (before Holm, not after) and the full validation
+table are recorded here, and `tests/test_audit_margin_degeneracy_gating.py`
+re-derives the same numbers from the same committed artifacts on every run.
+Documentation: `AUDIT_METHODOLOGY.md` §4.3a updated to describe gating, not
+just detection; `MetricVerdict.margin_degeneracy`'s and
+`margin_degeneracy.py`'s docstrings updated to stop claiming
+"diagnostic only," which this branch makes false. Interpretation: what
+this branch does and does not establish (particularly, that historical
+artifacts are not retroactively rewritten) is stated explicitly. Research
+integrity: this is flagged as a real behavior change, not equated in risk
+to issue #27's purely additive field, per the Confounds section above.
+Integration: matches `_guard_vacuous_comparison`'s existing withdrawal
+pattern exactly, placed in the one part of `audit()` where ordering
+actually needs to differ from that precedent, with the reason stated.
+Evidence: 14/14 rows correctly handled, 0 already-trusted rows affected,
+296/296 tests pass (276 pre-existing + 20 new).
+
+**Depends on PR #28 (issue #27) merging first** -- this branch is stacked
+on `method/audit-margin-degeneracy`, not `main`. A reviewer should not
+approve this for merge until #28 is merged and this branch is rebased onto
+the resulting `main`.

@@ -170,6 +170,13 @@ class MetricVerdict:
     without going through ``arms.audit()`` (e.g. directly from
     ``equivalence_verdict`` in a test); every audited row gets a report, even
     an unassessed one, the same way ``AuditReport.degenerate`` is always
-    present. Diagnostic only -- does not change ``verdict`` itself, the same
-    relationship ``DegeneracyReport.degenerate`` has to the overall verdict.
+    present.
+
+    ``degenerate=True`` here is not merely diagnostic: ``arms.audit()``'s
+    ``_guard_margin_degeneracy`` (issue #29) withdraws that metric's
+    ``verdict`` to ``INCONCLUSIVE`` when this fires, the same way
+    ``_guard_vacuous_comparison`` already withdraws one for a different
+    structural failure. This field, and the ``test`` string the withdrawn
+    verdict carries, are what's left to explain *why* -- the interval,
+    p-value, and margin all stay on the record either way.
     """
