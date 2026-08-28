@@ -386,6 +386,62 @@ def _holm_correct(
     return corrected
 
 
+def _guard_margin_degeneracy(
+    per_metric: Mapping[str, MetricVerdict],
+) -> tuple[dict[str, MetricVerdict], list[str]]:
+    """Withdraw a verdict computed against a margin that has collapsed to a
+    numerical floor (issue #27/#29).
+
+    A metric whose ``margin_degeneracy.degenerate`` is ``True`` was measured
+    against a margin with no domain meaning -- the control arm's own
+    cross-seed spread had already collapsed toward zero relative to the
+    treatment arm's, which is exactly what happened to Griewank's
+    ``run_audit.py`` row in issue #25/PR #26: the same design produced
+    ``INCONCLUSIVE`` and ``HARMFUL`` across two seed draws, decided by
+    floating-point-scale noise rather than the wrapper's actual behaviour.
+    Reporting that as an ordinary verdict, even with a diagnostic field
+    attached, risks being read as a real finding by anyone who doesn't check
+    it explicitly.
+
+    Mirrors ``_guard_vacuous_comparison``'s own withdrawal precedent for a
+    different structural failure (both arms identical rather than one arm's
+    spread being degenerate relative to the other): nothing is deleted, each
+    verdict keeps its interval, its p-value and its margin, and gains a
+    ``test`` string saying why.
+
+    Runs *before* ``_holm_correct``, unlike ``_guard_vacuous_comparison``
+    (which runs after, since it withdraws every metric at once or none, so
+    ordering relative to Holm doesn't matter for it). This check is
+    per-metric, so a margin-degenerate metric's now-meaningless
+    ``CONTRIBUTES``/``HARMFUL`` claim must not inflate the Holm family size
+    against a genuinely meaningful metric audited alongside it -- withdrawing
+    first removes it from ``_holm_correct``'s claims filter
+    (``v.verdict in {CONTRIBUTES, HARMFUL}``) before that filter runs.
+    """
+    withdrawn: list[str] = []
+    guarded = dict(per_metric)
+    for name, verdict in per_metric.items():
+        report = verdict.margin_degeneracy
+        if report is None or not report.degenerate:
+            continue
+        withdrawn.append(name)
+        guarded[name] = dataclasses.replace(
+            verdict,
+            verdict=Verdict.INCONCLUSIVE,
+            test=(
+                "withdrawn: control-arm spread is degenerate relative to the "
+                f"treatment arm's ({report.summary()}) -- the margin this "
+                "metric's verdict was computed against had collapsed to a "
+                "numerical floor with no domain meaning (issue #27/#29)"
+            ),
+            # A withdrawal to INCONCLUSIVE is no longer a superiority claim,
+            # so the ratio that described one must not survive it -- same
+            # invariant _guard_vacuous_comparison and _holm_correct enforce.
+            boundary_clearance_ratio=None,
+        )
+    return guarded, withdrawn
+
+
 def _guard_vacuous_comparison(
     per_metric: Mapping[str, MetricVerdict], arms: ArmOutcomes
 ) -> tuple[dict[str, MetricVerdict], bool]:
@@ -522,10 +578,21 @@ def audit(
             margin_degeneracy=assess_margin_degeneracy(control_values, treatment_values),
         )
 
+    per_metric, margin_degenerate_metrics = _guard_margin_degeneracy(per_metric)
     per_metric = _holm_correct(per_metric, alpha=(1.0 - confidence) / 2.0)
     per_metric, vacuous = _guard_vacuous_comparison(per_metric, arms)
 
     limitations = []
+    if margin_degenerate_metrics:
+        limitations.append(
+            "MARGIN_DEGENERATE: "
+            f"{', '.join(sorted(margin_degenerate_metrics))} had a control-arm "
+            "spread degenerate relative to the treatment arm's, so this metric's "
+            "verdict has been withdrawn to INCONCLUSIVE (issue #29) -- the "
+            "pre-registered margin had collapsed to a numerical floor with no "
+            "domain meaning, and reporting a verdict computed against it would "
+            "be reporting floating-point-scale noise as a finding."
+        )
     if vacuous:
         limitations.append(
             "VACUOUS: both arms returned an identical result on every seed, so "
