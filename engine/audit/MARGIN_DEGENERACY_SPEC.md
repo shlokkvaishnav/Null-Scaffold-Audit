@@ -162,3 +162,103 @@ must not change any already-computed verdict for already-published rows --
 verify by test that re-computing every existing committed row's `verdict`
 field is byte-identical after this branch; only the new diagnostic field
 should be additive.
+
+## Results
+
+**Outcome: the Alternative hypothesis, cleanly.** A first candidate design
+(comparing the pre-registered margin, or its numerical floor, against an
+absolute epsilon) was considered and rejected before implementation: it
+cannot be domain-independent, since "tiny in absolute terms" depends on the
+metric's own scale, which the engine is deliberately blind to (Article 5).
+
+The design actually implemented instead compares **control-arm spread to
+paired treatment-arm spread on the same metric, problem, and seeds** --
+data `arms.audit()` already has, independent of whatever margin formula or
+floor the plugin used. Retrospectively computed from every committed
+`plugins/basinhopping_audit/` `audit.json`'s raw per-seed arm values
+(`tests/test_audit_margin_degeneracy.py::test_margin_degeneracy_recomputed_from_committed_artifacts`,
+12 rows, no new searcher/scaffold runs):
+
+| Row | control:treatment ratio | Trust label (DECISION_LOG.md) |
+|---|---|---|
+| `run_audit.py` Griewank, PR #16 | ~4.86e-10 | untrusted |
+| `run_audit.py` Griewank, issue #25 | ~4.10e-10 | untrusted |
+| `run_stepsize_experiment.py` Griewank, PR #18 | ~0.228 | trusted |
+| `run_stepsize_experiment.py` Griewank, issue #25 | ~0.881 | trusted |
+| every Rastrigin/Ackley row (8 total, both scripts, both readings) | ~0.33 to ~2.09 | trusted |
+
+A threshold of `1e-4` (`DEFAULT_RATIO_THRESHOLD`) sits inside an eight
+order-of-magnitude gap between the untrusted cluster (~4-5e-10) and the
+trusted cluster's minimum (~0.228) -- not tuned to an edge.
+
+**The clean separation was not the obvious outcome going in.** Griewank's
+domain-scaled-stepsize control spread is *also* near floating-point-noise
+scale in absolute terms (~1e-10 to 1e-11, the same order of magnitude as
+the untrusted rows' control spreads) -- this project trusted that reading
+only because it was independently corroborated by issue #17's separate
+finding (a larger stepsize gives basin-hopping more room to move), not
+because anything about the row looked different from the untrusted ones on
+an absolute scale. An absolute-floor check would have flagged all four
+Griewank rows identically, unable to reproduce this project's own
+trust/untrust split -- which is exactly the SPEC's stated Null hypothesis,
+and is why the relative (control-vs-treatment) design was tried instead of
+an absolute one, and why it, not the more obvious absolute design, is what
+shipped.
+
+Implementation: `engine/audit/margin_degeneracy.py`
+(`MarginDegeneracyReport`, `assess_margin_degeneracy`), wired into
+`arms.py`'s `audit()` per-metric loop via `dataclasses.replace` after
+`equivalence_verdict()`, surfaced as `MetricVerdict.margin_degeneracy`.
+Held constant, verified: all 148 pre-existing `engine/audit` tests pass
+unchanged, `tools/check_domain_independence.py` passes, `ruff`/`mypy`
+clean -- no already-published verdict changed.
+
+## Interpretation
+
+Closes the gap this branch's Motivation names: a margin-degenerate row
+(Griewank's `run_audit.py` configuration) is now mechanically flagged the
+moment it's audited, the same way `DegeneracyReport` already flags
+intra-run redundancy -- not only discoverable by a human comparing two runs
+side by side after the fact, as issue #25's incident required.
+
+**What this does NOT establish.** The flag is diagnostic, not
+verdict-gating: `_resolve`'s logic is untouched, so a margin-degenerate row
+still reports whatever `NULL`/`HARMFUL`/`INCONCLUSIVE` the noise happened to
+produce, now simply labeled. Whether it *should* gate (e.g. force
+`INCONCLUSIVE`, or withdraw the verdict the way `_guard_vacuous_comparison`
+already does for a structurally different failure) is a separate,
+deliberately unanswered question -- this branch answers "can it be
+detected," not "what should happen once it is." The known-bad label set
+remains small (two readings of one function/configuration, per the
+Confounds section above); the threshold's eight-order-of-magnitude margin
+of safety mitigates but does not eliminate the overfitting risk that
+smallness carries.
+
+Does not change the project's research thesis ("Does the Scaffold Earn Its
+Keep") -- pure audit-infrastructure hardening, no new scaffold-contribution
+claim.
+
+## Decision (implementer's self-assessment)
+
+- [x] MERGE
+- [ ] ARCHIVE
+- [ ] REVISE
+- [ ] ABANDON
+- [ ] REPRODUCE
+
+Why: all nine `GIT_WORKFLOW.md` criteria are met. Scientific relevance:
+closes a real, twice-hit gap directly motivated by issue #25/PR #26.
+Correctness: retrospectively validated against 12 real rows, not
+synthetic-only. Experimental validity: the candidate design that would have
+been simpler (absolute-floor) was tried in reasoning first and explicitly
+rejected as not domain-independent, rather than skipped past. Reproducibility:
+threshold and validation table are in this file; `tests/test_audit_margin_degeneracy.py`
+re-derives the same numbers from the same committed artifacts on every run.
+Documentation: `AUDIT_METHODOLOGY.md` §4.3a. Interpretation: the
+"diagnostic, not gating" boundary is stated explicitly, not implied.
+Research integrity: the near-miss (an absolute check would not have worked)
+is reported, not hidden behind the design that did. Integration: matches
+`DegeneracyReport`'s existing pattern exactly (frozen dataclass report,
+`assessed`/`degenerate` shape, wired via `dataclasses.replace`). Evidence:
+12/12 retrospective rows correctly classified, 0 already-published verdicts
+changed.

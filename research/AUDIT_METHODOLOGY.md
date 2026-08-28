@@ -237,6 +237,44 @@ It is reported separately from the statistical verdict because it identifies a
 *mechanism*, not merely an outcome: `NULL` says the scaffold did not help;
 `DEGENERATE` says why.
 
+### 4.3a Margin degeneracy (issue #27)
+
+A different mechanism from §4.3's intra-run check, and does not overlap with
+it: a metric's pre-registered margin is conventionally derived from the
+control arm's own cross-seed spread (`fraction * control_spread`). When that
+spread itself collapses toward zero — the control arm's independent restarts
+converging to (numerically) the same point on every seed, not because the
+metric is uninteresting but because the problem's own control arm has nothing
+left to explore — the derived margin falls back on an arbitrary numerical
+floor with no domain meaning, and the verdict it produces is then decided by
+floating-point-scale noise in whichever seeds were drawn. This is not
+hypothetical: it is exactly what happened to Griewank's `run_audit.py` row,
+whose verdict flipped between `INCONCLUSIVE` (PR #16) and `HARMFUL` (issue
+#25) at the same `n`, same design, different seeds only — caught only by a
+human comparing two runs side by side and writing it up in `DECISION_LOG.md`.
+
+`engine/audit/margin_degeneracy.py` catches this mechanically, the same way
+§4.3 catches intra-run redundancy, but by a different signal: not the margin
+or its floor constant directly (both are plugin-level choices, outside what
+Article 5 lets the engine see), but the **ratio of the control arm's spread
+to the paired treatment arm's spread, on the same metric, same problem, same
+seeds**. A treatment arm still varying normally while its paired control arm
+is frozen at floating-point-noise scale is the structural signature of a
+control-derived margin having collapsed. Validated retrospectively against
+every already-committed `plugins/basinhopping_audit/` result
+(`MARGIN_DEGENERACY_SPEC.md`'s Results; `tests/test_audit_margin_degeneracy.py`),
+this separates cleanly: the two untrustworthy Griewank readings sit at a
+control:treatment spread ratio of ~4-5×10⁻¹⁰, and every trusted row —
+Griewank's own domain-scaled-stepsize `NULL` reading included — sits between
+~0.2 and ~2.1, eight orders of magnitude away with nothing in between.
+
+Reported as `MetricVerdict.margin_degeneracy`, alongside the verdict it
+qualifies, the same relationship `DegeneracyReport.degenerate` has to
+`AuditReport.verdict`: diagnostic only, does not itself change what the
+verdict asserts. Whether it *should* gate the verdict (e.g. force
+`INCONCLUSIVE`) is left open — the reporting question and the gating question
+are separable, and this branch answered only the first.
+
 ### 4.4 Interfaces
 
 These live in `engine/` and name no scientific concept, no algorithm, and no

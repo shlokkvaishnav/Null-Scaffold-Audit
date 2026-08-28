@@ -18,6 +18,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
+from engine.audit.margin_degeneracy import MarginDegeneracyReport
+
 
 class Verdict(StrEnum):
     """The outcome of comparing a wrapped pipeline against its bare primitive."""
@@ -158,4 +160,16 @@ class MetricVerdict:
     The RFC's wording is that the correction is "stated in the report rather
     than left implicit", so it travels with the number rather than living in
     prose someone has to go and find.
+    """
+
+    margin_degeneracy: MarginDegeneracyReport | None = None
+    """Whether this metric's control-arm spread is degenerate relative to its
+    treatment-arm spread -- the condition that forces a control-derived
+    margin down to an arbitrary numerical floor (issue #27,
+    ``engine/audit/margin_degeneracy.py``). ``None`` only for a verdict built
+    without going through ``arms.audit()`` (e.g. directly from
+    ``equivalence_verdict`` in a test); every audited row gets a report, even
+    an unassessed one, the same way ``AuditReport.degenerate`` is always
+    present. Diagnostic only -- does not change ``verdict`` itself, the same
+    relationship ``DegeneracyReport.degenerate`` has to the overall verdict.
     """
