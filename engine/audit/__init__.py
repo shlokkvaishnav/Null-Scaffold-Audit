@@ -21,6 +21,7 @@ from engine.audit.arms import (
 )
 from engine.audit.calibration import NullScaffold, OracleScaffold, WastefulScaffold
 from engine.audit.degeneracy import DegeneracyReport, assess_degeneracy
+from engine.audit.margin_degeneracy import MarginDegeneracyReport, assess_margin_degeneracy
 from engine.audit.problem import AuditProblem, AuditProblemSource
 from engine.audit.statistics import equivalence_verdict
 from engine.audit.verdict import MetricVerdict, Verdict
@@ -33,6 +34,7 @@ __all__ = [
     "BaseSearcher",
     "Budget",
     "DegeneracyReport",
+    "MarginDegeneracyReport",
     "MetricVerdict",
     "NotSeparableError",
     "NullScaffold",
@@ -42,6 +44,7 @@ __all__ = [
     "Verdict",
     "WastefulScaffold",
     "assess_degeneracy",
+    "assess_margin_degeneracy",
     "audit",
     "equivalence_verdict",
     "paired_seed",

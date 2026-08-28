@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
 from engine.audit.degeneracy import DegeneracyReport, assess_degeneracy
+from engine.audit.margin_degeneracy import assess_margin_degeneracy
 from engine.audit.statistics import equivalence_verdict
 from engine.audit.verdict import MetricVerdict, Verdict
 
@@ -502,14 +503,23 @@ def audit(
         for arm_name, outcomes in (("treatment", arms.treatment), ("control", arms.control)):
             if any(metric not in o.metrics for o in outcomes):
                 raise KeyError(f"metric {metric!r} missing from {arm_name} outcomes")
-        per_metric[metric] = equivalence_verdict(
-            [float(o.metrics[metric]) for o in arms.treatment],
-            [float(o.metrics[metric]) for o in arms.control],
-            metric=metric,
-            margin=margin,
-            higher_is_better=orientation.get(metric, False),
-            paired_binary=metric in paired_binary,
-            confidence=confidence,
+        treatment_values = [float(o.metrics[metric]) for o in arms.treatment]
+        control_values = [float(o.metrics[metric]) for o in arms.control]
+        per_metric[metric] = dataclasses.replace(
+            equivalence_verdict(
+                treatment_values,
+                control_values,
+                metric=metric,
+                margin=margin,
+                higher_is_better=orientation.get(metric, False),
+                paired_binary=metric in paired_binary,
+                confidence=confidence,
+            ),
+            # Diagnostic only (issue #27) -- computed from the same raw
+            # per-seed values already sliced above, not from the margin
+            # itself, so it stays meaningful even when the margin has
+            # already collapsed to its numerical floor.
+            margin_degeneracy=assess_margin_degeneracy(control_values, treatment_values),
         )
 
     per_metric = _holm_correct(per_metric, alpha=(1.0 - confidence) / 2.0)
