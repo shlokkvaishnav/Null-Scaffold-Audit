@@ -28,9 +28,13 @@ row in between: the two untrustworthy Griewank readings at a control:
 treatment spread ratio of ~4-5e-10, and every trusted row (Griewank's
 domain-scaled reading included) at a ratio between ~0.2 and ~2.1.
 
-Reported alongside the verdict, the same relationship ``DegeneracyReport``
-already has to `AuditReport` -- it identifies a mechanism, not merely an
-outcome, and does not itself change what the verdict asserts.
+Computed here, but the withdrawal it drives is not: this module only
+assesses and reports; ``arms.py``'s ``_guard_margin_degeneracy`` (issue #29)
+is what withdraws a degenerate metric's verdict to ``INCONCLUSIVE``, mirroring
+``_guard_vacuous_comparison``'s own precedent for a different structural
+failure. Kept separate the way ``degeneracy.py``'s ``assess_degeneracy`` is
+separate from whatever consumes ``DegeneracyReport`` -- this module names no
+verdict, only a measurement.
 """
 
 from __future__ import annotations

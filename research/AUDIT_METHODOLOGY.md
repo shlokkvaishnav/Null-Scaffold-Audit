@@ -269,11 +269,17 @@ Griewank's own domain-scaled-stepsize `NULL` reading included — sits between
 ~0.2 and ~2.1, eight orders of magnitude away with nothing in between.
 
 Reported as `MetricVerdict.margin_degeneracy`, alongside the verdict it
-qualifies, the same relationship `DegeneracyReport.degenerate` has to
-`AuditReport.verdict`: diagnostic only, does not itself change what the
-verdict asserts. Whether it *should* gate the verdict (e.g. force
-`INCONCLUSIVE`) is left open — the reporting question and the gating question
-are separable, and this branch answered only the first.
+qualifies. Unlike `DegeneracyReport.degenerate` (diagnostic only), a
+margin-degenerate metric's verdict *is* withdrawn: `arms.py`'s
+`_guard_margin_degeneracy` (issue #29) downgrades it to `INCONCLUSIVE`,
+mirroring `_guard_vacuous_comparison`'s existing precedent for a different
+structural failure. This was a deliberate, separately-decided follow-up —
+issue #27 answered only whether the condition could be detected; issue #29
+answered what should happen once it is, retrospectively validated against
+the same 14 rows: gating changes nothing for any already-trusted row (none
+of them are margin-degenerate in the first place) and reproduces this
+project's own `DECISION_LOG.md` judgment exactly for both untrustworthy
+Griewank readings.
 
 ### 4.4 Interfaces
 
