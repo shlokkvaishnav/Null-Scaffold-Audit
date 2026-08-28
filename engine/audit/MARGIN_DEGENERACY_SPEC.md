@@ -177,7 +177,9 @@ data `arms.audit()` already has, independent of whatever margin formula or
 floor the plugin used. Retrospectively computed from every committed
 `plugins/basinhopping_audit/` `audit.json`'s raw per-seed arm values
 (`tests/test_audit_margin_degeneracy.py::test_margin_degeneracy_recomputed_from_committed_artifacts`,
-12 rows, no new searcher/scaffold runs):
+14 rows across PRs #16, #18, #20, #22, and #26 -- the full scope this
+section originally stated -- no new searcher/scaffold runs; a reviewer pass
+on this branch caught the first version silently testing only 12 of the 14):
 
 | Row | control:treatment ratio | Trust label (DECISION_LOG.md) |
 |---|---|---|
@@ -185,7 +187,7 @@ floor the plugin used. Retrospectively computed from every committed
 | `run_audit.py` Griewank, issue #25 | ~4.10e-10 | untrusted |
 | `run_stepsize_experiment.py` Griewank, PR #18 | ~0.228 | trusted |
 | `run_stepsize_experiment.py` Griewank, issue #25 | ~0.881 | trusted |
-| every Rastrigin/Ackley row (8 total, both scripts, both readings) | ~0.33 to ~2.09 | trusted |
+| every Rastrigin/Ackley row (10 total: both main scripts x both readings, plus PR #20's Ackley-power and PR #22's Rastrigin-power) | ~0.33 to ~2.09 | trusted |
 
 A threshold of `1e-4` (`DEFAULT_RATIO_THRESHOLD`) sits inside an eight
 order-of-magnitude gap between the untrusted cluster (~4-5e-10) and the
@@ -260,5 +262,6 @@ Research integrity: the near-miss (an absolute check would not have worked)
 is reported, not hidden behind the design that did. Integration: matches
 `DegeneracyReport`'s existing pattern exactly (frozen dataclass report,
 `assessed`/`degenerate` shape, wired via `dataclasses.replace`). Evidence:
-12/12 retrospective rows correctly classified, 0 already-published verdicts
+14/14 retrospective rows correctly classified (full SPEC-stated scope,
+per the reviewer-requested fix), 0 already-published verdicts
 changed.

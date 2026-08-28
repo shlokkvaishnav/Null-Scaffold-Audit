@@ -28,17 +28,31 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # specifically are singled out per-row below, since a file can hold both a
 # trusted and an untrusted Griewank reading depending on which script and
 # stepsize configuration produced it.
-_ARTIFACTS = [
+#
+# The multi-function artifacts (PRs #16/#18/#26) nest rows under
+# "functions"; the single-function power-experiment artifacts (PRs #20/#22)
+# are the row itself at the top level -- both schemas are covered by
+# _load_rows() below, per this SPEC's own stated validation scope
+# (MARGIN_DEGENERACY_SPEC.md's Experimental design: "PRs #16, #18, #20,
+# #22, and #26"; a reviewer pass on this branch caught the first version
+# silently covering only #16/#18/#26).
+_MULTI_FUNCTION_ARTIFACTS = [
     "results/basinhopping_audit/audit.json",
     "results/basinhopping_audit_stepsize_scaling/audit.json",
     "results/basinhopping_audit_seed_cap_fix/run_audit/audit.json",
     "results/basinhopping_audit_seed_cap_fix/run_stepsize_experiment/audit.json",
+]
+_SINGLE_FUNCTION_ARTIFACTS = [
+    "results/basinhopping_audit_ackley_power/audit.json",
+    "results/basinhopping_audit_rastrigin_power/audit.json",
 ]
 
 # Per DECISION_LOG.md: only run_audit.py's unscaled-stepsize=0.5 Griewank
 # rows (both the PR #16 and issue #25 readings) are flagged untrustworthy.
 # run_stepsize_experiment.py's domain-scaled-stepsize Griewank row is
 # trusted (stable NULL across both readings, consistent with issue #17).
+# The two power-experiment artifacts (#20/#22) are Ackley/Rastrigin only --
+# no Griewank row exists in either -- so nothing here needs to be untrusted.
 _UNTRUSTED_GRIEWANK_FILES = {
     "results/basinhopping_audit/audit.json",
     "results/basinhopping_audit_seed_cap_fix/run_audit/audit.json",
@@ -48,10 +62,13 @@ _UNTRUSTED_GRIEWANK_FILES = {
 def _load_rows() -> list[tuple[str, str, dict]]:
     """(artifact path, function name, row) for every function in every artifact."""
     rows = []
-    for rel_path in _ARTIFACTS:
+    for rel_path in _MULTI_FUNCTION_ARTIFACTS:
         data = json.loads((REPO_ROOT / rel_path).read_text())
         for function, row in data["functions"].items():
             rows.append((rel_path, function, row))
+    for rel_path in _SINGLE_FUNCTION_ARTIFACTS:
+        row = json.loads((REPO_ROOT / rel_path).read_text())
+        rows.append((rel_path, row["config"]["function"], row))
     return rows
 
 
